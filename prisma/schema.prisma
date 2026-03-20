@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum RoleName {
+  ADMIN
+  DRIVER
+  PASSENGER
+}
+
+enum RouteType {
+  ONE_WAY
+  RETURN
+  ROUND_TRIP
+}
+
+enum TripStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  FINISHED
+  CANCELED
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  WEEKDAYS
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  cnpj        String
+  email       String
+  telephone   String
+  slug        String   @unique
+  status      Status
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+
+  // Relations
+  users       User[]           @relation("UserOrganization")
+  vehicles    Vehicle[]        @relation("VehicleOrganization")
+  trips       Trip[]           @relation("TripOrganization")
+  payments    Payment[]        @relation("PaymentOrganization")
+  enrollments Enrollment[]    @relation("EnrollmentOrganization")
+  auditLogs   AuditLog[]       @relation("AuditLogOrganization")
+
+  @@map("organization")
+}
+
+model Role {
+  id    Int       @id @default(autoincrement())
+  name  RoleName
+
+  // Relations
+  users User[] @relation("UserRoles")
+
+  @@map("role")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  telephone      String
+  birthDate      DateTime
+  organizationId String?
+  status         Status
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime?
+
+  // Relations
+  roles          Role[]           @relation("UserRoles")
+  organization   Organization?    @relation("UserOrganization", fields: [organizationId], references: [id])
+  driver         Driver?          @relation("DriverUser")
+  enrollments    Enrollment[]     @relation("EnrollmentUser")
+  auditLogs      AuditLog[]       @relation("AuditLogUser")
+
+  @@map("user")
+}
+
+model Driver {
+  userId      String @id
+  cnh         String
+  cnhCategory String
+
+  // Relations
+  user  User   @relation("DriverUser", fields: [userId], references: [id])
+  trips Trip[]  @relation("TripDriver")
+
+  @@map("driver")
+}
+
+model Vehicle {
+  id             String   @id @default(uuid())
+  plate          String   @unique
+  model          String
+  type           String
+  maxCapacity    Int
+  status         Status
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime?
+
+  // Relations
+  organization Organization @relation("VehicleOrganization", fields: [organizationId], references: [id])
+  trips        Trip[]       @relation("TripVehicle")
+
+  @@map("vehicle")
+}
+
+model Trip {
+  id             String     @id @default(uuid())
+  departurePoint String
+  destination    String
+  routeType      RouteType
+  priceOneWay    Float?
+  priceReturn    Float?
+  priceRoundTrip Float?
+  status         TripStatus
+  isRecurring    Boolean
+  frequency      Frequency?
+  tripDate       DateTime
+  shift          Shift
+  departureTime  DateTime
+  arrivalEstimate DateTime
+  totalCapacity  Int
+  driverId       String
+  vehicleId      String
+  organizationId String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime?
+
+  // Relations
+  driver       Driver       @relation("TripDriver", fields: [driverId], references: [userId])
+  vehicle      Vehicle      @relation("TripVehicle", fields: [vehicleId], references: [id])
+  organization Organization @relation("TripOrganization", fields: [organizationId], references: [id])
+  enrollments  Enrollment[] @relation("EnrollmentTrip")
+
+  @@map("trip")
+}
+
+model Enrollment {
+  id                String     @id @default(uuid())
+  enrollmentDate    DateTime
+  status            Status
+  presenceConfirmed Boolean
+  routeType         RouteType
+  recordedPrice     Float
+  userId            String
+  tripId            String
+  boardingPoint     String
+  organizationId    String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime?
+
+  // Relations
+  user         User            @relation("EnrollmentUser", fields: [userId], references: [id])
+  trip         Trip            @relation("EnrollmentTrip", fields: [tripId], references: [id])
+  payment      Payment?        @relation("PaymentEnrollment")
+  organization Organization    @relation("EnrollmentOrganization", fields: [organizationId], references: [id])
+
+  @@map("enrollment")
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  organizationId String
+  method         String
+  amount         Float
+  status         PaymentStatus
+  enrollmentId   String        @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime?
+
+  // Relations
+  organization Organization @relation("PaymentOrganization", fields: [organizationId], references: [id])
+  enrollment   Enrollment  @relation("PaymentEnrollment", fields: [enrollmentId], references: [id])
+
+  @@map("payment")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  action         String
+  timestamp      DateTime @default(now())
+
+  // Relations
+  organization Organization @relation("AuditLogOrganization", fields: [organizationId], references: [id])
+  user         User        @relation("AuditLogUser", fields: [userId], references: [id])
+
+  @@map("audit_log")
+}
