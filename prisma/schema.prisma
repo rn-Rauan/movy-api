@@ -38,10 +38,14 @@ enum TripStatus {
   CANCELED
 }
 
-enum Frequency {
-  DAILY
-  WEEKLY
-  WEEKDAYS
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
 }
 
 enum PaymentStatus {
@@ -50,37 +54,94 @@ enum PaymentStatus {
   FAILED
 }
 
+enum MethodPayment {
+  MONEY
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
 enum Shift {
   MORNING
   AFTERNOON
   EVENING
 }
 
-model Organization {
-  id          String   @id @default(uuid())
-  name        String
-  cnpj        String
-  email       String
-  telephone   String
-  slug        String   @unique
-  status      Status
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime?
+enum PlanName {
+  FREE
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+}
+
+model Plan {
+  id              Int            @id @default(autoincrement())
+  name            PlanName       @default(FREE)
+  price           Decimal        @db.Decimal(10, 2)
+  maxVehicles     Int
+  maxDrivers      Int
+  maxMonthlyTrips Int
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   // Relations
-  users       User[]           @relation("UserOrganization")
-  vehicles    Vehicle[]        @relation("VehicleOrganization")
-  trips       Trip[]           @relation("TripOrganization")
-  payments    Payment[]        @relation("PaymentOrganization")
-  enrollments Enrollment[]    @relation("EnrollmentOrganization")
-  auditLogs   AuditLog[]       @relation("AuditLogOrganization")
+  subscriptions  Subscription[] @relation("PlanSubscriptions")
+
+  @@map("plan")
+}
+
+model Organization {
+  id            String   @id @default(uuid())
+  name          String
+  cnpj          String   @unique
+  email         String   @unique
+  telephone     String
+  slug          String   @unique
+  status        Status   @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  users         User[]           @relation("UserOrganization")
+  vehicles      Vehicle[]        @relation("VehicleOrganization")
+  tripTemplates TripTemplate[]   @relation("TripTemplateOrganization")
+  payments      Payment[]        @relation("PaymentOrganization")
+  enrollments   Enrollment[]     @relation("EnrollmentOrganization")
+  auditLogs     AuditLog[]       @relation("AuditLogOrganization")
+  subscriptions Subscription[]   @relation("OrganizationSubscription")
 
   @@map("organization")
 }
 
+model Subscription {
+  id               String             @id @default(uuid())
+  organizationId   String
+  planId           Int
+  status           SubscriptionStatus @default(ACTIVE)
+  startDate        DateTime
+  expiresAt        DateTime
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  // Relations
+  organization     Organization       @relation("OrganizationSubscription", fields: [organizationId], references: [id])
+  plan             Plan               @relation("PlanSubscriptions", fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
 model Role {
-  id    Int       @id @default(autoincrement())
-  name  RoleName
+  id        Int      @id @default(autoincrement())
+  name      RoleName
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   users User[] @relation("UserRoles")
@@ -89,107 +150,122 @@ model Role {
 }
 
 model User {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   name           String
-  email          String   @unique
+  email          String       @unique
   passwordHash   String
   telephone      String
-  birthDate      DateTime
-  organizationId String?
-  status         Status
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime?
+  organizationId String? //Null for basic users, required for organization members
+  status         Status       @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   // Relations
-  roles          Role[]           @relation("UserRoles")
-  organization   Organization?    @relation("UserOrganization", fields: [organizationId], references: [id])
-  driver         Driver?          @relation("DriverUser")
-  enrollments    Enrollment[]     @relation("EnrollmentUser")
-  auditLogs      AuditLog[]       @relation("AuditLogUser")
+  roles        Role[]         @relation("UserRoles")
+  organization Organization?  @relation("UserOrganization", fields: [organizationId], references: [id])
+  driver       Driver?        @relation("DriverUser")
+  enrollments  Enrollment[]   @relation("EnrollmentUser")
+  auditLogs    AuditLog[]     @relation("AuditLogUser")
 
   @@map("user")
 }
 
 model Driver {
-  userId      String @id
-  cnh         String
-  cnhCategory String
+  userId        String         @id
+  cnh           String
+  cnhCategory   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   // Relations
-  user  User   @relation("DriverUser", fields: [userId], references: [id])
-  trips Trip[]  @relation("TripDriver")
+  user          User           @relation("DriverUser", fields: [userId], references: [id])
+  tripInstances TripInstance[] @relation("TripDriver")
 
   @@map("driver")
 }
 
 model Vehicle {
-  id             String   @id @default(uuid())
-  plate          String   @unique
+  id             String         @id @default(uuid())
+  plate          String         @unique
   model          String
   type           String
   maxCapacity    Int
-  status         Status
+  status         Status         @default(ACTIVE)
   organizationId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   // Relations
-  organization Organization @relation("VehicleOrganization", fields: [organizationId], references: [id])
-  trips        Trip[]       @relation("TripVehicle")
+  organization  Organization   @relation("VehicleOrganization", fields: [organizationId], references: [id])
+  tripInstances TripInstance[] @relation("TripVehicle")
 
   @@map("vehicle")
 }
 
-model Trip {
-  id             String     @id @default(uuid())
+model TripTemplate {
+  id             String      @id @default(uuid())
   departurePoint String
   destination    String
   routeType      RouteType
-  priceOneWay    Float?
-  priceReturn    Float?
-  priceRoundTrip Float?
-  status         TripStatus
+  priceOneWay    Decimal?    @db.Decimal(10, 2)
+  priceReturn    Decimal?    @db.Decimal(10, 2)
+  priceRoundTrip Decimal?    @db.Decimal(10, 2)
   isRecurring    Boolean
-  frequency      Frequency?
-  tripDate       DateTime
+  frequency      DayOfWeek[]
   shift          Shift
-  departureTime  DateTime
-  arrivalEstimate DateTime
-  totalCapacity  Int
-  driverId       String
-  vehicleId      String
+  status         Status      @default(ACTIVE)
   organizationId String
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  //Relations
+  organization  Organization   @relation("TripTemplateOrganization", fields: [organizationId], references: [id])
+  tripInstances TripInstance[] @relation("TripInstanceTemplate")
+
+  @@map("trip_template")
+}
+
+model TripInstance {
+  id                     String     @id @default(uuid())
+  driverId               String
+  vehicleId              String
+  totalCapacity          Int
+  tripStatus             TripStatus @default(SCHEDULED)
+  tripTemplateId         String
+  statusForRecurringTrip Status? // Only for recurring trips
+  departureTime          DateTime
+  arrivalEstimate        DateTime
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
 
   // Relations
   driver       Driver       @relation("TripDriver", fields: [driverId], references: [userId])
   vehicle      Vehicle      @relation("TripVehicle", fields: [vehicleId], references: [id])
-  organization Organization @relation("TripOrganization", fields: [organizationId], references: [id])
-  enrollments  Enrollment[] @relation("EnrollmentTrip")
+  tripTemplate TripTemplate @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id])
+  enrollments  Enrollment[] @relation("EnrollmentTripInstance")
 
-  @@map("trip")
+  @@map("trip_instance")
 }
 
 model Enrollment {
   id                String     @id @default(uuid())
   enrollmentDate    DateTime
-  status            Status
-  presenceConfirmed Boolean
+  status            Status     @default(ACTIVE)
+  presenceConfirmed Boolean    @default(false)
   routeType         RouteType
-  recordedPrice     Float
+  recordedPrice     Decimal    @db.Decimal(10, 2)
   userId            String
-  tripId            String
+  tripInstanceId    String
   boardingPoint     String
   organizationId    String
   createdAt         DateTime   @default(now())
-  updatedAt         DateTime?
+  updatedAt         DateTime   @updatedAt
 
   // Relations
-  user         User            @relation("EnrollmentUser", fields: [userId], references: [id])
-  trip         Trip            @relation("EnrollmentTrip", fields: [tripId], references: [id])
-  payment      Payment?        @relation("PaymentEnrollment")
-  organization Organization    @relation("EnrollmentOrganization", fields: [organizationId], references: [id])
+  user         User         @relation("EnrollmentUser", fields: [userId], references: [id])
+  tripInstance TripInstance @relation("EnrollmentTripInstance", fields: [tripInstanceId], references: [id])
+  payment      Payment?     @relation("PaymentEnrollment")
+  organization Organization @relation("EnrollmentOrganization", fields: [organizationId], references: [id])
 
   @@map("enrollment")
 }
@@ -197,16 +273,16 @@ model Enrollment {
 model Payment {
   id             String        @id @default(uuid())
   organizationId String
-  method         String
-  amount         Float
+  method         MethodPayment
+  amount         Decimal       @db.Decimal(10, 2)
   status         PaymentStatus
   enrollmentId   String        @unique
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime?
+  updatedAt      DateTime      @updatedAt
 
   // Relations
   organization Organization @relation("PaymentOrganization", fields: [organizationId], references: [id])
-  enrollment   Enrollment  @relation("PaymentEnrollment", fields: [enrollmentId], references: [id])
+  enrollment   Enrollment   @relation("PaymentEnrollment", fields: [enrollmentId], references: [id])
 
   @@map("payment")
 }
@@ -220,7 +296,7 @@ model AuditLog {
 
   // Relations
   organization Organization @relation("AuditLogOrganization", fields: [organizationId], references: [id])
-  user         User        @relation("AuditLogUser", fields: [userId], references: [id])
+  user         User         @relation("AuditLogUser", fields: [userId], references: [id])
 
   @@map("audit_log")
 }
