@@ -12,7 +12,7 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 5701
+EXPOSE 5700
 
 CMD [ "npm", "start" ]
 

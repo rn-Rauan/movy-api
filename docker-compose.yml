@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: movy_db
+    restart: always
+    ports:
+      - "5705:5432"
+    environment:
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker07
+      POSTGRES_DB: movy
+    volumes:
+      - ./movy_db_data:/var/lib/postgresql/data
+  api:
+    image: movy-api:latest
+    build: .
+    container_name: movy_api
+    restart: always
+    ports:
+    - "5700:5700"
+    env_file:
+    - .env
+    depends_on:
+    - postgres
+    
+volumes:
+ movy_db_data:

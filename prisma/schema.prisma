@@ -82,7 +82,7 @@ enum SubscriptionStatus {
 
 model Plan {
   id              Int            @id @default(autoincrement())
-  name            PlanName       @default(FREE)
+  name            PlanName       @default(FREE) @unique
   price           Decimal        @db.Decimal(10, 2)
   maxVehicles     Int
   maxDrivers      Int
@@ -94,16 +94,17 @@ model Plan {
   // Relations
   subscriptions  Subscription[] @relation("PlanSubscriptions")
 
+  @@index([isActive])
   @@map("plan")
 }
 
 model Organization {
   id            String   @id @default(uuid())
-  name          String
+  name          String   @db.VarChar(255)
   cnpj          String   @unique
   email         String   @unique
-  telephone     String
-  slug          String   @unique
+  telephone     String   @db.VarChar(20)
+  slug          String   @unique @db.VarChar(100)
   status        Status   @default(ACTIVE)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -117,6 +118,8 @@ model Organization {
   auditLogs     AuditLog[]       @relation("AuditLogOrganization")
   subscriptions Subscription[]   @relation("OrganizationSubscription")
 
+  @@index([slug])
+  @@index([status])
   @@map("organization")
 }
 
@@ -131,54 +134,71 @@ model Subscription {
   updatedAt        DateTime           @updatedAt
 
   // Relations
-  organization     Organization       @relation("OrganizationSubscription", fields: [organizationId], references: [id])
+  organization     Organization       @relation("OrganizationSubscription", fields: [organizationId], references: [id], onDelete: Cascade)
   plan             Plan               @relation("PlanSubscriptions", fields: [planId], references: [id])
 
+  @@index([organizationId])
+  @@index([status])
   @@map("subscriptions")
 }
 
 model Role {
   id        Int      @id @default(autoincrement())
-  name      RoleName
+  name      RoleName @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  users User[] @relation("UserRoles")
+  userRoles UserRole[] @relation("RoleToUserRole")
 
   @@map("role")
 }
 
 model User {
   id             String       @id @default(uuid())
-  name           String
-  email          String       @unique
+  name           String       @db.VarChar(255)
+  email          String       @unique @db.VarChar(255)
   passwordHash   String
-  telephone      String
+  telephone      String       @db.VarChar(20)
   organizationId String? //Null for basic users, required for organization members
   status         Status       @default(ACTIVE)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   // Relations
-  roles        Role[]         @relation("UserRoles")
-  organization Organization?  @relation("UserOrganization", fields: [organizationId], references: [id])
+  userRoles    UserRole[]     @relation("UserToUserRole")
+  organization Organization?  @relation("UserOrganization", fields: [organizationId], references: [id], onDelete: SetNull)
   driver       Driver?        @relation("DriverUser")
   enrollments  Enrollment[]   @relation("EnrollmentUser")
   auditLogs    AuditLog[]     @relation("AuditLogUser")
 
+  @@index([organizationId])
+  @@index([status])
   @@map("user")
+}
+
+model UserRole {
+  userId    String
+  roleId    Int
+  assignedAt DateTime @default(now())
+
+  // Relations
+  user User @relation("UserToUserRole", fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation("RoleToUserRole", fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_role")
 }
 
 model Driver {
   userId        String         @id
-  cnh           String
-  cnhCategory   String
+  cnh           String         @unique @db.VarChar(20)
+  cnhCategory   String         @db.VarChar(5)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
   // Relations
-  user          User           @relation("DriverUser", fields: [userId], references: [id])
+  user          User           @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
   tripInstances TripInstance[] @relation("TripDriver")
 
   @@map("driver")
@@ -186,9 +206,9 @@ model Driver {
 
 model Vehicle {
   id             String         @id @default(uuid())
-  plate          String         @unique
-  model          String
-  type           String
+  plate          String         @unique @db.VarChar(10)
+  model          String         @db.VarChar(255)
+  type           String         @db.VarChar(100)
   maxCapacity    Int
   status         Status         @default(ACTIVE)
   organizationId String
@@ -196,16 +216,18 @@ model Vehicle {
   updatedAt      DateTime       @updatedAt
 
   // Relations
-  organization  Organization   @relation("VehicleOrganization", fields: [organizationId], references: [id])
-  tripInstances TripInstance[] @relation("TripVehicle")
+  organization   Organization   @relation("VehicleOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  tripInstances  TripInstance[] @relation("TripVehicle")
 
+  @@index([organizationId])
+  @@index([status])
   @@map("vehicle")
 }
 
 model TripTemplate {
   id             String      @id @default(uuid())
-  departurePoint String
-  destination    String
+  departurePoint String      @db.VarChar(255)
+  destination    String      @db.VarChar(255)
   routeType      RouteType
   priceOneWay    Decimal?    @db.Decimal(10, 2)
   priceReturn    Decimal?    @db.Decimal(10, 2)
@@ -215,13 +237,17 @@ model TripTemplate {
   shift          Shift
   status         Status      @default(ACTIVE)
   organizationId String
+  isPublic       Boolean     @default(false)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
   //Relations
-  organization  Organization   @relation("TripTemplateOrganization", fields: [organizationId], references: [id])
-  tripInstances TripInstance[] @relation("TripInstanceTemplate")
+  organization   Organization   @relation("TripTemplateOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  tripInstances  TripInstance[] @relation("TripInstanceTemplate")
 
+  @@index([organizationId])
+  @@index([status])
+  @@index([isPublic])
   @@map("trip_template")
 }
 
@@ -239,34 +265,43 @@ model TripInstance {
   updatedAt              DateTime   @updatedAt
 
   // Relations
-  driver       Driver       @relation("TripDriver", fields: [driverId], references: [userId])
-  vehicle      Vehicle      @relation("TripVehicle", fields: [vehicleId], references: [id])
-  tripTemplate TripTemplate @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id])
-  enrollments  Enrollment[] @relation("EnrollmentTripInstance")
+  driver       Driver               @relation("TripDriver", fields: [driverId], references: [userId], onDelete: Cascade)
+  vehicle      Vehicle              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Cascade)
+  tripTemplate TripTemplate         @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id], onDelete: Cascade)
+  enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
 
+  @@index([driverId])
+  @@index([vehicleId])
+  @@index([tripTemplateId])
+  @@index([tripStatus])
+  @@index([departureTime])
   @@map("trip_instance")
 }
 
 model Enrollment {
   id                String     @id @default(uuid())
-  enrollmentDate    DateTime
+  enrollmentDate    DateTime   @default(now())
   status            Status     @default(ACTIVE)
   presenceConfirmed Boolean    @default(false)
   routeType         RouteType
   recordedPrice     Decimal    @db.Decimal(10, 2)
   userId            String
   tripInstanceId    String
-  boardingPoint     String
+  boardingPoint     String     @db.VarChar(255)
   organizationId    String
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
   // Relations
-  user         User         @relation("EnrollmentUser", fields: [userId], references: [id])
-  tripInstance TripInstance @relation("EnrollmentTripInstance", fields: [tripInstanceId], references: [id])
+  user         User         @relation("EnrollmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  tripInstance TripInstance @relation("EnrollmentTripInstance", fields: [tripInstanceId], references: [id], onDelete: Cascade)
   payment      Payment?     @relation("PaymentEnrollment")
-  organization Organization @relation("EnrollmentOrganization", fields: [organizationId], references: [id])
+  organization Organization @relation("EnrollmentOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([tripInstanceId])
+  @@index([organizationId])
+  @@index([status])
   @@map("enrollment")
 }
 
@@ -275,15 +310,17 @@ model Payment {
   organizationId String
   method         MethodPayment
   amount         Decimal       @db.Decimal(10, 2)
-  status         PaymentStatus
+  status         PaymentStatus @default(PENDING)
   enrollmentId   String        @unique
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   // Relations
-  organization Organization @relation("PaymentOrganization", fields: [organizationId], references: [id])
-  enrollment   Enrollment   @relation("PaymentEnrollment", fields: [enrollmentId], references: [id])
+  organization Organization @relation("PaymentOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment   @relation("PaymentEnrollment", fields: [enrollmentId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId])
+  @@index([status])
   @@map("payment")
 }
 
@@ -291,12 +328,15 @@ model AuditLog {
   id             String   @id @default(uuid())
   organizationId String
   userId         String
-  action         String
+  action         String   @db.VarChar(255)
   timestamp      DateTime @default(now())
 
   // Relations
-  organization Organization @relation("AuditLogOrganization", fields: [organizationId], references: [id])
-  user         User         @relation("AuditLogUser", fields: [userId], references: [id])
+  organization Organization @relation("AuditLogOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("AuditLogUser", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId])
+  @@index([userId])
+  @@index([timestamp])
   @@map("audit_log")
 }
