@@ -1,4 +1,4 @@
-import { DomainError } from 'src/shared/errors/DomainError';
+import { DomainError } from 'src/shared/errors/domain.error';
 
 /**
  * Erro genérico de validação do User

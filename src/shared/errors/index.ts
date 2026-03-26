@@ -1,7 +1,7 @@
-export { DomainError } from './DomainError';
+export { DomainError } from './domain.error';
 export { 
   ValidationError, 
   InvalidEmailError, 
   RequiredFieldError, 
   StringLengthError 
-} from './ValidationError';
+} from './validation.error';

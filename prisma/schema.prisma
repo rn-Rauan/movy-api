@@ -234,6 +234,7 @@ model TripTemplate {
   isRecurring    Boolean
   frequency      DayOfWeek[]
   shift          Shift
+  stops          String[] 
   status         Status      @default(ACTIVE)
   organizationId String
   isPublic       Boolean     @default(false)
@@ -289,7 +290,8 @@ model Enrollment {
   recordedPrice     Decimal    @db.Decimal(10, 2)
   userId            String
   tripInstanceId    String
-  boardingPoint     String     @db.VarChar(255)
+  boardingStop      String     @db.VarChar(255)   // Ex: "A2"
+  alightingStop     String     @db.VarChar(255)   // Ex: "B2"
   organizationId    String
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt

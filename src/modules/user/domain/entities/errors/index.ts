@@ -3,4 +3,4 @@ export {
   InvalidUserNameError, 
   InvalidUserTelephoneError, 
   InvalidPasswordError 
-} from './UserErrors';
+} from './user.errors';

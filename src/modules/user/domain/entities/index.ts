@@ -1,9 +1,9 @@
-export { User } from './User';
-export type { UserProps } from './User';
-export { UserValidator } from './UserValidator';
+export { User } from './user.entity';
+export type { UserProps } from './user.entity';
+export { UserValidator } from './user.validator';
 export { 
   UserValidationError,
   InvalidUserNameError, 
   InvalidUserTelephoneError, 
   InvalidPasswordError 
-} from './erros';
+} from './errors';

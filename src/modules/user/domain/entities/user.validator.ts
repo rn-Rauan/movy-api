@@ -1,19 +1,14 @@
-import { InvalidUserNameError, InvalidUserTelephoneError, InvalidPasswordError } from './erros';
+import { InvalidUserNameError, InvalidUserTelephoneError, InvalidPasswordError } from './errors';
 import { InvalidEmailError, StringLengthError } from 'src/shared/errors';
 
 /**
- * Serviço de validação para a entidade User
- * Responsável por validar todos os campos do usuário
+ * Validate user entity
  * 
- * Princípio SOLID aplicado:
- * - Single Responsibility: apenas valida campos do usuário
- * - Dependency Inversion: pode ser injetado como dependência
- * - Open/Closed: fácil adicionar novas validações sem modificar a entidade
  */
 export class UserValidator {
   /**
-   * Valida o nome do usuário
-   * @param name Nome a ser validado
+   * Validate user name
+   * @param name Name to be validated
    * @throws InvalidUserNameError
    * @throws StringLengthError
    */
@@ -34,8 +29,8 @@ export class UserValidator {
   }
 
   /**
-   * Valida o email do usuário
-   * @param email Email a ser validado
+   * Validate user email
+   * @param email Email to be validated
    * @throws InvalidEmailError
    */
   validateEmail(email: string): void {
@@ -47,8 +42,8 @@ export class UserValidator {
   }
 
   /**
-   * Valida o hash de senha
-   * @param passwordHash Hash da senha a ser validado
+   * Validate user password hash
+   * @param passwordHash Password hash to be validated
    * @throws InvalidPasswordError
    * @throws StringLengthError
    */
@@ -63,9 +58,8 @@ export class UserValidator {
   }
 
   /**
-   * Valida o telefone do usuário
-   * Formato esperado: (XX) 9XXXX-XXXX ou (XX) XXXX-XXXX
-   * @param telephone Telefone a ser validado
+   * Validate user telephone
+   * @param telephone Telephone to be validated
    * @throws InvalidUserTelephoneError
    */
   validateTelephone(telephone: string): void {
@@ -77,9 +71,9 @@ export class UserValidator {
   }
 
   /**
-   * Valida todos os campos do usuário
-   * Útil para validação em massa
-   * @throws Pode lançar qualquer um dos erros de validação acima
+   * Validate all user fields
+   * Useful for batch validation
+   * @throws Can throw any of the validation errors above
    */
   validateAll(data: {
     name: string;

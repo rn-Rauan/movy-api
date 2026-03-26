@@ -1,5 +1,5 @@
-import { Status } from "src/shared/types/Status";
-import { UserValidator } from "./UserValidator";
+import { Status } from "src/shared/types/status.type";
+import { UserValidator } from "./user.validator";
 
 /**
  * Interface that defines the properties of the User entity.

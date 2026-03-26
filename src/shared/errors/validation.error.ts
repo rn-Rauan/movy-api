@@ -1,4 +1,4 @@
-import { DomainError } from './DomainError';
+import { DomainError } from './domain.error';
 
 /**
  * Erro genérico de validação
