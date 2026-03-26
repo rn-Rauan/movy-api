@@ -21,7 +21,6 @@ enum Status {
 enum RoleName {
   ADMIN
   DRIVER
-  PASSENGER
 }
 
 enum RouteType {
@@ -110,13 +109,14 @@ model Organization {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  users         User[]           @relation("UserOrganization")
+  memberships   OrganizationMembership[]     @relation("UserMembershipOrganization")
   vehicles      Vehicle[]        @relation("VehicleOrganization")
   tripTemplates TripTemplate[]   @relation("TripTemplateOrganization")
   payments      Payment[]        @relation("PaymentOrganization")
   enrollments   Enrollment[]     @relation("EnrollmentOrganization")
   auditLogs     AuditLog[]       @relation("AuditLogOrganization")
   subscriptions Subscription[]   @relation("OrganizationSubscription")
+  tripInstances  TripInstance[]    @relation("TripInstanceOrganization")
 
   @@index([slug])
   @@index([status])
@@ -149,7 +149,7 @@ model Role {
   updatedAt DateTime @updatedAt
 
   // Relations
-  userRoles UserRole[] @relation("RoleToUserRole")
+  userRoles OrganizationMembership[] @relation("RoleToMembership")
 
   @@map("role")
 }
@@ -160,33 +160,32 @@ model User {
   email          String       @unique @db.VarChar(255)
   passwordHash   String
   telephone      String       @db.VarChar(20)
-  organizationId String? //Null for basic users, required for organization members
   status         Status       @default(ACTIVE)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   // Relations
-  userRoles    UserRole[]     @relation("UserToUserRole")
-  organization Organization?  @relation("UserOrganization", fields: [organizationId], references: [id], onDelete: SetNull)
+  userRoles    OrganizationMembership[]     @relation("UserToMembership")
   driver       Driver?        @relation("DriverUser")
   enrollments  Enrollment[]   @relation("EnrollmentUser")
   auditLogs    AuditLog[]     @relation("AuditLogUser")
 
-  @@index([organizationId])
   @@index([status])
   @@map("user")
 }
 
-model UserRole {
-  userId    String
-  roleId    Int
-  assignedAt DateTime @default(now())
+model OrganizationMembership {
+  userId         String
+  roleId         Int
+  organizationId String
+  assignedAt     DateTime @default(now())
 
   // Relations
-  user User @relation("UserToUserRole", fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation("RoleToUserRole", fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation("UserToMembership", fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation("RoleToMembership", fields: [roleId], references: [id], onDelete: Cascade)
+  organization Organization @relation("UserMembershipOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId])
+  @@id([userId, roleId, organizationId])
   @@map("user_role")
 }
 
@@ -261,6 +260,7 @@ model TripInstance {
   statusForRecurringTrip Status? // Only for recurring trips
   departureTime          DateTime
   arrivalEstimate        DateTime
+  organizationId         String
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
@@ -269,12 +269,14 @@ model TripInstance {
   vehicle      Vehicle              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Cascade)
   tripTemplate TripTemplate         @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id], onDelete: Cascade)
   enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
+  organization Organization          @relation("TripInstanceOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([driverId])
   @@index([vehicleId])
   @@index([tripTemplateId])
   @@index([tripStatus])
   @@index([departureTime])
+  @@index([organizationId])
   @@map("trip_instance")
 }
 
