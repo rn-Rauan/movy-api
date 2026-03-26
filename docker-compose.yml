@@ -20,6 +20,8 @@ services:
     restart: always
     ports:
     - "5700:5700"
+    environment:
+      DATABASE_URL: "postgresql://docker:docker07@postgres:5432/movy?schema=public"
     env_file:
     - .env
     depends_on:
