@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import { DomainError } from "../errors/domain.error";
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -30,6 +31,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
         error = (exceptionResponse as any).error;
       } else {
         message = exceptionResponse as string;
+      }
+    } else if (exception instanceof DomainError) {
+      message = exception.message;
+      switch (exception.code) {
+        case "USER_NOT_FOUND":
+          status = HttpStatus.NOT_FOUND;
+          break;
+        case "USER_EMAIL_ALREADY_EXISTS":
+          status = HttpStatus.CONFLICT;
+          break;
+        case "INVALID_USER_NAME":
+        case "INVALID_USER_TELEPHONE":
+        case "INVALID_PASSWORD":
+          status = HttpStatus.BAD_REQUEST;
+          break;
+        default:
+          status = HttpStatus.INTERNAL_SERVER_ERROR;
       }
     } else if (exception instanceof Error) {
       message = exception.message;

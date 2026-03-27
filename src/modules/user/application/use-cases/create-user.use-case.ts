@@ -1,9 +1,10 @@
-import { ConflictException, Injectable } from "@nestjs/common";
-import { UserRepository } from "../../domain/interfaces/user.repository";
+import { Injectable } from "@nestjs/common";
 import { CreateUserDto } from "../dto/create-user.dto";
 import { User } from "../../domain/entities";
 import { randomUUID } from "crypto";
 import { HashProvider } from "src/shared/providers/interfaces/hash.interface";
+import { UserEmailAlreadyExistsError } from "../../domain/entities/errors/user.errors";
+import { UserRepository } from "../../domain/interfaces/user.repository";
 
 @Injectable()
 export class CreateUserUseCase{
@@ -13,7 +14,7 @@ export class CreateUserUseCase{
         const userExists = await this.userRepository.findByEmail(userDto.email)
 
         if(userExists){
-            throw new ConflictException("Email already exists");
+            throw new UserEmailAlreadyExistsError(userDto.email);
         }
 
         const id = randomUUID()
