@@ -58,7 +58,7 @@ export class PrismaUserRepository implements UserRepository {
       },
     });
 
-    return users.map(user => UserMapper.toDomain(user));
+    return users.map((user) => UserMapper.toDomain(user));
   }
 
   async delete(id: string): Promise<void> {

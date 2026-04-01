@@ -5,8 +5,7 @@ WORKDIR /movy-api
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install
-RUN npx prisma generate
+RUN npm install && npx prisma generate
 
 COPY . .
 

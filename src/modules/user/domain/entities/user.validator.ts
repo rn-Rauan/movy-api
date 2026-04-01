@@ -1,4 +1,8 @@
-import { InvalidUserNameError, InvalidUserTelephoneError, InvalidPasswordError } from './errors';
+import {
+  InvalidUserNameError,
+  InvalidUserTelephoneError,
+  InvalidPasswordError,
+} from './errors';
 import { InvalidEmailError, StringLengthError } from 'src/shared/errors';
 
 /**
@@ -35,7 +39,7 @@ export class UserValidator {
    */
   validateEmail(email: string): void {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i;
-    
+
     if (!emailRegex.test(email)) {
       throw new InvalidEmailError(email);
     }
