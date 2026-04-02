@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './shared/exceptions/all-exceptions.filter';
-import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+import { AllExceptionsFilter } from './shared/presentation/exceptions/all-exceptions.filter';
+import { LoggingInterceptor } from './shared/presentation/interceptors/logging.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import "dotenv/config";
 

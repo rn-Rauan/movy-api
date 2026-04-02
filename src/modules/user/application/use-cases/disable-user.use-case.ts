@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { UserRepository } from "../../domain/interfaces/user.repository";
 import { InactiveUserError, UserNotFoundError } from "../../domain/entities/errors/user.errors";
-import { Status } from "src/shared/types/status.type";
+import { Status } from "src/shared/domain/types/status.type";
 import { User } from "../../domain/entities";
 
 @Injectable()

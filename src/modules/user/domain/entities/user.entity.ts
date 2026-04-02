@@ -1,57 +1,48 @@
-import { Status } from "src/shared/types/status.type";
-import { UserValidator } from "./user.validator";
+import { Status } from 'src/shared/domain/types/status.type';
+import { Email, PasswordHash, Telephone, UserName } from './value-objects';
 
 /**
  * Interface that defines the properties of the User entity.
- * 
+ *
  */
 export interface UserProps {
   readonly id: string;
-  name: string;
-  email: string;
-  passwordHash: string;
-  telephone: string;
+  name: UserName;
+  email: Email;
+  passwordHash: PasswordHash;
+  telephone: Telephone;
   readonly createdAt?: Date;
   updatedAt?: Date;
   status?: Status;
 }
 /**
  * Entity User
- * 
+ *
  * Responsibility:
  * - Manage user data
  * - Validate data integrity
- * 
+ *
  */
 export class User {
   private readonly props: Required<UserProps>;
-  private readonly validator: UserValidator;
 
-  private constructor(props: UserProps,validator?: UserValidator) {
-    this.validator = validator || new UserValidator();
+  private constructor(props: UserProps) {
+    const now: Date = new Date();
 
-    // Validate all properties
-    this.validator.validateAll({
-      name: props.name,
-      email: props.email,
-      passwordHash: props.passwordHash,
-      telephone: props.telephone,
-    });
-
-    const now : Date = new Date();
-
-    this.props ={
+    this.props = {
       ...props,
-      status: props.status ?? ("ACTIVE" as Status),
+      status: props.status ?? ('ACTIVE' as Status),
       createdAt: props.createdAt ?? now,
       updatedAt: props.updatedAt ?? now,
-    }
+    };
   }
 
   /**
    * Method to create a new User instance.
    */
-  static create(props: Omit<UserProps, "createdAt" | "status" | "updatedAt" >): User {
+  static create(
+    props: Omit<UserProps, 'createdAt' | 'status' | 'updatedAt'>,
+  ): User {
     return new User(props);
   }
 
@@ -67,42 +58,38 @@ export class User {
   }
 
   get name(): string {
-    return this.props.name;
+    return this.props.name.value_;
   }
 
   setName(name: string): void {
-    this.validator.validateName(name);
-    this.props.name = name;
+    this.props.name = UserName.create(name);
     this.props.updatedAt = new Date();
   }
 
   get email(): string {
-    return this.props.email;
+    return this.props.email.value_;
   }
 
   setEmail(email: string): void {
-    this.validator.validateEmail(email);
-    this.props.email = email;
+    this.props.email = Email.create(email);
     this.props.updatedAt = new Date();
   }
 
   get passwordHash(): string {
-    return this.props.passwordHash;
+    return this.props.passwordHash.value_;
   }
 
   setPasswordHash(passwordHash: string): void {
-    this.validator.validatePasswordHash(passwordHash);
-    this.props.passwordHash = passwordHash;
+    this.props.passwordHash = PasswordHash.create(passwordHash);
     this.props.updatedAt = new Date();
   }
 
   get telephone(): string {
-    return this.props.telephone;
+    return this.props.telephone.value_;
   }
 
   setTelephone(telephone: string): void {
-    this.validator.validateTelephone(telephone);
-    this.props.telephone = telephone;
+    this.props.telephone = Telephone.create(telephone);
     this.props.updatedAt = new Date();
   }
 
@@ -122,5 +109,4 @@ export class User {
   get updatedAt(): Date {
     return this.props.updatedAt;
   }
-
 }

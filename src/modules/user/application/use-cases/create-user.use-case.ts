@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { HashProvider } from "src/shared/providers/interfaces/hash.interface";
 import { UserEmailAlreadyExistsError } from "../../domain/entities/errors/user.errors";
 import { UserRepository } from "../../domain/interfaces/user.repository";
+import { Email, PasswordHash, Telephone, UserName } from "../../domain/entities/value-objects";
 
 @Injectable()
 export class CreateUserUseCase{
@@ -22,10 +23,10 @@ export class CreateUserUseCase{
 
         const user = User.create({
             id: id,
-            name: userDto.name,
-            email: userDto.email,
-            passwordHash: passwordHash,
-            telephone: userDto.telephone
+            name: UserName.create(userDto.name),
+            email: Email.create(userDto.email),
+            passwordHash: PasswordHash.create(passwordHash),
+            telephone: Telephone.create(userDto.telephone),
         })
 
         await this.userRepository.save(user);

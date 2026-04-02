@@ -1,4 +1,4 @@
-import { InvalidEmailError } from 'src/shared/errors';
+import { InvalidEmailError } from 'src/shared/domain/errors';
 
 /**
  * Email Value Object

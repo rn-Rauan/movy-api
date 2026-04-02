@@ -1,7 +1,7 @@
 import {
   InvalidUserNameError,
 } from '../errors';
-import { StringLengthError } from 'src/shared/errors';
+import { StringLengthError } from 'src/shared/domain/errors';
 
 /**
  * Name Value Object
@@ -11,7 +11,7 @@ import { StringLengthError } from 'src/shared/errors';
  * - Guarantee name invariants at type level
  * - Be immutable and comparable
  */
-export class Name {
+export class UserName {
   private readonly value: string;
 
   private constructor(name: string) {
@@ -24,7 +24,7 @@ export class Name {
    * @throws InvalidUserNameError if name is empty
    * @throws StringLengthError if name length is invalid
    */
-  static create(name: string): Name {
+  static create(name: string): UserName {
     if (!name || name.trim().length === 0) {
       throw new InvalidUserNameError(name, 'Name cannot be empty');
     }
@@ -39,7 +39,7 @@ export class Name {
       throw new StringLengthError('name', undefined, 255);
     }
 
-    return new Name(trimmedName);
+    return new UserName(trimmedName);
   }
 
   /**
@@ -52,8 +52,8 @@ export class Name {
   /**
    * Compare two names
    */
-  equals(other: Name): boolean {
-    if (!(other instanceof Name)) {
+  equals(other: UserName): boolean {
+    if (!(other instanceof UserName)) {
       return false;
     }
     return this.value === other.value;

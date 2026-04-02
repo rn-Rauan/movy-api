@@ -7,7 +7,7 @@ A Movy API é o núcleo de um ecossistema de software como serviço (SaaS) proje
 A metodologia adotada para o desenvolvimento do projeto baseia-se em práticas modernas de engenharia de software, garantindo escalabilidade, manutenibilidade e robustez.
 
 ### 2.1 Abordagem de Desenvolvimento
-- **Domain-Driven Design (DDD):** Foco no domínio do negócio e na lógica central, separando as preocupações de infraestrutura e apresentação.
+- **Domain-Driven Design (DDD):** Foco no domínio do negócio, utilizando padrões como **Entidades** para representar objetos com identidade (ex: `User`), **Value Objects** para encapsular regras de validação de dados (ex: `Email`, `UserName`) e o **Padrão de Repositório** para abstrair a persistência de dados.
 - **Clean Architecture:** Organização do código em camadas concêntricas (Domínio, Aplicação, Infraestrutura, Apresentação), garantindo que as regras de negócio sejam independentes de frameworks externos.
 - **Desenvolvimento Modular:** Divisão do sistema em módulos independentes (User, Organization, Trip, etc.), facilitando a manutenção e o crescimento orgânico do projeto.
 - **Test-Driven Development (TDD):** Priorização da criação de testes unitários e de integração (utilizando Jest) para garantir a integridade das funcionalidades.
@@ -46,6 +46,7 @@ graph TD
 
     subgraph Domain_Layer
         Entity[Entities / Agregados]
+        ValueObjects[Value Objects]
         Interface[Repository Interfaces]
         Errors[Domain Errors]
     end
@@ -67,7 +68,7 @@ graph TD
 A organização do projeto reflete a modularidade e a separação de camadas:
 - `src/modules/`: Contém os módulos funcionais do sistema (ex: `user`).
   - `application/`: DTOs e Casos de Uso.
-  - `domain/`: Entidades, validadores e interfaces de repositório.
+  - `domain/`: Entidades, Value Objects e interfaces de repositório.
   - `infrastructure/`: Implementações de banco de dados e mappers.
   - `presentation/`: Controladores e rotas.
 - `src/shared/`: Recursos compartilhados (filtros de exceção, interceptadores, provedores globais).
@@ -110,6 +111,7 @@ As seguintes funcionalidades foram implementadas e validadas:
 |**Multi-tenancy (SaaS)**                 | Implementação do modelo de `Organization` e `OrganizationMembership`, garantindo que dados de diferentes empresas sejam isolados. |
 | **Complexidade de Viagens Recorrentes** | Separação em `TripTemplate` (modelo da rota) e `TripInstance` (execução específica), permitindo agendamentos flexíveis.           |
 | **Manutenibilidade do Código**          | Adoção de Clean Architecture, que isola as regras de negócio de mudanças em tecnologias externas (como troca de ORM ou Banco de Dados). |
+| **Garantia da Integridade dos Dados**   | A validação de dados de domínio (ex: formato de e-mail, comprimento do nome) foi encapsulada em **Value Objects**. Isso substituiu o uso de tipos primitivos (`string`) e validadores espalhados, garantindo que um dado só possa ser instanciado em um estado válido, aumentando a robustez e a segurança do sistema. |
 | **Segurança de Dados**                  | Uso de Bcrypt para senhas e validação rigorosa de DTOs para prevenir entradas maliciosas.                                         |
 | **Acoplamento da Lógica de Negócio com o Protocolo HTTP** | Inicialmente, os casos de uso lançavam exceções HTTP (ex: `ConflictException`). Isso acoplava a camada de aplicação a detalhes da camada de apresentação. **Solução:** Foi implementado um sistema de **Erros de Domínio** (`DomainError`), onde os casos de uso lançam erros de negócio específicos (ex: `UserEmailAlreadyExistsError`). Um filtro global (`AllExceptionsFilter`) foi modificado para interceptar esses erros de domínio e traduzi-los para os códigos de status HTTP corretos (`409 Conflict`, `404 Not Found`, etc.), garantindo o desacoplamento das camadas. |
 

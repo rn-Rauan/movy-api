@@ -1,7 +1,7 @@
 import {
   InvalidPasswordError,
 } from '../errors';
-import { StringLengthError } from 'src/shared/errors';
+import { StringLengthError } from 'src/shared/domain/errors';
 
 /**
  * PasswordHash Value Object
