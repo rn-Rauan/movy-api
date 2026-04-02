@@ -1,6 +1,6 @@
-export { 
+export {
   UserValidationError,
-  InvalidUserNameError, 
-  InvalidUserTelephoneError, 
-  InvalidPasswordError 
+  InvalidUserNameError,
+  InvalidUserTelephoneError,
+  InvalidPasswordError,
 } from './user.errors';

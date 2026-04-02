@@ -28,7 +28,9 @@ export class InvalidUserTelephoneError extends UserValidationError {
   code = 'INVALID_USER_TELEPHONE';
 
   constructor(telephone: string) {
-    super(`Invalid telephone format "${telephone}". Expected format: (XX) 9XXXX-XXXX`);
+    super(
+      `Invalid telephone format "${telephone}". Expected format: (XX) 9XXXX-XXXX`,
+    );
   }
 }
 

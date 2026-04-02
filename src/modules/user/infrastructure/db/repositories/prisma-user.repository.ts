@@ -3,6 +3,10 @@ import { User } from 'src/modules/user/domain/entities';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
+import {
+  PaginationOptions,
+  PaginatedResponse,
+} from 'src/shared/domain/types/interfaces';
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
@@ -51,14 +55,35 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(userData);
   }
 
-  async findAll(): Promise<User[]> {
-    const users = await this.prisma.user.findMany({
-      where: {
-        status: 'ACTIVE',
-      },
-    });
+  async findAll(options: PaginationOptions): Promise<PaginatedResponse<User>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
 
-    return users.map((user) => UserMapper.toDomain(user));
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where: {
+          status: 'ACTIVE',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: skip,
+        take: limit,
+      }),
+      this.prisma.user.count({
+        where: {
+          status: 'ACTIVE',
+        },
+      }),
+    ]);
+
+    return {
+      data: users.map((user) => UserMapper.toDomain(user)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async delete(id: string): Promise<void> {

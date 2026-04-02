@@ -5,9 +5,9 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from "@nestjs/common";
-import { Request, Response } from "express";
-import { DomainError } from "../../domain/errors/domain.error";
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { DomainError } from '../../domain/errors/domain.error';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -19,14 +19,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = "Internal server error";
+    let message = 'Internal server error';
     let error = undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      if (typeof exceptionResponse === "object") {
+      if (typeof exceptionResponse === 'object') {
         message = (exceptionResponse as any).message || exception.message;
         error = (exceptionResponse as any).error;
       } else {
@@ -35,15 +35,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (exception instanceof DomainError) {
       message = exception.message;
       switch (exception.code) {
-        case "USER_NOT_FOUND":
+        case 'USER_NOT_FOUND':
           status = HttpStatus.NOT_FOUND;
           break;
-        case "USER_EMAIL_ALREADY_EXISTS":
+        case 'USER_EMAIL_ALREADY_EXISTS':
           status = HttpStatus.CONFLICT;
           break;
-        case "INVALID_USER_NAME":
-        case "INVALID_USER_TELEPHONE":
-        case "INVALID_PASSWORD":
+        case 'INVALID_USER_NAME':
+        case 'INVALID_USER_TELEPHONE':
+        case 'INVALID_PASSWORD':
           status = HttpStatus.BAD_REQUEST;
           break;
         default:
@@ -55,7 +55,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${message}`,
-      exception instanceof Error ? exception.stack : undefined
+      exception instanceof Error ? exception.stack : undefined,
     );
 
     response.status(status).json({

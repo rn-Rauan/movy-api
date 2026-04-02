@@ -1,18 +1,16 @@
-export abstract class HashProvider{
+export abstract class HashProvider {
+  /**
+   *
+   * @param password
+   * @returns passwordHash
+   */
+  abstract generateHash(password: string): Promise<string>;
 
-    /**
-     * 
-     * @param password 
-     * @returns passwordHash
-     */
-    abstract generateHash(password: string): Promise<string>
-
-    /**
-     * 
-     * @param password 
-     * @param passwordHash 
-     * @returns boolean
-     */
-    abstract compare(password: string, passwordHash: string): Promise<boolean>
-
+  /**
+   *
+   * @param password
+   * @param passwordHash
+   * @returns boolean
+   */
+  abstract compare(password: string, passwordHash: string): Promise<boolean>;
 }

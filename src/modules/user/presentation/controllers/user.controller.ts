@@ -6,6 +6,9 @@ import {
   Param,
   Get,
   Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { CreateUserDto } from '../../application/dto/create-user.dto';
@@ -16,6 +19,7 @@ import { FindUserByIdUseCase } from '../../application/use-cases/find-user-by-id
 import { DisableUserUseCase } from '../../application/use-cases/disable-user.use-case';
 import { FindAllUsersUseCase } from '../../application/use-cases/find-all-users.use-case';
 import { UserPresenter } from '../mappers/user.presenter';
+import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 
 @Controller('users')
 export class UserController {
@@ -29,9 +33,12 @@ export class UserController {
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    const user = await this.createUserUseCase.execute(createUserDto);
-
-    return UserPresenter.toHTTP(user);
+    try {
+      const user = await this.createUserUseCase.execute(createUserDto);
+      return UserPresenter.toHTTP(user);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Put(':id')
@@ -39,27 +46,66 @@ export class UserController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const user = await this.updateUserUseCase.execute(id, updateUserDto);
-
-    return UserPresenter.toHTTP(user);
+    try {
+      const user = await this.updateUserUseCase.execute(id, updateUserDto);
+      return UserPresenter.toHTTP(user);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get(':id')
   async findById(@Param('id') id: string): Promise<UserResponseDto> {
-    const user = await this.findUserByIdUseCase.execute(id);
-
-    return UserPresenter.toHTTP(user);
+    try {
+      const user = await this.findUserByIdUseCase.execute(id);
+      return UserPresenter.toHTTP(user);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Delete(':id')
   async disable(@Param('id') id: string): Promise<boolean> {
-    await this.disableUserUseCase.execute(id);
-    return true;
+    try {
+      await this.disableUserUseCase.execute(id);
+      return true;
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get()
-  async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.findAllUsersUseCase.execute();
-    return UserPresenter.toHTTPList(users);
+  async findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<PaginatedDto<UserResponseDto>> {
+    try {
+      const paginatedResult = await this.findAllUsersUseCase.execute({
+        page,
+        limit,
+      });
+
+      const data = paginatedResult.data.map(
+        (user) =>
+          new UserResponseDto({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            telephone: user.telephone,
+            status: user.status,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          }),
+      );
+
+      return new PaginatedDto(
+        data,
+        paginatedResult.total,
+        paginatedResult.page,
+        paginatedResult.limit,
+      );
+    } catch (error) {
+      throw error;
+    }
   }
 }

@@ -1,6 +1,4 @@
-import {
-  InvalidPasswordError,
-} from '../errors';
+import { InvalidPasswordError } from '../errors';
 import { StringLengthError } from 'src/shared/domain/errors';
 
 /**

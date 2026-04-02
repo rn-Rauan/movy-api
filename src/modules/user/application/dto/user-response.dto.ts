@@ -1,4 +1,4 @@
-import { Status } from "src/shared/domain/types/status.type";
+import { Status } from 'src/shared/domain/types/status.type';
 
 export class UserResponseDto {
   id: string;

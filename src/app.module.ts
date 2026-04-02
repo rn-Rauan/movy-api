@@ -8,6 +8,4 @@ import { UserModule } from './modules/user/user.module';
   controllers: [AppController],
   providers: [],
 })
-export class AppModule {
-  
-}
+export class AppModule {}

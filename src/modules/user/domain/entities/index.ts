@@ -1,8 +1,8 @@
 export { User } from './user.entity';
 export type { UserProps } from './user.entity';
-export { 
+export {
   UserValidationError,
-  InvalidUserNameError, 
-  InvalidUserTelephoneError, 
-  InvalidPasswordError 
+  InvalidUserNameError,
+  InvalidUserTelephoneError,
+  InvalidPasswordError,
 } from './errors';

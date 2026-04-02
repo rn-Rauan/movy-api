@@ -16,12 +16,7 @@ export class PaginatedDto<T> {
   @ApiProperty({ example: 10, description: 'Total de páginas' })
   readonly totalPages: number;
 
-  constructor(
-    data: T[],
-    total: number,
-    page: number,
-    limit: number,
-  ) {
+  constructor(data: T[], total: number, page: number, limit: number) {
     this.data = data;
     this.total = total;
     this.page = page;

@@ -16,7 +16,7 @@ import { FindAllUsersUseCase } from './application/use-cases/find-all-users.use-
   controllers: [UserController],
   providers: [
     CreateUserUseCase,
-    UpdateUserUseCase, 
+    UpdateUserUseCase,
     FindUserByIdUseCase,
     DisableUserUseCase,
     FindAllUsersUseCase,
@@ -29,6 +29,11 @@ import { FindAllUsersUseCase } from './application/use-cases/find-all-users.use-
       useClass: BcryptHashProvider,
     },
   ],
-  exports: [CreateUserUseCase, UpdateUserUseCase, FindUserByIdUseCase, FindAllUsersUseCase],
+  exports: [
+    CreateUserUseCase,
+    UpdateUserUseCase,
+    FindUserByIdUseCase,
+    FindAllUsersUseCase,
+  ],
 })
 export class UserModule {}
