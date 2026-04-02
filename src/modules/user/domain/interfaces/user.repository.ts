@@ -2,7 +2,7 @@ import { User } from '../entities';
 import {
   PaginationOptions,
   PaginatedResponse,
-} from 'src/shared/domain/types/interfaces';
+} from 'src/shared/domain/interfaces';
 
 export abstract class UserRepository {
   abstract save(user: User): Promise<User | null>;

@@ -4,7 +4,7 @@ import { User } from '../../domain/entities';
 import {
   PaginatedResponse,
   PaginationOptions,
-} from 'src/shared/domain/types/interfaces';
+} from 'src/shared/domain/interfaces';
 
 @Injectable()
 export class FindAllUsersUseCase {

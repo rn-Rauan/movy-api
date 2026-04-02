@@ -5,12 +5,8 @@ import { randomUUID } from 'crypto';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { UserEmailAlreadyExistsError } from '../../domain/entities/errors/user.errors';
 import { UserRepository } from '../../domain/interfaces/user.repository';
-import {
-  Email,
-  PasswordHash,
-  Telephone,
-  UserName,
-} from '../../domain/entities/value-objects';
+import { PasswordHash, UserName } from '../../domain/entities/value-objects';
+import { Telephone, Email } from 'src/shared/domain/value-objects';
 
 @Injectable()
 export class CreateUserUseCase {

@@ -1,4 +1,4 @@
-import { InvalidUserTelephoneError } from '../errors';
+import { InvalidUserTelephoneError } from '../../../modules/user/domain/entities/errors';
 
 /**
  * Telephone Value Object

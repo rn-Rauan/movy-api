@@ -1,11 +1,10 @@
 import { User as PrismaUser } from 'generated/prisma/client';
 import { User } from 'src/modules/user/domain/entities';
 import {
-  Email,
   PasswordHash,
   UserName,
-  Telephone,
 } from 'src/modules/user/domain/entities/value-objects';
+import { Telephone, Email } from 'src/shared/domain/value-objects';
 
 export class UserMapper {
   /**

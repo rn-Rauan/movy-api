@@ -6,7 +6,7 @@ import { UserRepository } from 'src/modules/user/domain/interfaces/user.reposito
 import {
   PaginationOptions,
   PaginatedResponse,
-} from 'src/shared/domain/types/interfaces';
+} from 'src/shared/domain/interfaces';
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {

@@ -1,33 +1,33 @@
 import { Status } from 'src/shared/domain/types/status.type';
-import { PasswordHash, UserName } from './value-objects';
 import { Telephone, Email } from 'src/shared/domain/value-objects';
+import { Cnpj, Slug, OrganizationName } from './value-objects';
 
 /**
- * Interface that defines the properties of the User entity.
- *
+ * Interface that defines the properties of the Organization entity.
  */
-export interface UserProps {
+export interface OrganizationProps {
   readonly id: string;
-  name: UserName;
+  name: OrganizationName;
+  cnpj: Cnpj;
   email: Email;
-  passwordHash: PasswordHash;
   telephone: Telephone;
+  slug: Slug;
+  status?: Status;
   readonly createdAt?: Date;
   updatedAt?: Date;
-  status?: Status;
 }
+
 /**
- * Entity User
+ * Entity Organization
  *
  * Responsibility:
- * - Manage user data
+ * - Manage organization data
  * - Validate data integrity
- *
  */
-export class User {
-  private readonly props: Required<UserProps>;
+export class Organization {
+  private readonly props: Required<OrganizationProps>;
 
-  private constructor(props: UserProps) {
+  private constructor(props: OrganizationProps) {
     const now: Date = new Date();
 
     this.props = {
@@ -39,19 +39,19 @@ export class User {
   }
 
   /**
-   * Method to create a new User instance.
+   * Method to create a new Organization instance.
    */
   static create(
-    props: Omit<UserProps, 'createdAt' | 'status' | 'updatedAt'>,
-  ): User {
-    return new User(props);
+    props: Omit<OrganizationProps, 'createdAt' | 'status' | 'updatedAt'>,
+  ): Organization {
+    return new Organization(props);
   }
 
   /**
-   * Method to restore a existing User instance.
+   * Method to restore a existing Organization instance.
    */
-  static restore(props: UserProps): User {
-    return new User(props);
+  static restore(props: OrganizationProps): Organization {
+    return new Organization(props);
   }
 
   get id(): string {
@@ -63,7 +63,16 @@ export class User {
   }
 
   setName(name: string): void {
-    this.props.name = UserName.create(name);
+    this.props.name = OrganizationName.create(name);
+    this.props.updatedAt = new Date();
+  }
+
+  get cnpj(): string {
+    return this.props.cnpj.value_;
+  }
+
+  setCnpj(cnpj: string): void {
+    this.props.cnpj = Cnpj.create(cnpj);
     this.props.updatedAt = new Date();
   }
 
@@ -76,21 +85,21 @@ export class User {
     this.props.updatedAt = new Date();
   }
 
-  get passwordHash(): string {
-    return this.props.passwordHash.value_;
-  }
-
-  setPasswordHash(passwordHash: string): void {
-    this.props.passwordHash = PasswordHash.create(passwordHash);
-    this.props.updatedAt = new Date();
-  }
-
   get telephone(): string {
     return this.props.telephone.value_;
   }
 
   setTelephone(telephone: string): void {
     this.props.telephone = Telephone.create(telephone);
+    this.props.updatedAt = new Date();
+  }
+
+  get slug(): string {
+    return this.props.slug.value_;
+  }
+
+  setSlug(slug: string): void {
+    this.props.slug = Slug.create(slug);
     this.props.updatedAt = new Date();
   }
 
