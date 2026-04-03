@@ -55,7 +55,9 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(userData);
   }
 
-  async findAll(options: PaginationOptions): Promise<PaginatedResponse<User>> {
+  async findAllActive(
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<User>> {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
@@ -75,6 +77,30 @@ export class PrismaUserRepository implements UserRepository {
           status: 'ACTIVE',
         },
       }),
+    ]);
+
+    return {
+      data: users.map((user) => UserMapper.toDomain(user)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findAll(options: PaginationOptions): Promise<PaginatedResponse<User>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: skip,
+        take: limit,
+      }),
+      this.prisma.user.count(),
     ]);
 
     return {

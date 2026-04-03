@@ -9,6 +9,7 @@ import { UserController } from './presentation/controllers/user.controller';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
 import { FindUserByIdUseCase } from './application/use-cases/find-user-by-id.use-case';
 import { DisableUserUseCase } from './application/use-cases/disable-user.use-case';
+import { FindAllActiveUsersUseCase } from './application/use-cases/find-all-active-users.use-case';
 import { FindAllUsersUseCase } from './application/use-cases/find-all-users.use-case';
 
 @Module({
@@ -19,6 +20,7 @@ import { FindAllUsersUseCase } from './application/use-cases/find-all-users.use-
     UpdateUserUseCase,
     FindUserByIdUseCase,
     DisableUserUseCase,
+    FindAllActiveUsersUseCase,
     FindAllUsersUseCase,
     {
       provide: UserRepository,
@@ -33,6 +35,7 @@ import { FindAllUsersUseCase } from './application/use-cases/find-all-users.use-
     CreateUserUseCase,
     UpdateUserUseCase,
     FindUserByIdUseCase,
+    FindAllActiveUsersUseCase,
     FindAllUsersUseCase,
   ],
 })

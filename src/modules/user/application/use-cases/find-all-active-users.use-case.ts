@@ -1,16 +1,17 @@
-import { UserRepository } from '../../domain/interfaces/user.repository';
 import { Injectable } from '@nestjs/common';
+import { UserRepository } from '../../domain/interfaces/user.repository';
 import { User } from '../../domain/entities';
 import {
-  PaginationOptions,
   PaginatedResponse,
+  PaginationOptions,
 } from 'src/shared/domain/interfaces';
 
 @Injectable()
-export class FindAllUsersUseCase {
+export class FindAllActiveUsersUseCase {
   constructor(private readonly userRepository: UserRepository) {}
-  
+
   async execute(options: PaginationOptions): Promise<PaginatedResponse<User>> {
-    return await this.userRepository.findAll(options);
+    const users = await this.userRepository.findAllActive(options);
+    return users;
   }
 }

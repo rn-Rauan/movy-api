@@ -29,8 +29,8 @@ export class OrganizationName {
 
     const trimmedName = name.trim();
 
-    if (trimmedName.length < 3) {
-      throw new StringLengthError('organization name', 3);
+    if (trimmedName.length < 2) {
+      throw new StringLengthError('organization name', 2);
     }
 
     if (trimmedName.length > 255) {

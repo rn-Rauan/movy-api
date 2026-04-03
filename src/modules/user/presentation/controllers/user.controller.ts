@@ -17,9 +17,10 @@ import { UpdateUserDto } from '../../application/dto/update-user.dto';
 import { UpdateUserUseCase } from '../../application/use-cases/update-user.use-case';
 import { FindUserByIdUseCase } from '../../application/use-cases/find-user-by-id.use-case';
 import { DisableUserUseCase } from '../../application/use-cases/disable-user.use-case';
-import { FindAllUsersUseCase } from '../../application/use-cases/find-all-users.use-case';
+import { FindAllActiveUsersUseCase } from '../../application/use-cases/find-all-active-users.use-case';
 import { UserPresenter } from '../mappers/user.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
+import { FindAllUsersUseCase } from '../../application/use-cases/find-all-users.use-case';
 
 @Controller('users')
 export class UserController {
@@ -28,7 +29,8 @@ export class UserController {
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly disableUserUseCase: DisableUserUseCase,
-    private readonly findAllUsersUseCase: FindAllUsersUseCase,
+    private readonly findAllActiveUsersUseCase: FindAllActiveUsersUseCase,
+    private readonly findAllUserUseCase: FindAllUsersUseCase,
   ) {}
 
   @Post()
@@ -49,6 +51,41 @@ export class UserController {
     try {
       const user = await this.updateUserUseCase.execute(id, updateUserDto);
       return UserPresenter.toHTTP(user);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Get('active')
+  async findAllActive(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<PaginatedDto<UserResponseDto>> {
+    try {
+      const paginatedResult = await this.findAllActiveUsersUseCase.execute({
+        page,
+        limit,
+      });
+
+      const data = paginatedResult.data.map(
+        (user) =>
+          new UserResponseDto({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            telephone: user.telephone,
+            status: user.status,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          }),
+      );
+
+      return new PaginatedDto(
+        data,
+        paginatedResult.total,
+        paginatedResult.page,
+        paginatedResult.limit,
+      );
     } catch (error) {
       throw error;
     }
@@ -80,7 +117,7 @@ export class UserController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<UserResponseDto>> {
     try {
-      const paginatedResult = await this.findAllUsersUseCase.execute({
+      const paginatedResult = await this.findAllUserUseCase.execute({
         page,
         limit,
       });
