@@ -1,15 +1,35 @@
+import { ApiProperty } from "@nestjs/swagger";
 import { Status } from "src/shared/domain/types/status.type";
 
 export class OrganizationResponseDto {
+  @ApiProperty({ example: 'uuid-v4' })
   id: string;
+
+  @ApiProperty({ example: 'My Organization' })
   name: string;
+
+  @ApiProperty({ example: '12345678000199' })
   cnpj: string;
+
+  @ApiProperty({ example: 'contact@myorg.com' })
   email: string;
+
+  @ApiProperty({ example: '11999999999' })
   telephone: string;
+
+  @ApiProperty({ example: 'my-org' })
   slug: string;
+
+  @ApiProperty({ example: 'Rua Exemplo, 123' })
   address: string;
+
+  @ApiProperty({ enum: ['ACTIVE', 'INACTIVE'] })
   status: Status;
+
+  @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
   updatedAt: Date;
 
   constructor(data: {

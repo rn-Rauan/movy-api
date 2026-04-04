@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 31 Mar 2026
+**Última atualização:** 04 Abr 2026
 
 ---
 

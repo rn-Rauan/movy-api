@@ -10,6 +10,7 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import {
   CreateOrganizationDto,
   OrganizationResponseDto,
@@ -26,8 +27,7 @@ import {
   DisableOrganizationUseCase,
 } from '../../application/use-cases';
 
-
-
+@ApiTags('organizations')
 @Controller('organizations')
 export class OrganizationController {
   constructor(
@@ -41,6 +41,8 @@ export class OrganizationController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a new organization' })
+  @ApiResponse({ status: 201, description: 'The organization has been successfully created.', type: OrganizationResponseDto })
   async create(
     @Body() createDto: CreateOrganizationDto,
   ): Promise<OrganizationResponseDto> {
@@ -51,6 +53,10 @@ export class OrganizationController {
   }
 
   @Get('active')
+  @ApiOperation({ summary: 'Find all active organizations' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiResponse({ status: 200, description: 'Return all active organizations.', type: PaginatedDto<OrganizationResponseDto> })
   async findAllActive(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
@@ -75,6 +81,9 @@ export class OrganizationController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Find an organization by ID' })
+  @ApiParam({ name: 'id', description: 'The ID of the organization to find' })
+  @ApiResponse({ status: 200, description: 'Return the organization.', type: OrganizationResponseDto })
   async findById(
     @Param('id') id: string,
   ): Promise<OrganizationResponseDto> {
@@ -83,6 +92,9 @@ export class OrganizationController {
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update an existing organization' })
+  @ApiParam({ name: 'id', description: 'The ID of the organization to update' })
+  @ApiResponse({ status: 200, description: 'The organization has been successfully updated.', type: OrganizationResponseDto })
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateOrganizationDto,
@@ -95,12 +107,19 @@ export class OrganizationController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Disable an organization' })
+  @ApiParam({ name: 'id', description: 'The ID of the organization to disable' })
+  @ApiResponse({ status: 200, description: 'The organization has been successfully disabled.', type: Boolean })
   async delete(@Param('id') id: string): Promise<boolean> {
     await this.deleteOrganizationUseCase.execute(id);
     return true;
   }
 
   @Get()
+  @ApiOperation({ summary: 'Find all organizations' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiResponse({ status: 200, description: 'Return all organizations.', type: PaginatedDto<OrganizationResponseDto> })
   async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,

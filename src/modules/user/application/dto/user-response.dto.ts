@@ -1,12 +1,26 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Status } from 'src/shared/domain/types/status.type';
 
 export class UserResponseDto {
+  @ApiProperty({ example: 'uuid-v4' })
   id: string;
+
+  @ApiProperty({ example: 'John Doe' })
   name: string;
+
+  @ApiProperty({ example: 'john@example.com' })
   email: string;
+
+  @ApiProperty({ example: '11999999999' })
   telephone: string;
+
+  @ApiProperty({ enum: ['ACTIVE', 'INACTIVE'] })
   status: Status;
+
+  @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
   updatedAt: Date;
 
   constructor(data: {

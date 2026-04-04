@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/presentation/exceptions/all-exceptions.filter';
 import { LoggingInterceptor } from './shared/presentation/interceptors/logging.interceptor';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
 
 async function bootstrap() {
@@ -22,6 +23,17 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Swagger Configuration
+  const config = new DocumentBuilder()
+    .setTitle('Movy API')
+    .setDescription('The Movy API documentation')
+    .setVersion('1.0')
+    .addTag('users')
+    .addTag('organizations')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   if (!process.env.PORT) {
     throw new Error('PORT invalid');

@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 31 Mar 2026
+**Última atualização:** 04 Abr 2026
 
 ---
 
@@ -19,26 +19,26 @@ Pendente: 5 (72%)
 
 ## ✅ FASE 1: Fundação (Mar 2026)
 
-### User Module ✅ COMPLETO
+### User Module ✅ COMPLETO (CRUD + Infraestrutura)
 - ✅ CRUD completo (Create, Read, Update, Delete)
 - ✅ Soft-delete (status INACTIVE)
-- ✅ Testes unitários (80%+)
+- ❌ Testes unitários (0% - pendente implementação)
 - ✅ Exception handling
 - ✅ DTOs com validação
 - ✅ Repositório pattern
 
-**Status:** Produção ✅
+**Status:** Funcional, mas testes pendentes
 
 ---
 
-### Organization Module 🔄 IN PROGRESS (50%)
+### Organization Module 🔄 IN PROGRESS (70%)
 
 **Backend (API REST):**
-- [ ] POST `/organizations` - Criar org (DTO + Service + Repository)
-- [ ] GET `/organizations` - Listar orgs ativas
-- [ ] GET `/organizations/:id` - Detalhes da org
-- [ ] PUT `/organizations/:id` - Atualizar dados
-- [ ] DELETE `/organizations/:id` - Soft-delete (marcar como INACTIVE)
+- [x] POST `/organizations` - Criar org (DTO + Service + Repository)
+- [x] GET `/organizations` - Listar orgs ativas
+- [x] GET `/organizations/:id` - Detalhes da org
+- [x] PUT `/organizations/:id` - Atualizar dados
+- [x] DELETE `/organizations/:id` - Soft-delete (marcar como INACTIVE)
 - [ ] Testes unitários (80%+)
 - [ ] Swagger docs
 
@@ -48,25 +48,43 @@ Pendente: 5 (72%)
 - [ ] DELETE `/organizations/:id/members/:userId` - Remover membro
 - [ ] Validar permissões (apenas admin)
 
-**Arquivos a criar:**
+**Arquivos criados:**
 ```
 src/modules/organization/
 ├── application/dtos/
-│   ├── create-organization.dto.ts
-│   ├── update-organization.dto.ts
-│   └── add-member.dto.ts
+│   ├── create-organization.dto.ts ✅
+│   ├── update-organization.dto.ts ✅
+│   └── organization-response.dto.ts ✅
 ├── domain/
-│   ├── entities/organization.entity.ts
-│   ├── errors/organization.errors.ts
-│   └── interfaces/organization.repository.ts
-├── infrastructure/repositories/
-│   └── prisma-organization.repository.ts
-├── presentation/controllers/
-│   └── organization.controller.ts
-└── organization.module.ts
+│   ├── entities/
+│   │   ├── index.ts ✅
+│   │   └── organization.entity.ts ✅
+│   ├── errors/
+│   │   ├── index.ts ✅
+│   │   └── organization.errors.ts ✅
+│   ├── value-objects/
+│   │   ├── address.value-object.ts ✅
+│   │   ├── cnpj.value-object.ts ✅
+│   │   ├── index.ts ✅
+│   │   ├── organization-name.value-object.ts ✅
+│   │   └── slug.value-object.ts ✅
+│   └── interfaces/
+│       └── organization.repository.ts ✅
+├── infrastructure/
+│   └── db/
+│       ├── mappers/
+│       │   └── organization.mapper.ts ✅
+│       └── repositories/
+│           └── prisma-organization.repository.ts ✅
+├── presentation/
+│   ├── controllers/
+│   │   └── organization.controller.ts ✅
+│   └── mappers/
+│       └── organization.mapper.ts ✅
+└── organization.module.ts ✅
 ```
 
-**Estimativa:** 2-3 dias
+**Estimativa:** 1-2 dias (testes + members)
 
 ---
 
