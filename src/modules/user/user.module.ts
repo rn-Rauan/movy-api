@@ -39,6 +39,7 @@ import {
     FindUserByIdUseCase,
     FindAllActiveUsersUseCase,
     FindAllUsersUseCase,
+    UserRepository,
   ],
 })
 export class UserModule {}

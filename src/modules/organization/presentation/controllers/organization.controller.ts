@@ -9,7 +9,9 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/shared/guards/jwt.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import {
   CreateOrganizationDto,
@@ -29,6 +31,7 @@ import {
 
 @ApiTags('organizations')
 @Controller('organizations')
+@UseGuards(JwtAuthGuard)
 export class OrganizationController {
   constructor(
     private readonly createOrganizationUseCase: CreateOrganizationUseCase,
@@ -141,4 +144,3 @@ export class OrganizationController {
     );
   }
 }
- 

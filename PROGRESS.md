@@ -90,34 +90,41 @@ src/modules/organization/
 
 ## ⏳ FASE 2: Core Features (Abr-Mai 2026)
 
-### Authentication & JWT 📋 PRÓXIMO (~5-7 dias)
+### Authentication & JWT � IN PROGRESS (80%)
 
-**Decisão Necessária:** JWT custom vs Supabase Auth?
+**Backend (API REST):**
+- [x] POST `/auth/login` - Login com email/password
+- [x] POST `/auth/register` - Registrar novo user
+- [x] POST `/auth/refresh` - Refresh token
+- [x] JWT Strategy + Passport
+- [x] JwtAuthGuard para proteger rotas
+- [ ] Testes unitários (80%+)
+- [ ] Swagger docs
+- [ ] Logout (invalidação de tokens)
 
-**Se JWT Custom:**
-- [ ] Criar `auth.module.ts`
-- [ ] POST `/auth/login` - Login com email/password
-- [ ] POST `/auth/register` - Registrar novo user
-- [ ] POST `/auth/refresh` - Refresh token
-- [ ] Guard de autenticação (decorator `@Auth()`)
-- [ ] Validar token em todas as rotas protegidas
-- [ ] Testes de auth flow
-
-**Se Supabase Auth:**
-- [ ] Integrar SDK Supabase
-- [ ] Guardar user_id do Supabase no BD
-- [ ] Validar token Supabase
-- [ ] Sincronizar user create/delete com Supabase
-
-**Arquivos:**
+**Arquivos criados:**
 ```
-src/shared/guards/
-├── jwt.guard.ts
-├── jwt.strategy.ts
-└── decorator @Auth()
-
 src/modules/auth/
-├── auth.service.ts
+├── auth.module.ts ✅
+├── application/dtos/
+│   ├── login.dto.ts ✅
+│   ├── register.dto.ts ✅
+│   └── token-response.dto.ts ✅
+├── application/use-cases/
+│   ├── login.use-case.ts ✅
+│   ├── register.use-case.ts ✅
+│   └── refresh-token.use-case.ts ✅
+├── infrastructure/
+│   └── jwt.strategy.ts ✅
+├── presentation/controllers/
+│   └── auth.controller.ts ✅
+└── README.md ✅
+
+src/shared/guards/
+└── jwt.guard.ts ✅
+```
+
+**Estimativa:** 2-3 dias (testes + melhorias)
 ├── auth.controller.ts
 └── auth.module.ts
 ```

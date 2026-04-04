@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CreateUserDto } from '../../application/dto/create-user.dto';
@@ -24,9 +25,11 @@ import {
   FindAllActiveUsersUseCase,
   FindAllUsersUseCase,
 } from '../../application/use-cases';
+import { JwtAuthGuard } from 'src/shared/guards/jwt.guard';
 
 @ApiTags('users')
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
@@ -64,7 +67,7 @@ export class UserController {
       throw error;
     }
   }
-
+  
   @Get('active')
   @ApiOperation({ summary: 'Find all active users' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -79,7 +82,7 @@ export class UserController {
         page,
         limit,
       });
-
+      
       const data = paginatedResult.data.map(
         (user) =>
           new UserResponseDto({
@@ -91,19 +94,19 @@ export class UserController {
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
           }),
-      );
-
-      return new PaginatedDto(
-        data,
-        paginatedResult.total,
-        paginatedResult.page,
-        paginatedResult.limit,
-      );
-    } catch (error) {
-      throw error;
-    }
+        );
+        
+        return new PaginatedDto(
+          data,
+          paginatedResult.total,
+          paginatedResult.page,
+          paginatedResult.limit,
+        );
+      } catch (error) {
+        throw error;
+      }
   }
-
+  
   @Get(':id')
   @ApiOperation({ summary: 'Find a user by ID' })
   @ApiParam({ name: 'id', description: 'The ID of the user to find' })
@@ -116,7 +119,7 @@ export class UserController {
       throw error;
     }
   }
-
+  
   @Delete(':id')
   @ApiOperation({ summary: 'Disable a user' })
   @ApiParam({ name: 'id', description: 'The ID of the user to disable' })

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsNotEmpty } from "class-validator";
+import { IsString, IsNotEmpty, IsEmail } from "class-validator";
 
 export class CreateOrganizationDto {
     @ApiProperty({ example: 'My Organization' })
@@ -8,7 +8,7 @@ export class CreateOrganizationDto {
     name: string;
 
     @ApiProperty({ example: 'contact@myorg.com' })
-    @IsString()
+    @IsEmail({}, { message: 'Invalid email format' })
     @IsNotEmpty({ message: 'Email is required' })
     email: string;
 
