@@ -58,3 +58,25 @@ export class OrganizationNotFoundError extends DomainError {
     super(message);
   }
 }
+
+/**
+ * Erro de endereço inválido
+ */
+export class InvalidAddressError extends OrganizationValidationError {
+  code = 'INVALID_ADDRESS';
+
+  constructor(address: string) {
+    super(`Invalid address format "${address}". Address cannot be empty.`);
+  }
+}
+
+/**
+ * 
+ */
+export class OrganizationAlreadyExistsError extends DomainError {
+  code = 'ORGANIZATION_ALREADY_EXISTS';
+  
+  constructor(cnpj: string) {
+    super(`Organization with CNPJ "${cnpj}" already exists.`);
+  }
+}

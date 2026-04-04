@@ -1,6 +1,6 @@
 import { Organization as PrismaOrganization } from "generated/prisma/client";
 import { Organization } from "src/modules/organization/domain/entities";
-import { Cnpj, Slug, OrganizationName } from "src/modules/organization/domain/entities/value-objects";
+import { Cnpj, Slug, OrganizationName, Address } from "src/modules/organization/domain/entities/value-objects";
 import { Telephone, Email } from "src/shared/domain/value-objects";
 export class OrganizationMapper {
 
@@ -17,6 +17,7 @@ export class OrganizationMapper {
             email: Email.create(raw.email),
             telephone: Telephone.create(raw.telephone),
             slug: Slug.create(raw.slug),
+            address: Address.create(raw.address),
             status: raw.status,
             createdAt: raw.createdAt,
             updatedAt: raw.updatedAt,
@@ -36,6 +37,7 @@ export class OrganizationMapper {
             email: organization.email,
             telephone: organization.telephone,
             slug: organization.slug,
+            address: organization.address,
             status: organization.status,
             createdAt: organization.createdAt,
             updatedAt: organization.updatedAt,

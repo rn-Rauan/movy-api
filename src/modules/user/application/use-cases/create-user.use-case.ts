@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { User } from '../../domain/entities';
-import { randomUUID } from 'crypto';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { UserEmailAlreadyExistsError } from '../../domain/entities/errors/user.errors';
 import { UserRepository } from '../../domain/interfaces/user.repository';
@@ -22,7 +21,7 @@ export class CreateUserUseCase {
       throw new UserEmailAlreadyExistsError(userDto.email);
     }
 
-    const id = randomUUID();
+    const id = crypto.randomUUID();
     const passwordHash = await this.hashProvider.generateHash(userDto.password);
 
     const user = User.create({

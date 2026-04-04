@@ -103,6 +103,7 @@ model Organization {
   cnpj          String   @unique
   email         String   @unique
   telephone     String   @db.VarChar(20)
+  address       String   @db.VarChar(255)
   slug          String   @unique @db.VarChar(100)
   status        Status   @default(ACTIVE)
   createdAt     DateTime @default(now())

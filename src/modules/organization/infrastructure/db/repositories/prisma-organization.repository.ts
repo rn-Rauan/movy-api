@@ -6,7 +6,9 @@ import {
 } from 'src/shared/domain/interfaces';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { OrganizationMapper } from '../mappers/organization.mapper';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class PrismaOrganizationRepository implements OrganizationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -46,7 +48,23 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   async findAll(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Organization>> {
-    throw new Error('Method not implemented.');
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+    const organizationData = await this.prisma.organization.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip: skip,
+      take: limit,
+    });
+    const total = await this.prisma.organization.count();
+    return {
+      data: organizationData.map((org) => OrganizationMapper.toDomain(org)),
+      total: total,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
   async findAllActive(
     options: PaginationOptions,

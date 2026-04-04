@@ -1,6 +1,6 @@
 import { Status } from 'src/shared/domain/types/status.type';
 import { Telephone, Email } from 'src/shared/domain/value-objects';
-import { Cnpj, Slug, OrganizationName } from './value-objects';
+import { Cnpj, Slug, OrganizationName, Address } from './value-objects';
 
 /**
  * Interface that defines the properties of the Organization entity.
@@ -12,6 +12,7 @@ export interface OrganizationProps {
   email: Email;
   telephone: Telephone;
   slug: Slug;
+  address: Address;
   status?: Status;
   readonly createdAt?: Date;
   updatedAt?: Date;
@@ -100,6 +101,15 @@ export class Organization {
 
   setSlug(slug: string): void {
     this.props.slug = Slug.create(slug);
+    this.props.updatedAt = new Date();
+  }
+
+  get address(): string {
+    return this.props.address.value_;
+  }
+
+  setAddress(address: string): void {
+    this.props.address = Address.create(address);
     this.props.updatedAt = new Date();
   }
 

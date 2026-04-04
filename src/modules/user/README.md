@@ -102,11 +102,13 @@ model User {
 3. **FindAllUsersUseCase**: Lista todos os usuários
 4. **UpdateUserUseCase**: Atualização de dados do usuário
 5. **DisableUserUseCase**: Desabilitação de usuário (soft delete via status)
+6. **FindAllActiveUsersUseCase**: Lista todos os usuários ativos
 
 ### Endpoints da API
 
 - `POST /users` - Criar usuário
 - `GET /users` - Listar todos os usuários
+- `GET /users/active` - Listar todos os usuários ativos
 - `GET /users/:id` - Buscar usuário por ID
 - `PUT /users/:id` - Atualizar usuário
 - `DELETE /users/:id` - Desabilitar usuário
@@ -143,19 +145,18 @@ model User {
 - ✅ Mappers e DTOs: Completos
 - ✅ Repositório Prisma: Completo
 - ✅ Controller REST: Completo
+- ✅ Recursos adicionais (paginação, filtros): Complepletos
 - ⚠️ Validações avançadas: Parcial
-- ⚠️ Recursos adicionais (paginação, filtros): Ausente
 - ⚠️ Testes: Não verificado
 
 ## Próximos Passos Recomendados
 
-1. **Implementar paginação** no `FindAllUsersUseCase`
-2. **Adicionar filtros** (por status, data de criação, etc.)
-3. **Implementar testes** unitários e de integração
-4. **Adicionar validações** mais robustas nos Value Objects
-5. **Considerar soft delete** físico vs lógico (atualmente usa status)
-6. **Integrar com módulo de autenticação** para login/logout
-7. **Adicionar cache** para operações de leitura frequentes
+1. **Adicionar filtros** (por status, data de criação, etc.)
+2. **Implementar testes** unitários e de integração
+3. **Adicionar validações** mais robustas nos Value Objects
+4. **Considerar soft delete** físico vs lógico (atualmente usa status)
+5. **Integrar com módulo de autenticação** para login/logout
+6. **Adicionar cache** para operações de leitura frequentes
 
 ## Dependências
 

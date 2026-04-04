@@ -1,0 +1,40 @@
+import { OrganizationRepository } from '../../domain/interfaces/organization.repository';
+import { Injectable, Inject } from '@nestjs/common';
+import { CreateOrganizationDto } from '../dtos';
+import {
+  Organization,
+  OrganizationAlreadyExistsError,
+} from '../../domain/entities';
+import { OrganizationName, Cnpj, Slug, Address } from '../../domain/entities';
+import { Email, Telephone } from 'src/shared/domain/value-objects';
+
+@Injectable()
+export class CreateOrganizationUseCase {
+  constructor(
+    @Inject('OrganizationRepository')
+    private readonly organizationRepository: OrganizationRepository,
+  ) {}
+
+  async execute(organizationDto: CreateOrganizationDto): Promise<Organization> {
+    const organizationExists = await this.organizationRepository.findByCnpj(
+      organizationDto.cnpj,
+    );
+    if (organizationExists) {
+      throw new OrganizationAlreadyExistsError(organizationDto.cnpj);
+    }
+    const id = crypto.randomUUID();
+
+    const organization = Organization.create({
+      id: id,
+      name: OrganizationName.create(organizationDto.name),
+      cnpj: Cnpj.create(organizationDto.cnpj),
+      address: Address.create(organizationDto.address),
+      email: Email.create(organizationDto.email),
+      telephone: Telephone.create(organizationDto.telephone),
+      slug: Slug.create(organizationDto.slug),
+    });
+
+    await this.organizationRepository.save(organization);
+    return organization;
+  }
+}
