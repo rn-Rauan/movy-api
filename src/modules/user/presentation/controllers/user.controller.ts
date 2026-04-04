@@ -10,17 +10,19 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { CreateUserDto } from '../../application/dto/create-user.dto';
 import { UserResponseDto } from '../../application/dto/user-response.dto';
 import { UpdateUserDto } from '../../application/dto/update-user.dto';
-import { UpdateUserUseCase } from '../../application/use-cases/update-user.use-case';
-import { FindUserByIdUseCase } from '../../application/use-cases/find-user-by-id.use-case';
-import { DisableUserUseCase } from '../../application/use-cases/disable-user.use-case';
-import { FindAllActiveUsersUseCase } from '../../application/use-cases/find-all-active-users.use-case';
 import { UserPresenter } from '../mappers/user.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
-import { FindAllUsersUseCase } from '../../application/use-cases/find-all-users.use-case';
+import {
+  CreateUserUseCase,
+  UpdateUserUseCase,
+  FindUserByIdUseCase,
+  DisableUserUseCase,
+  FindAllActiveUsersUseCase,
+  FindAllUsersUseCase,
+} from '../../application/use-cases';
 
 @Controller('users')
 export class UserController {

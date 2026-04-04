@@ -80,3 +80,14 @@ export class OrganizationAlreadyExistsError extends DomainError {
     super(`Organization with CNPJ "${cnpj}" already exists.`);
   }
 }
+
+/**
+ * Erro de Organização inativa
+ */
+export class InactiveOrganizationError extends DomainError {
+  code = 'INACTIVE_ORGANIZATION';
+
+  constructor(id: string) {
+    super(`Organization with id "${id}" is inactive`);
+  }
+}

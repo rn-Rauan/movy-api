@@ -1,5 +1,5 @@
 import { OrganizationRepository } from '../../domain/interfaces/organization.repository';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateOrganizationDto } from '../dtos';
 import {
   Organization,
@@ -11,7 +11,6 @@ import { Email, Telephone } from 'src/shared/domain/value-objects';
 @Injectable()
 export class CreateOrganizationUseCase {
   constructor(
-    @Inject('OrganizationRepository')
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 

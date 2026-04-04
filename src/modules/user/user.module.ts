@@ -1,16 +1,18 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
-import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { PrismaUserRepository } from './infrastructure/db/repositories/prisma-user.repository';
 import { UserRepository } from './domain/interfaces/user.repository';
 import { BcryptHashProvider } from 'src/shared/providers/hash/bcrypt-hash.provider';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { UserController } from './presentation/controllers/user.controller';
-import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
-import { FindUserByIdUseCase } from './application/use-cases/find-user-by-id.use-case';
-import { DisableUserUseCase } from './application/use-cases/disable-user.use-case';
-import { FindAllActiveUsersUseCase } from './application/use-cases/find-all-active-users.use-case';
-import { FindAllUsersUseCase } from './application/use-cases/find-all-users.use-case';
+import {
+  CreateUserUseCase,
+  UpdateUserUseCase,
+  FindUserByIdUseCase,
+  DisableUserUseCase,
+  FindAllActiveUsersUseCase,
+  FindAllUsersUseCase,
+ } from './application/use-cases';
 
 @Module({
   imports: [PrismaModule],

@@ -7,6 +7,8 @@ export class OrganizationPresenter {
       id: organization.id,
       name: organization.name,
       cnpj: organization.cnpj,
+      email: organization.email,
+      telephone: organization.telephone,
       slug: organization.slug,
       address: organization.address,
       status: organization.status,
