@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 04 Abr 2026
+**Última atualização:** 05 Abr 2026
 
 ---
 
@@ -10,14 +10,53 @@
 
 ```
 Total Módulos: 7
-Completo: 1 (14%) - User
-Em Progresso: 1 (14%) - Organization  
-Pendente: 5 (72%)
+Completo: 3 (42%) - User, Organization, Role Management
+Em Progresso: 1 (14%) - Organization Members
+Pendente: 3 (44%)
 ```
 
 ---
 
 ## ✅ FASE 1: Fundação (Mar 2026)
+
+### Role Management ✅ COMPLETO (05 Abr 2026)
+- ✅ Entity Role (ADMIN, DRIVER)
+- ✅ Role Repository pattern
+- ✅ Role Mapper (Entity ↔ DTO)
+- ✅ Database seeding script
+- ✅ Seed automático no Docker
+- ✅ Value Objects com validações
+- ✅ Validation Errors para domínio
+
+**Status:** Funcional e integrado ao SharedModule
+
+---
+
+### Shared Module ✅ COMPLETO (05 Abr 2026)
+- ✅ Module padronizado para exports
+- ✅ Orchestração de componentes globais (PrismaModule, Guards, Interceptors, Filters)
+- ✅ Database seeding integration
+- ✅ Value Objects centralizados (Email, Telephone)
+- ✅ Domain Errors e Validation Errors
+- ✅ JWT Guard compartilhado
+- ✅ Logging Interceptor global
+- ✅ Exception Filter global
+
+**Arquivos criados:**
+```
+src/shared/
+├── shared.module.ts ✅
+├── index.ts ✅
+├── domain/
+│   ├── types/index.ts ✅
+│   ├── errors/validation.error.ts ✅
+│   └── entities/value-objects/ ✅
+└── (outros componentes já existentes)
+```
+
+**Status:** Padrão estabelecido para reutilização em outros módulos
+
+---
 
 ### User Module ✅ COMPLETO (CRUD + Infraestrutura)
 - ✅ CRUD completo (Create, Read, Update, Delete)
@@ -31,22 +70,43 @@ Pendente: 5 (72%)
 
 ---
 
-### Organization Module 🔄 IN PROGRESS (70%)
+### Organization Module ✅ CRUD COMPLETO (05 Abr 2026) | 🔄 Members Pendente
 
-**Backend (API REST):**
-- [x] POST `/organizations` - Criar org (DTO + Service + Repository)
-- [x] GET `/organizations` - Listar orgs ativas
-- [x] GET `/organizations/:id` - Detalhes da org
-- [x] PUT `/organizations/:id` - Atualizar dados
-- [x] DELETE `/organizations/:id` - Soft-delete (marcar como INACTIVE)
-- [ ] Testes unitários (80%+)
-- [ ] Swagger docs
+**Backend (API REST) - CRUD ✅ COMPLETO:**
+- [x] POST `/organizations` - Criar org (DTO + Service + Repository) ✅
+- [x] GET `/organizations` - Listar todas orgs (paginado) ✅
+- [x] GET `/organizations/active` - Listar apenas ativas (paginado) ✅
+- [x] GET `/organizations/:id` - Detalhes da org ✅
+- [x] PUT `/organizations/:id` - Atualizar dados ✅
+- [x] DELETE `/organizations/:id` - Soft-delete (marcar como INACTIVE) ✅
+- [x] CRUD Use Cases (6 total) ✅
+- [x] Value Objects com validações ✅
+- [x] Exception Handling específico ✅
+- [ ] Testes unitários (0% - pendente)
+- [ ] Swagger docs integrado (já está com @ApiTags e decorators)
 
-**Organization Members (multi-tenant):**
-- [ ] POST `/organizations/:id/members` - Adicionar user à org
+**Use Cases Implementados (6 total):**
+- ✅ CreateOrganizationUseCase - Validação e criação com slug auto-gerado
+- ✅ FindAllOrganizationsUseCase - Listagem paginada
+- ✅ FindAllActiveOrganizationsUseCase - Listagem paginada (apenas ativas)
+- ✅ FindOrganizationByIdUseCase - Busca com tratamento 404
+- ✅ UpdateOrganizationUseCase - Atualização com re-validação
+- ✅ DisableOrganizationUseCase - Soft delete com timestamp
+
+**Value Objects Implementados (5 total):**
+- ✅ Cnpj - Validação de CNPJ com dígitos verificadores
+- ✅ OrganizationName - Validação de tamanho mínimo/máximo
+- ✅ Slug - Gerado automaticamente e URL-friendly
+- ✅ Address - Endereço da organização
+- ✅ Email, Telephone - Compartilhados do SharedModule
+
+**Organization Members (multi-tenant com Roles) - PRÓXIMO:**
+- [ ] POST `/organizations/:id/members` - Adicionar user à org com role
 - [ ] GET `/organizations/:id/members` - Listar membros
+- [ ] PUT `/organizations/:id/members/:userId` - Atualizar role do membro
 - [ ] DELETE `/organizations/:id/members/:userId` - Remover membro
-- [ ] Validar permissões (apenas admin)
+- [ ] Validar permissões (apenas admin pode gerenciar membros)
+- [ ] Guards customizados baseados em Role (RBAC)
 
 **Arquivos criados:**
 ```
@@ -84,13 +144,15 @@ src/modules/organization/
 └── organization.module.ts ✅
 ```
 
-**Estimativa:** 1-2 dias (testes + members)
+**Status CRUD:** ✅ FUNCIONAL E COMPLETO (05 Abr 2026)
+
+**Estimativa (Members + RBAC):** 2-3 dias
 
 ---
 
 ## ⏳ FASE 2: Core Features (Abr-Mai 2026)
 
-### Authentication & JWT � IN PROGRESS (80%)
+### Authentication & JWT � IN PROGRESS (85%)
 
 **Backend (API REST):**
 - [x] POST `/auth/login` - Login com email/password
@@ -98,8 +160,8 @@ src/modules/organization/
 - [x] POST `/auth/refresh` - Refresh token
 - [x] JWT Strategy + Passport
 - [x] JwtAuthGuard para proteger rotas
+- [x] Swagger docs ✅ (05 Abr 2026)
 - [ ] Testes unitários (80%+)
-- [ ] Swagger docs
 - [ ] Logout (invalidação de tokens)
 
 **Arquivos criados:**
@@ -400,44 +462,53 @@ src/modules/payment/
 
 ## 📝 Próximos Passos (Ordem)
 
-1. **Esta semana (31 Mar - 04 Abr):**
-   - [ ] Finalizar Organization module
+1. **Esta semana (05-07 Abr):** 
+   - [ ] Implementar Organization members associação com roles
+   - [ ] Guards de permissão baseados em Role (RBAC)
    - [ ] Coverage de testes ≥80%
 
-2. **Semana 1-2 (07-18 Abr):**
-   - [ ] Implementar JWT/Auth
-   - [ ] Setup CI/CD básico
+2. **Semana 1-2 (08-20 Abr):**
+   - [ ] Implementar Vehicles CRUD
+   - [ ] Implementar Drivers CRUD
+   - [ ] Setup CI/CD com GitHub Actions
 
 3. **Semana 2-3 (21-01 Mai):**
-   - [ ] Vehicles module completo
-   - [ ] Drivers module completo
+   - [ ] Trip Templates module
+   - [ ] Trip Instances auto-generation com CRON
 
 4. **Semana 3-4 (04-15 Mai):**
-   - [ ] Trips module (o mais complexo)
+   - [ ] Bookings module completo
    - [ ] Testes E2E
 
 5. **Semana 4-5 (18-29 Mai):**
-   - [ ] Bookings module
-   - [ ] Swagger completo
+   - [ ] Integração de Pagamentos (Stripe)
+   - [ ] Plans (Free/Pro/Enterprise)
 
 6. **Semana 5-6 (01-15 Jun):**
-   - [ ] Payments + Plans
-   - [ ] Testes finais
+   - [ ] Swagger completo
+   - [ ] Documentação TCC
 
 7. **Semana 6-7 (18+ Jun):**
-   - [ ] Polish, documentação
-   - [ ] Deploy staging
-   - [ ] MVP pronto
+   - [ ] Polish, testes finais
+   - [ ] Deploy staging/production
+   - [ ] **MVP PRONTO**
 
 ---
 
 ## 📝 Observações & Decisões
 
 **Blockers Atuais:**
-- [ ] Nenhum
+- [x] Database seeding automático → RESOLVIDO (05 Abr)
+- [ ] Nenhum blocker técnico identificado
+
+**Decisões Técnicas Implementadas:**
+- ✅ **Role-Based Access Control (RBAC):** Implementado Role Entity com upsert para garantir integridade
+- ✅ **Database Seeding:** Usando `tsx` + Docker entrypoint para seed automático
+- ✅ **Shared Module Pattern:** Padronizado para orquestração de componentes globais
+- ✅ **Value Objects:** Telefone e Email com validações de domínio
 
 **Decisões Técnicas Pendentes:**
-- [ ] JWT custom vs Supabase Auth? → **Decisão:**
+- [ ] JWT custom vs Supabase Auth? → **Decisão:** Custom (já implementado)
 - [ ] Payment provider: Stripe vs PagSeguro? → **Decisão:** Stripe
 - [ ] Cache (Redis)? Não para MVP
 - [ ] Message Queue? Não para MVP

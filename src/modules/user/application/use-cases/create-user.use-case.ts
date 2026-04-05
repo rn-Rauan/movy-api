@@ -5,8 +5,7 @@ import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { UserEmailAlreadyExistsError } from '../../domain/entities/errors/user.errors';
 import { UserRepository } from '../../domain/interfaces/user.repository';
 import { PasswordHash, UserName } from '../../domain/entities/value-objects';
-import { Telephone, Email } from 'src/shared/domain/value-objects';
-
+import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 @Injectable()
 export class CreateUserUseCase {
   constructor(

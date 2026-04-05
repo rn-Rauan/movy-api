@@ -6,8 +6,7 @@ import {
   OrganizationAlreadyExistsError,
 } from '../../domain/entities';
 import { OrganizationName, Cnpj, Slug, Address } from '../../domain/entities';
-import { Email, Telephone } from 'src/shared/domain/value-objects';
-
+import { Telephone, Email } from 'src/shared/domain/entities/value-objects';
 @Injectable()
 export class CreateOrganizationUseCase {
   constructor(

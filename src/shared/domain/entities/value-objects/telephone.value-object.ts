@@ -1,4 +1,4 @@
-import { InvalidUserTelephoneError } from '../../../modules/user/domain/entities/errors';
+import { InvalidTelephoneError } from '../../errors';
 
 /**
  * Telephone Value Object
@@ -18,13 +18,13 @@ export class Telephone {
   /**
    * Create a new Telephone instance
    * @param telephone Telephone string to validate
-   * @throws InvalidUserTelephoneError if telephone format is invalid
+   * @throws InvalidTelephoneError if telephone format is invalid
    */
   static create(telephone: string): Telephone {
     const telephoneRegex = /^\(?\d{2}\)?\s?9?\d{4}-?\d{4}$/;
 
     if (!telephoneRegex.test(telephone)) {
-      throw new InvalidUserTelephoneError(telephone);
+      throw new InvalidTelephoneError(telephone);
     }
 
     return new Telephone(telephone);

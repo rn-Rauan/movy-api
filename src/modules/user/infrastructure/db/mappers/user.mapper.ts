@@ -4,7 +4,8 @@ import {
   PasswordHash,
   UserName,
 } from 'src/modules/user/domain/entities/value-objects';
-import { Telephone, Email } from 'src/shared/domain/value-objects';
+import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
+
 
 export class UserMapper {
   /**

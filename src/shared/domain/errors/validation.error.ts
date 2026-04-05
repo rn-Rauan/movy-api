@@ -61,3 +61,14 @@ export class StringLengthError extends ValidationError {
     super(message, fieldName);
   }
 }
+
+/**
+ * Erro de validação de telefone
+ */
+export class InvalidTelephoneError extends ValidationError {
+  code = 'INVALID_TELEPHONE';
+
+  constructor(telephone: string) {
+    super(`Telephone "${telephone}" is invalid`, 'telephone');
+  }
+}

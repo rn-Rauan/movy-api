@@ -1,6 +1,6 @@
 import { Status } from 'src/shared/domain/types/status.type';
 import { PasswordHash, UserName } from './value-objects';
-import { Telephone, Email } from 'src/shared/domain/value-objects';
+import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 
 /**
  * Interface that defines the properties of the User entity.

@@ -1,7 +1,7 @@
 import { Organization as PrismaOrganization } from "generated/prisma/client";
 import { Organization } from "src/modules/organization/domain/entities";
 import { Cnpj, Slug, OrganizationName, Address } from "src/modules/organization/domain/entities/value-objects";
-import { Telephone, Email } from "src/shared/domain/value-objects";
+import { Telephone, Email } from "src/shared/domain/entities/value-objects";
 export class OrganizationMapper {
 
     /**
