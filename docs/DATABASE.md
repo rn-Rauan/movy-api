@@ -453,7 +453,43 @@ User
 
 ---
 
-## 💾 Comandos Úteis Prisma
+## � Módulo Membership e OrganizationMembership
+
+O módulo `membership` implementa a gestão de associações entre usuários, roles e organizações, utilizando a tabela `OrganizationMembership` como base. Ele segue os princípios de Clean Architecture e DDD, com separação clara de camadas.
+
+### Funcionalidades Principais
+- **Criar Associação**: Vincular um usuário a um role dentro de uma organização.
+- **Buscar por Chave Composta**: Encontrar associações específicas via `userId`, `roleId` e `organizationId`.
+- **Listar por Usuário**: Buscar todas as associações de um usuário (com paginação).
+- **Listar por Organização**: Buscar associações de uma organização (com paginação).
+- **Remover Associação**: Soft delete via `removedAt` (não remove fisicamente).
+- **Restaurar Associação**: Reverter soft delete.
+
+### Estrutura de Dados
+- **Chave Composta**: `(userId, roleId, organizationId)` garante unicidade.
+- **Soft Delete**: Campo `removedAt` para preservar histórico.
+- **Relacionamentos**: Conecta `User`, `Role` e `Organization`.
+
+### Operações CRUD
+- **Create**: Valida existência de entidades relacionadas e impede duplicatas.
+- **Read**: Buscas otimizadas com paginação.
+- **Update**: Apenas para restaurar (soft delete reversível).
+- **Delete**: Soft delete para manter integridade.
+
+### Integração com Outros Módulos
+- Usado pelo módulo `organization` para gerenciar membros.
+- Base para RBAC (Role-Based Access Control) em guards futuros.
+- Suporta multi-tenancy: usuários podem ter roles diferentes em organizações distintas.
+
+### Desafios Resolvidos
+- **Chave Composta**: Implementada corretamente no Prisma e repositório.
+- **Soft Delete**: Lógica de negócio para preservar dados históricos.
+- **Paginação**: Implementada em buscas por usuário/organização.
+- **Validações**: Erros específicos para associações inexistentes ou duplicadas.
+
+---
+
+## �💾 Comandos Úteis Prisma
 
 ```bash
 # Criar nova migração após alterar schema

@@ -5,11 +5,12 @@ import { PrismaRoleRepository } from './repositories/prisma-role.repository';
 
 @Global()
 @Module({
-  providers: [PrismaService,
+  providers: [
+    PrismaService,
     {
       provide: RoleRepository,
       useClass: PrismaRoleRepository,
-    }
+    },
   ],
   exports: [PrismaService, RoleRepository],
 })

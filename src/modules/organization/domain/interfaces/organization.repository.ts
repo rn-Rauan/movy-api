@@ -11,6 +11,8 @@ export abstract class OrganizationRepository {
   abstract findAll(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Organization>>;
-  abstract findAllActive(options: PaginationOptions): Promise<PaginatedResponse<Organization>>;
+  abstract findAllActive(
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<Organization>>;
   abstract delete(id: string): Promise<void>;
 }

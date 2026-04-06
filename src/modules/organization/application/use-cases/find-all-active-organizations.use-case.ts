@@ -8,7 +8,9 @@ import { Organization } from '../../domain/entities';
 
 @Injectable()
 export class FindAllActiveOrganizationsUseCase {
-  constructor(private readonly organizationRepository: OrganizationRepository) {}
+  constructor(
+    private readonly organizationRepository: OrganizationRepository,
+  ) {}
 
   async execute(
     options: PaginationOptions,

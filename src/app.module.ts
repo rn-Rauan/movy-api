@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { UserModule } from './modules/user/user.module';
 import { OrganizationModule } from './modules/organization/organization.module';
+import { MembershipModule } from './modules/membership/membership.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SharedModule } from './shared';
 
@@ -13,6 +14,7 @@ import { SharedModule } from './shared';
     }),
     UserModule,
     OrganizationModule,
+    MembershipModule,
     AuthModule,
     SharedModule,
   ],

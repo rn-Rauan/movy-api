@@ -12,7 +12,7 @@ import {
   DisableUserUseCase,
   FindAllActiveUsersUseCase,
   FindAllUsersUseCase,
- } from './application/use-cases';
+} from './application/use-cases';
 
 @Module({
   imports: [PrismaModule],

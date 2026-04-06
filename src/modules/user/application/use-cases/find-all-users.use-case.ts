@@ -9,7 +9,7 @@ import {
 @Injectable()
 export class FindAllUsersUseCase {
   constructor(private readonly userRepository: UserRepository) {}
-  
+
   async execute(options: PaginationOptions): Promise<PaginatedResponse<User>> {
     return await this.userRepository.findAll(options);
   }

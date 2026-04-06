@@ -19,6 +19,7 @@
 Movy API é uma aplicação backend escalável para gerenciar:
 - **Organizações** - Cadastro e gerenciamento de empresas de transporte
 - **Usuários e Roles** - Sistema completo de autenticação e autorização
+- **Associações de Membros** - Gestão de memberships entre usuários, roles e organizações
 - **Veículos** - Cadasto e controle de frotas
 - **Rotas/Viagens** - Criação de templates e instâncias de viagens
 - **Inscrições** - Gerenciamento de passageiros em viagens

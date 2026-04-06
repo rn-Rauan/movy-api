@@ -9,7 +9,9 @@ import { Organization } from '../../domain/entities';
 
 @Injectable()
 export class DisableOrganizationUseCase {
-  constructor(private readonly organizationRepository: OrganizationRepository) {}
+  constructor(
+    private readonly organizationRepository: OrganizationRepository,
+  ) {}
 
   async execute(id: string): Promise<Organization> {
     const organization = await this.organizationRepository.findById(id);

@@ -7,7 +7,11 @@ import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
 import { BcryptHashProvider } from 'src/shared/providers/hash/bcrypt-hash.provider';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { AuthController } from './presentation/controllers/auth.controller';
-import { LoginUseCase, RefreshTokenUseCase, RegisterUseCase } from './application/use-cases';
+import {
+  LoginUseCase,
+  RefreshTokenUseCase,
+  RegisterUseCase,
+} from './application/use-cases';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 
 @Global()

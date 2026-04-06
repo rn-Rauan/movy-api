@@ -6,7 +6,6 @@ import {
 } from 'src/modules/user/domain/entities/value-objects';
 import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 
-
 export class UserMapper {
   /**
    * Map PrismaUser to User domain entity

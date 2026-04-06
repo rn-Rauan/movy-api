@@ -164,7 +164,37 @@ Implementada a base de um sistema de controle de acesso baseado em roles (RBAC):
 - **Seed Script**: Script de inicialização que popula automaticamente os roles no banco de dados na primeira execução.
 - **Database Seeding**: Configuração do `docker-compose.yml` para executar seed automaticamente quando o banco é iniciado pela primeira vez.
 
-### 4.5 Infraestrutura de Desenvolvimento
+
+## 4.5 Módulo Completo de Membership (Associações)
+O módulo de membership foi implementado para gerenciar associações entre usuários, roles e organizações, utilizando a tabela `OrganizationMembership` como base. Ele suporta multi-tenancy e é fundamental para RBAC futuro.
+
+**Endpoints REST:**
+- **`POST /memberships`**: Criar associação (user + role + organization).
+- **`GET /memberships/user/:userId`**: Listar associações de um usuário (paginado).
+- **`GET /memberships/organization/:organizationId`**: Listar associações de uma organização (paginado).
+- **`GET /memberships/:userId/:roleId/:organizationId`**: Buscar por chave composta.
+- **`PATCH /memberships/:userId/:roleId/:organizationId/restore`**: Restaurar associação.
+- **`DELETE /memberships/:userId/:roleId/:organizationId`**: Remover (soft delete).
+
+**Use Cases Implementados:**
+1. `CreateMembershipUseCase`: Validação e criação com prevenção de duplicatas.
+2. `FindMembershipByCompositeKeyUseCase`: Busca específica com erro 404.
+3. `FindMembershipsByUserUseCase`: Listagem paginada por usuário.
+4. `FindMembershipsByOrganizationUseCase`: Listagem paginada por organização.
+5. `RemoveMembershipUseCase`: Soft delete via `removedAt`.
+6. `RestoreMembershipUseCase`: Reversão de soft delete.
+
+**Entidades e Value Objects:**
+- **`Membership`**: Entidade com propriedades imutáveis e métodos `create()`, `remove()`, `restore()`.
+- **Erros de Domínio**: `MembershipAlreadyExistsError`, `MembershipNotFoundError`.
+
+**Camadas de Implementação:**
+- **Domínio**: Entidade `Membership` com regras de negócio.
+- **Aplicação**: DTOs (`CreateMembershipDto`, `MembershipResponseDto`) com validação.
+- **Infraestrutura**: `PrismaMembershipRepository` implementando `MembershipRepository`.
+- **Apresentação**: `MembershipController` com JWT guard e `MembershipPresenter`.
+
+### 4.6 Infraestrutura de Desenvolvimento
 - Configuração de ambiente com Docker e Docker Compose.
 - Pipeline de migrações Prisma configurado.
 - Sistema global de tratamento de exceções e logs.

@@ -21,7 +21,9 @@ export class RefreshTokenUseCase {
 
       const newPayload = { sub: user.id, email: user.email };
       const accessToken = this.jwtService.sign(newPayload);
-      const newRefreshToken = this.jwtService.sign(newPayload, { expiresIn: '7d' });
+      const newRefreshToken = this.jwtService.sign(newPayload, {
+        expiresIn: '7d',
+      });
 
       return {
         accessToken,

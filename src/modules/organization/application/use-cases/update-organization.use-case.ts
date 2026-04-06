@@ -10,7 +10,9 @@ import { UpdateOrganizationDto } from '../dtos/update-organization.dto';
 
 @Injectable()
 export class UpdateOrganizationUseCase {
-  constructor(private readonly organizationRepository: OrganizationRepository) {}
+  constructor(
+    private readonly organizationRepository: OrganizationRepository,
+  ) {}
 
   async execute(
     id: string,

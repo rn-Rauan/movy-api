@@ -71,11 +71,11 @@ export class InvalidAddressError extends OrganizationValidationError {
 }
 
 /**
- * 
+ *
  */
 export class OrganizationAlreadyExistsError extends DomainError {
   code = 'ORGANIZATION_ALREADY_EXISTS';
-  
+
   constructor(cnpj: string) {
     super(`Organization with CNPJ "${cnpj}" already exists.`);
   }

@@ -180,6 +180,7 @@ model OrganizationMembership {
   roleId         Int
   organizationId String
   assignedAt     DateTime @default(now())
+  removedAt      DateTime?
 
   // Relations
   user User @relation("UserToMembership", fields: [userId], references: [id], onDelete: Cascade)

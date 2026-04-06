@@ -10,9 +10,9 @@
 
 ```
 Total Módulos: 7
-Completo: 3 (42%) - User, Organization, Role Management
-Em Progresso: 1 (14%) - Organization Members
-Pendente: 3 (44%)
+Completo: 4 (57%) - User, Organization, Role Management, Membership
+Em Progresso: 1 (14%) - Organization Members (RBAC)
+Pendente: 2 (29%)
 ```
 
 ---
@@ -55,6 +55,40 @@ src/shared/
 ```
 
 **Status:** Padrão estabelecido para reutilização em outros módulos
+
+---
+
+### Membership Module ✅ COMPLETO (05 Abr 2026)
+- ✅ Entity Membership com chave composta (userId, roleId, organizationId)
+- ✅ Repository pattern com PrismaMembershipRepository
+- ✅ Mapper para conversão domínio ↔ persistência
+- ✅ Use Cases: Create, FindByCompositeKey, FindByUser, FindByOrganization, Remove, Restore
+- ✅ Controller REST com endpoints CRUD (POST, GET, DELETE, PATCH)
+- ✅ DTOs com validação (CreateMembershipDto, MembershipResponseDto)
+- ✅ Soft delete via removedAt
+- ✅ Paginação em listagens
+- ✅ Tratamento de erros específicos (MembershipAlreadyExistsError, MembershipNotFoundError)
+- ✅ Presenter para respostas HTTP
+- ✅ Integração com SharedModule (Prisma, Guards)
+- [ ] Testes unitários (0% - pendente)
+
+**Arquivos criados:**
+```
+src/modules/membership/
+├── membership.module.ts ✅
+├── application/dtos/ ✅
+├── application/use-cases/ ✅
+├── domain/entities/ ✅
+├── domain/errors/ ✅
+├── domain/interfaces/ ✅
+├── infrastructure/db/mappers/ ✅
+├── infrastructure/db/repositories/ ✅
+├── presentation/controllers/ ✅
+├── presentation/mappers/ ✅
+└── README.md ✅
+```
+
+**Status:** Funcional e integrado, pronto para RBAC. Testes pendentes.
 
 ---
 
@@ -101,12 +135,13 @@ src/shared/
 - ✅ Email, Telephone - Compartilhados do SharedModule
 
 **Organization Members (multi-tenant com Roles) - PRÓXIMO:**
-- [ ] POST `/organizations/:id/members` - Adicionar user à org com role
-- [ ] GET `/organizations/:id/members` - Listar membros
-- [ ] PUT `/organizations/:id/members/:userId` - Atualizar role do membro
-- [ ] DELETE `/organizations/:id/members/:userId` - Remover membro
-- [ ] Validar permissões (apenas admin pode gerenciar membros)
+- [ ] Integrar Membership Module com Organization Module
 - [ ] Guards customizados baseados em Role (RBAC)
+- [ ] POST `/organizations/:id/members` - Adicionar membro com role
+- [ ] GET `/organizations/:id/members` - Listar membros
+- [ ] PUT `/organizations/:id/members/:userId` - Atualizar role
+- [ ] DELETE `/organizations/:id/members/:userId` - Remover membro
+- [ ] Validar permissões (apenas admin gerencia membros)
 
 **Arquivos criados:**
 ```

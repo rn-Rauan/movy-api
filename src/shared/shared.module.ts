@@ -22,10 +22,6 @@ import { BcryptHashProvider } from './providers/hash/bcrypt-hash.provider';
     },
     BcryptHashProvider,
   ],
-  exports: [
-    PrismaModule,
-    JwtAuthGuard,
-    BcryptHashProvider,
-  ],
+  exports: [PrismaModule, JwtAuthGuard, BcryptHashProvider],
 })
 export class SharedModule {}

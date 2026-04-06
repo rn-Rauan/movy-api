@@ -7,17 +7,27 @@ export class RegisterDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'john@example.com', description: 'The email of the user' })
+  @ApiProperty({
+    example: 'john@example.com',
+    description: 'The email of the user',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ example: 'password123', description: 'The password of the user', minLength: 8 })
+  @ApiProperty({
+    example: 'password123',
+    description: 'The password of the user',
+    minLength: 8,
+  })
   @IsString()
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({ example: '11999999999', description: 'The telephone number of the user' })
+  @ApiProperty({
+    example: '11999999999',
+    description: 'The telephone number of the user',
+  })
   @IsString()
   @IsNotEmpty()
   telephone: string;

@@ -19,30 +19,32 @@ MVP PRONTO: 15 de Junho 2026
 
 ---
 
-## 📍 Fase 1: Fundação (Mar 31 - Abr 13) ✅ 70% COMPLETO
+## 📍 Fase 1: Fundação (Mar 31 - Abr 13) ✅ 85% COMPLETO
 
-**Objetivo:** Base sólida com 2 módulos funcionais
+**Objetivo:** Base sólida com módulos funcionais
 
 | Status | O Quê | Duração |
 |:------:|-------|---------|
 | ✅ | User module CRUD | ✅ Pronto |
 | ✅ | Organization CRUD completo | ✅ Pronto (05 Abr) |
+| ✅ | Membership module (associações) | ✅ Pronto (05 Abr) |
 | ✅ | Role Management & Seed | ✅ Pronto (05 Abr) |
 | ✅ | JWT/Auth setup | ✅ Pronto |
 | ✅ | Shared Module padronizado | ✅ Pronto (05 Abr) |
 | ✅ | Docker + seed configurado | ✅ Pronto (05 Abr) |
-| ⏳ | Organization members | 2-3 dias |
+| ⏳ | Organization members (RBAC) | 2-3 dias |
 | ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
 | ⏳ | Testes 80%+ coverage | 3-4 dias |
 
-**Saída:** API com 2 módulos CRUD, autenticação, roles, seed automático, Docker pronto
+**Saída:** API com 3 módulos CRUD, autenticação, roles, associações, seed automático, Docker pronto
 
 **Progresso em 05 Abr 2026:**
+- ✅ Membership Module: CRUD completo com soft delete e paginação
 - ✅ Organization Module: CRUD 100% completo (6 use cases, 5 value objects)
 - ✅ Role Management: Entity, Repository, Seed script funcional
 - ✅ Database Seeding: Automático na inicialização do Docker
 - ✅ Shared Module: Padronizado com exports organizados
-- ✅ Value Objects: Com validações de domínio (Cnpj, OrganizationName, Slug, Address, etc.)
+- ✅ Value Objects: Com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, etc.)
 - ✅ Validation Errors: Sistema robusto de tratamento de erros
 - ✅ Global Exception Handling: AllExceptionsFilter traduzindo erros de domínio em respostas HTTP
 - ✅ Auth Module: Swagger documentation completa com exemplos
