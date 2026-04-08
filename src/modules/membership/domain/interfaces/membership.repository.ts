@@ -20,6 +20,10 @@ export abstract class MembershipRepository {
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Membership>>;
   abstract update(membership: Membership): Promise<Membership>;
+  abstract findByUserIdAndOrganizationId(
+    userId: string,
+    organizationId: string,
+  ): Promise<Membership | null>;
   abstract delete(
     userId: string,
     roleId: number,

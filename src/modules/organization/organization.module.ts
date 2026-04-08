@@ -11,10 +11,10 @@ import {
 import { PrismaOrganizationRepository } from './infrastructure/db/repositories/prisma-organization.repository';
 import { OrganizationRepository } from './domain/interfaces/organization.repository';
 import { OrganizationPresenter } from './presentation/mappers/organization.mapper';
-import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
+import { SharedModule } from 'src/shared';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [SharedModule],
   controllers: [OrganizationController],
   providers: [
     CreateOrganizationUseCase,

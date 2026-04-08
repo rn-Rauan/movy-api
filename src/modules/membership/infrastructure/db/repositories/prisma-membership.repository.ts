@@ -105,6 +105,21 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return MembershipMapper.toDomain(membershipData);
   }
 
+  async findByUserIdAndOrganizationId(
+    userId: string,
+    organizationId: string,
+  ): Promise<Membership | null> {
+    const membershipData = await this.prisma.organizationMembership.findFirst({
+      where: {
+        userId,
+        organizationId,
+        removedAt: null,
+      },
+    });
+    if (!membershipData) return null;
+    return MembershipMapper.toDomain(membershipData);
+  }
+
   async delete(
     userId: string,
     roleId: number,

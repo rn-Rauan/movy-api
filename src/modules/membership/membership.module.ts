@@ -11,10 +11,13 @@ import {
 import { PrismaMembershipRepository } from './infrastructure/db/repositories/prisma-membership.repository';
 import { MembershipRepository } from './domain/interfaces/membership.repository';
 import { MembershipPresenter } from './presentation/mappers/membership.presenter';
-import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
+import { FindRoleByUserIdAndOrganizationIdUseCase } from './application/use-cases/find-role-by-user-and-organization.use-case';
+import { SharedModule } from 'src/shared';
+import { UserOrganizationRoleResolver } from 'src/shared/domain/interfaces/user-organization-role.resolver';
+import { MembershipUserOrgRoleResolver } from './infrastructure/providers/membership-user-org-role.resolver';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [SharedModule],
   controllers: [MembershipController],
   providers: [
     CreateMembershipUseCase,
@@ -23,9 +26,14 @@ import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
     FindMembershipsByOrganizationUseCase,
     RemoveMembershipUseCase,
     RestoreMembershipUseCase,
+    FindRoleByUserIdAndOrganizationIdUseCase,
     {
       provide: MembershipRepository,
       useClass: PrismaMembershipRepository,
+    },
+    {
+      provide: UserOrganizationRoleResolver,
+      useClass: MembershipUserOrgRoleResolver,
     },
     MembershipPresenter,
   ],
@@ -37,6 +45,8 @@ import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
     RemoveMembershipUseCase,
     RestoreMembershipUseCase,
     MembershipRepository,
+    FindRoleByUserIdAndOrganizationIdUseCase,
+    UserOrganizationRoleResolver,
   ],
 })
 export class MembershipModule {}
