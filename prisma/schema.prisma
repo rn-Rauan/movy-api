@@ -118,6 +118,7 @@ model Organization {
   auditLogs     AuditLog[]       @relation("AuditLogOrganization")
   subscriptions Subscription[]   @relation("OrganizationSubscription")
   tripInstances  TripInstance[]    @relation("TripInstanceOrganization")
+  drivers       Driver[]         @relation("DriverOrganization") 
 
   @@index([slug])
   @@index([status])
@@ -192,16 +193,20 @@ model OrganizationMembership {
 }
 
 model Driver {
-  userId        String         @id
-  cnh           String         @unique @db.VarChar(20)
-  cnhCategory   String         @db.VarChar(5)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id             String         @id @default(uuid())
+  userId         String         @unique
+  organizationId String         @unique
+  cnh            String         @unique @db.VarChar(20)
+  cnhCategory    String         @db.VarChar(5)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   // Relations
   user          User           @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization    @relation("DriverOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
   tripInstances TripInstance[] @relation("TripDriver")
 
+  @@index([organizationId])
   @@map("driver")
 }
 
@@ -257,13 +262,13 @@ model TripInstance {
   id                     String     @id @default(uuid())
   driverId               String
   vehicleId              String
-  totalCapacity          Int
-  tripStatus             TripStatus @default(SCHEDULED)
   tripTemplateId         String
+  organizationId         String
+  tripStatus             TripStatus @default(SCHEDULED)
   statusForRecurringTrip Status? // Only for recurring trips
+  totalCapacity          Int
   departureTime          DateTime
   arrivalEstimate        DateTime
-  organizationId         String
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
@@ -274,9 +279,9 @@ model TripInstance {
   enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
   organization Organization          @relation("TripInstanceOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([driverId])
-  @@index([vehicleId])
-  @@index([tripTemplateId])
+  @@index([driverId, organizationId])
+  @@index([vehicleId, organizationId])
+  @@index([tripTemplateId, organizationId])
   @@index([tripStatus])
   @@index([departureTime])
   @@index([organizationId])

@@ -5,6 +5,8 @@ import { LoggingInterceptor } from './shared/presentation/interceptors/logging.i
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
+// ✅ Load JWT Payload type declarations globally
+import 'src/shared/infrastructure/types/jwt-payload.interface';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

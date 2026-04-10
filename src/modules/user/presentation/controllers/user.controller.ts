@@ -32,6 +32,8 @@ import {
   FindAllUsersUseCase,
 } from '../../application/use-cases';
 import { JwtAuthGuard } from 'src/shared/guards/jwt.guard';
+import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
+import { TenantContext } from 'src/shared/middleware/tenant-context.middleware';
 
 @ApiTags('users')
 @Controller('users')
@@ -62,21 +64,58 @@ export class UserController {
     }
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Update an existing user' })
-  @ApiParam({ name: 'id', description: 'The ID of the user to update' })
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return current user profile.',
+    type: UserResponseDto,
+  })
+  async getMe(
+    @GetTenantContext() context: TenantContext,
+  ): Promise<UserResponseDto> {
+    try {
+      const user = await this.findUserByIdUseCase.execute(context.userId);
+      return UserPresenter.toHTTP(user);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Put('me')
+  @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({
     status: 200,
     description: 'The user has been successfully updated.',
     type: UserResponseDto,
   })
-  async update(
-    @Param('id') id: string,
+  async updateMe(
+    @GetTenantContext() context: TenantContext,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     try {
-      const user = await this.updateUserUseCase.execute(id, updateUserDto);
+      const user = await this.updateUserUseCase.execute(
+        context.userId,
+        updateUserDto,
+      );
       return UserPresenter.toHTTP(user);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Delete('me')
+  @ApiOperation({ summary: 'Disable current user account' })
+  @ApiResponse({
+    status: 200,
+    description: 'The user has been successfully disabled.',
+  })
+  async disableMe(
+    @GetTenantContext() context: TenantContext,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      await this.disableUserUseCase.execute(context.userId);
+      return { success: true, message: 'User account disabled' };
     } catch (error) {
       throw error;
     }
@@ -126,7 +165,11 @@ export class UserController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Find a user by ID' })
+  @ApiOperation({
+    summary: 'Find a user by ID - DEPRECATED, use /users/me',
+    description:
+      'This endpoint is deprecated. Please use GET /users/me instead.',
+  })
   @ApiParam({ name: 'id', description: 'The ID of the user to find' })
   @ApiResponse({
     status: 200,
@@ -143,12 +186,15 @@ export class UserController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Disable a user' })
+  @ApiOperation({
+    summary: 'Disable a user - DEPRECATED, use /users/me',
+    description:
+      'This endpoint is deprecated. Please use DELETE /users/me instead.',
+  })
   @ApiParam({ name: 'id', description: 'The ID of the user to disable' })
   @ApiResponse({
     status: 200,
     description: 'The user has been successfully disabled.',
-    type: Boolean,
   })
   async disable(@Param('id') id: string): Promise<boolean> {
     try {

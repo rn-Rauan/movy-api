@@ -3,7 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
+import { MembershipModule } from '../membership/membership.module';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
+import { SharedModule } from 'src/shared/shared.module';
 import { BcryptHashProvider } from 'src/shared/providers/hash/bcrypt-hash.provider';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { AuthController } from './presentation/controllers/auth.controller';
@@ -12,13 +14,16 @@ import {
   RefreshTokenUseCase,
   RegisterUseCase,
 } from './application/use-cases';
+import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 
 @Global()
 @Module({
   imports: [
     UserModule,
+    MembershipModule,
     PrismaModule,
+    SharedModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -34,6 +39,7 @@ import { JwtStrategy } from './infrastructure/jwt.strategy';
     LoginUseCase,
     RegisterUseCase,
     RefreshTokenUseCase,
+    JwtPayloadService, // ✅ NOVO: Serviço para enriquecer JWTs
     JwtStrategy,
     {
       provide: HashProvider,

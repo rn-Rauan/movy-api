@@ -1,5 +1,8 @@
 import { Membership } from 'src/modules/membership/domain/entities';
-import { MembershipRepository } from 'src/modules/membership/domain/interfaces/membership.repository';
+import {
+  MembershipRepository,
+  FirstMembershipDTO,
+} from 'src/modules/membership/domain/interfaces/membership.repository';
 import {
   PaginationOptions,
   PaginatedResponse,
@@ -134,5 +137,75 @@ export class PrismaMembershipRepository implements MembershipRepository {
         },
       },
     });
+  }
+
+  // ============================================
+  // JWT-specific Operations
+  // ============================================
+  async findFirstActiveByUserId(
+    userId: string,
+  ): Promise<FirstMembershipDTO | null> {
+    const membership = await this.prisma.organizationMembership.findFirst({
+      where: {
+        userId,
+        removedAt: null,
+      },
+      include: {
+        role: true,
+      },
+      orderBy: {
+        assignedAt: 'asc',
+      },
+    });
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      userId: membership.userId,
+      organizationId: membership.organizationId,
+      role: {
+        name: membership.role.name as 'ADMIN' | 'DRIVER',
+      },
+    };
+  }
+
+  async findAllActiveByUserId(userId: string): Promise<FirstMembershipDTO[]> {
+    const memberships = await this.prisma.organizationMembership.findMany({
+      where: {
+        userId,
+        removedAt: null,
+      },
+      include: {
+        role: true,
+      },
+      orderBy: {
+        assignedAt: 'asc',
+      },
+    });
+
+    return memberships.map((m) => ({
+      userId: m.userId,
+      organizationId: m.organizationId,
+      role: {
+        name: m.role.name as 'ADMIN' | 'DRIVER',
+      },
+    }));
+  }
+
+  async hasActiveMembership(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const count = await this.prisma.organizationMembership.count({
+      where: {
+        userId,
+        organizationId,
+        removedAt: null,
+      },
+    });
+
+    return count > 0;
   }
 }

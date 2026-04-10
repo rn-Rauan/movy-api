@@ -2,73 +2,63 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  Optional,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserOrganizationRoleResolver } from '../domain/interfaces/user-organization-role.resolver';
-import { InsufficientPermissionError } from '../domain/errors/roles.error';
-import { RoleName } from '../domain/types/role-name.enum';
 import { ROLES_KEY } from '../infrastructure/decorators/roles.decorator';
+import { TenantContext } from '../middleware/tenant-context.middleware';
 
+/**
+ * Guard que valida permissões de role via @Roles() decorator
+ *
+ * Lê a metadata @Roles() e compara com req.context.role
+ * Developers (isDev=true) sempre passam
+ *
+ * Uso:
+ * @UseGuards(JwtAuthGuard, RolesGuard)
+ * @Roles('ADMIN', 'DRIVER')
+ * async someMethod() { ... }
+ */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(
-    private readonly reflector: Reflector,
-    @Optional()
-    private readonly userOrgRoleResolver?: UserOrganizationRoleResolver,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<RoleName[]>(
+    // Step 1: Obter roles requeridas da metadata @Roles()
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
 
+    // Step 2: Se não há @Roles(), permitir (rota pública)
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    if (!this.userOrgRoleResolver) {
-      throw new Error(
-        'RolesGuard requires UserOrganizationRoleResolver to be provided. ' +
-          'Make sure MembershipModule is imported in your application.',
-      );
-    }
-
+    // Step 3: Extrair contexto do request
     const request = context.switchToHttp().getRequest();
-    const { user } = request;
-    const organizationId = request.params.organizationId || request.params.id;
+    const ctx = request.context as TenantContext;
 
-    if (!user || !organizationId) {
-      // This should technically be caught by AuthGuard or other validation,
-      // but as a safeguard:
-      throw new InsufficientPermissionError(requiredRoles);
-    }
-
-    try {
-      const userRole =
-        await this.userOrgRoleResolver.resolveUserRoleInOrganization(
-          user.id,
-          organizationId,
-        );
-
-      const hasPermission = requiredRoles.some(
-        (role) => userRole.name === role,
+    // Step 4: Validar que middleware injetou contexto
+    if (!ctx) {
+      throw new BadRequestException(
+        'TenantContext required for role validation'
       );
-
-      if (!hasPermission) {
-        throw new InsufficientPermissionError(requiredRoles);
-      }
-
-      return true;
-    } catch (error) {
-      // If the resolver throws an error (e.g., MembershipNotFound),
-      // it means the user isn't part of the org, so they don't have the role.
-      // We translate this to an InsufficientPermissionError.
-      if (error instanceof InsufficientPermissionError) {
-        throw error;
-      }
-      throw new InsufficientPermissionError(requiredRoles);
     }
+
+    // Step 5: Developers sempre passam
+    if (ctx.isDev) {
+      return true;
+    }
+
+    // Step 6: Validar se user tem um dos roles requeridos
+    if (!ctx.role || !requiredRoles.includes(ctx.role)) {
+      throw new ForbiddenException(
+        `Insufficient permissions. Required roles: ${requiredRoles.join(', ')}`
+      );
+    }
+
+    return true;
   }
 }
