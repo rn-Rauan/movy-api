@@ -2,14 +2,14 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 05 Abr 2026
+**Última atualização:** 11 Abr 2026
 
 ---
 
 ## ⏱️ Timeline Estimado
 
 ```
-FASE 1: Mar 31 - Abr 13    (2 semanas)  ✅ 70% COMPLETO (05 Abr 2026)
+FASE 1: Mar 31 - Abr 13    (2 semanas)  ✅ 90% COMPLETO (11 Abr 2026)
 FASE 2: Abr 14 - Mai 15    (4 semanas)  ⏳ PRÓXIMO
 FASE 3: Mai 18 - Jun 01    (2 semanas)  ⏳ FUTURO
 FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
@@ -19,7 +19,7 @@ MVP PRONTO: 15 de Junho 2026
 
 ---
 
-## 📍 Fase 1: Fundação (Mar 31 - Abr 13) ✅ 85% COMPLETO
+## 📍 Fase 1: Fundação (Mar 31 - Abr 13) ✅ 90% COMPLETO
 
 **Objetivo:** Base sólida com módulos funcionais
 
@@ -32,22 +32,29 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | JWT/Auth setup | ✅ Pronto |
 | ✅ | Shared Module padronizado | ✅ Pronto (05 Abr) |
 | ✅ | Docker + seed configurado | ✅ Pronto (05 Abr) |
+| ✅ | Driver module CRUD completo | ✅ Pronto (11 Abr) |
+| ✅ | RBAC Guards + @Roles decorator | ✅ Pronto (11 Abr) |
 | ⏳ | Organization members (RBAC) | 2-3 dias |
 | ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
 | ⏳ | Testes 80%+ coverage | 3-4 dias |
 
 **Saída:** API com 3 módulos CRUD, autenticação, roles, associações, seed automático, Docker pronto
 
-**Progresso em 05 Abr 2026:**
+**Progresso em 11 Abr 2026:**
 - ✅ Membership Module: CRUD completo com soft delete e paginação
 - ✅ Organization Module: CRUD 100% completo (6 use cases, 5 value objects)
 - ✅ Role Management: Entity, Repository, Seed script funcional
 - ✅ Database Seeding: Automático na inicialização do Docker
 - ✅ Shared Module: Padronizado com exports organizados
-- ✅ Value Objects: Com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, etc.)
+- ✅ Value Objects: Com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory)
 - ✅ Validation Errors: Sistema robusto de tratamento de erros
 - ✅ Global Exception Handling: AllExceptionsFilter traduzindo erros de domínio em respostas HTTP
 - ✅ Auth Module: Swagger documentation completa com exemplos
+- ✅ Driver Module: CRUD completo (6 use cases, 2 value objects, 100% alinhado com User)
+- ✅ RBAC Guards: @Roles, RolesGuard, TenantFilterGuard aplicados nos endpoints
+- ✅ DriverMapper: Hidratação de value objects com toDomain/toPersistence
+- ✅ Schema Prisma: DriverStatus enum (ACTIVE, INACTIVE, SUSPENDED) com migrations
+- ✅ Compilação: TypeScript ✅ sem erros
 
 ---
 
@@ -121,18 +128,21 @@ MVP PRONTO: 15 de Junho 2026
 
 ## 📊 Módulos por Fase
 
-### Fase 1 ✅
+### Fase 1 ✅ 90% COMPLETO
 ```
 user/          ✅ COMPLETO
 organization/  ✅ COMPLETO (CRUD)
 auth/          ✅ COMPLETO
+driver/        ✅ COMPLETO (11 Abr 2026)
+membership/    ✅ COMPLETO
+roles/         ✅ COMPLETO
+shared/        ✅ COMPLETO
 ```
 
 ### Fase 2 ⏳
 ```
 vehicle/       ⏳ PRÓXIMO (semana 1-2)
-driver/        ⏳ PRÓXIMO (semana 1-2)
-trip/          ⏳ PRÓXIMO (semana 3-4, COMPLEXO)
+trip/          ⏳ PRÓXIMO (semana 2-3, COMPLEXO)
 booking/       ⏳ PRÓXIMO (semana 3-4)
 ```
 

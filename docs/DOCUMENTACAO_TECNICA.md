@@ -194,12 +194,58 @@ O módulo de membership foi implementado para gerenciar associações entre usu�
 - **Infraestrutura**: `PrismaMembershipRepository` implementando `MembershipRepository`.
 - **Apresentação**: `MembershipController` com JWT guard e `MembershipPresenter`.
 
-### 4.6 Infraestrutura de Desenvolvimento
+### 4.7 Módulo Completo de Driver (CRUD com Value Objects)
+O módulo de driver foi implementado com arquitetura 100% alinhada com o User Module, utilizando Value Objects para encapsular validações de CNH:
+
+**Endpoints REST:**
+- **`POST /drivers`**: Criar novo driver com validação de CNH (9-12 alfanuméricos) e categoria (A-E).
+- **`GET /drivers/me`**: Obter perfil do driver atual (autenticado).
+- **`GET /drivers/organization/:organizationId`**: Listar drivers da organização (paginado).
+- **`GET /drivers/:id`**: Buscar driver específico por ID.
+- **`PUT /drivers/:id`**: Atualizar dados do driver (CNH, status).
+- **`DELETE /drivers/:id`**: Remover driver (soft delete).
+
+**Use Cases Implementados:**
+1. `CreateDriverUseCase`: Validação e criação com value object instantiation
+2. `UpdateDriverUseCase`: Atualização com coordenação de value objects
+3. `FindDriverByIdUseCase`: Busca com tratamento 404
+4. `FindDriverByUserIdUseCase`: Busca por usuário
+5. `FindAllDriversByOrganizationUseCase`: Paginação com PaginationOptions
+6. `RemoveDriverUseCase`: Soft delete com validação
+
+**Value Objects Implementados:**
+- **`Cnh`**: Valida 9-12 caracteres alfanuméricos com create factory e .value_ getter
+- **`CnhCategory`**: Enum A-E com VALID_CATEGORIES, isValid() static e create factory
+
+**Entidade Driver:**
+- DriverEntity com DriverProps interface
+- Propriedades privadas com getters públicos
+- Métodos de mutação: activate(), deactivate(), suspend(), updateCnh()
+- Static factory create() e restore() para DDD compliance
+
+**Domain Errors:**
+- InvalidCnhError, InvalidCnhCategoryError, DriverNotFoundError, DriverAlreadyExistsError, etc (7 tipos)
+
+**Mapper Pattern:**
+- toDomain(): Hidratação de value objects via Cnh.create(), CnhCategory.create()
+- toPersistence(): Extração de valores primitivos com .value_
+
+**Alinhamento Arquitetural:**
+- ✅ Repository: save() → Promise<DriverEntity | null>, update() → Promise<DriverEntity | null>
+- ✅ Repository: delete() em vez de remove(), findByOrganizationId(options: PaginationOptions)
+- ✅ Paginação: PaginatedResponse<DriverEntity> com page, limit, totalPages
+- ✅ DTOs: Arquivos separados com @ApiProperty/@ApiPropertyOptional
+- ✅ Presenter: Métodos estáticos toHTTP() e toHTTPList()
+- ✅ RBAC: @Roles(RoleName.ADMIN), RolesGuard, TenantFilterGuard
+- ✅ Schema: DriverStatus enum (ACTIVE, INACTIVE, SUSPENDED)
+
+### 4.8 Infraestrutura de Desenvolvimento
 - Configuração de ambiente com Docker e Docker Compose.
 - Pipeline de migrações Prisma configurado.
 - Sistema global de tratamento de exceções e logs.
 - Seed automático integrado ao lifecycle de inicialização do Docker.
 - Shared Module padronizado para expor componentes reutilizáveis.
+- Value Objects com validação centralizada (Cnh, CnhCategory, Email, Telephone, etc.)
 
 ---
 
@@ -216,7 +262,60 @@ O módulo de membership foi implementado para gerenciar associações entre usu�
 
 ---
 
-## 6. Implementações Recentes (05 Abr 2026)
+## 6. Implementações Recentes (11 Abr 2026)
+
+### Driver Module - COMPLETO (11 Abr 2026)
+Implementada a arquitetura completa do módulo Driver com total alinhamento com o User Module:
+
+**Componentes Implementados:**
+- ✅ **Domain Layer:**
+  - DriverEntity com props object pattern (Like User)
+  - DriverProps interface com value objects (Cnh, CnhCategory)
+  - Value Objects:
+    - Cnh: Valida 9-12 caracteres alfanuméricos
+    - CnhCategory: Enum A-E com validação e VALID_CATEGORIES
+  - 7 Domain Errors específicos (InvalidCnh, InvalidCnhCategory, DriverNotFound, etc)
+  - DriverStatus constants (ACTIVE, INACTIVE, SUSPENDED)
+  - Métodos de mutação: activate(), deactivate(), suspend(), updateCnh()
+
+- ✅ **Application Layer:**
+  - 6 Use Cases: Create, Update, FindById, FindByUserId, FindByOrganization, Remove
+  - DTOs separados em 3 arquivos com @ApiProperty decorators
+  - CreateDriverDto, UpdateDriverDto, DriverResponseDto com validação class-validator
+  - Value object instantiation em CreateDriverUseCase e UpdateDriverUseCase
+  - Tratamento de erros com InternalServerErrorException
+
+- ✅ **Infrastructure Layer:**
+  - DriverMapper com toDomain (hidratação de value objects) e toPersistence
+  - PrismaDriverRepository implementando IDriverRepository
+  - Métodos seguindo sinatura de User: save(), update(), delete(), findByOrganizationId(options)
+  - Paginação via PaginationOptions e retorno PaginatedResponse
+  - Transações Prisma ($transaction) para operações múltiplas
+
+- ✅ **Presentation Layer:**
+  - DriverController com 6 endpoints REST
+  - RBAC Guards: @Roles(RoleName.ADMIN), RolesGuard, TenantFilterGuard
+  - DriverPresenter com métodos estáticos toHTTP() e toHTTPList()
+  - Extração de value objects com .value_ nos responses
+
+- ✅ **Schema & Database:**
+  - Driver model com DriverStatus enum
+  - DriverStatus (ACTIVE, INACTIVE, SUSPENDED)
+  - Migrations automáticas via Prisma
+
+**Alinhamento com User Module:**
+- ✅ Repositório: save() | null, update() | null, delete(), findByOrganizationId(PaginationOptions)
+- ✅ Value Objects: Nova abstração com validação
+- ✅ Mapper: toDomain hidrata value objects, toPersistence extrai .value_
+- ✅ DTOs: Separados com Swagger documentation
+- ✅ Use Cases: Instanciam value objects antes de criar/atualizar entidades
+- ✅ Presenter: Métodos estáticos para mapping
+- ✅ RBAC: Guards aplicados nos endpoints
+- ✅ Compilação: TypeScript ✅ sem erros
+
+---
+
+## 6.1 Implementações Anteriores (05 Abr 2026)
 
 ### Role Management & Database Seeding
 - ✅ Implementado sistema de **Role Entity** com tipos pré-definidos (ADMIN, DRIVER).
@@ -236,32 +335,35 @@ O script de seed foi configurado para:
 
 ## 7. Próximos Passos
 
-1. **RBAC - Role-Based Access Control:** Implementar guards customizados para restringir acesso de endpoints com base no role do usuário autenticado.
-2. **Organização - Membros e Permissões:** Gestão de membros da organização com associação de roles específicos por membro.
+1. **Organização - Membros e Permissões:** Integrar Membership Module com Organization, adicionar endpoints para gerenciar membros com roles.
+2. **Testes Unitários:** Implementar 80%+ coverage para todos os módulos.
 3. **Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.
-4. **Módulo de Motoristas:** Cadastro de motoristas com associação a veículos e rotas.
-5. **Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução.
+4. **Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).
+5. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
 6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 05 de abril de 2026, foi implementado com sucesso:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 11 de abril de 2026, foi implementado com sucesso:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro e refresh tokens JWT.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy e soft delete.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, 100% alinhado com User Module.
+- ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
-- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug).
+- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory).
 - ✅ **Validation Errors** para tratamento de erros específicos do domínio.
 - ✅ **Global Exception Handling** com AllExceptionsFilter para tradução de erros de domínio em respostas HTTP.
+- ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard implementados e aplicados.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant. 
 
-**Progresso atual:** **70% da Fase 1** (User ✅ + Organization ✅ + Roles ✅), com os próximos passos focados em:
-1. Implementar RBAC Guards para proteção de endpoints por role.
-2. Completar gestão de membros de organização com atribuição de roles.
-3. Iniciar desenvolvimento dos módulos de core business (Vehicles, Drivers, Trips).
+**Progresso atual:** **90% da Fase 1** (User ✅ + Organization ✅ + Roles ✅ + Driver ✅ + Membership ✅), com os próximos passos focados em:
+3. Completar gestão de membros de organização com endpoints de integração.
+4. Implementar CI/CD com GitHub Actions e testes 80%+.
+5. Iniciar desenvolvimento dos módulos de core business (Vehicles, Trips, Bookings).
 
 ---
 
@@ -274,6 +376,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npm run start:dev`: Inicia o servidor em modo de desenvolvimento.
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
+- `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
 
 ### 9.2 Variáveis de Ambiente Necessárias
 ```env
