@@ -5,6 +5,7 @@ import { UserModule } from './modules/user/user.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { MembershipModule } from './modules/membership/membership.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DriverModule } from './modules/driver/driver.module';
 import { SharedModule } from './shared';
 
 @Module({
@@ -16,6 +17,7 @@ import { SharedModule } from './shared';
     OrganizationModule,
     MembershipModule,
     AuthModule,
+    DriverModule,
     SharedModule,
   ],
   controllers: [AppController],

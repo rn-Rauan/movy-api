@@ -66,9 +66,6 @@ export class TenantContextMiddleware implements NestMiddleware {
     req.context = context;
 
     // Step 6: Logging para diagnóstico
-    console.log(
-      `[TenantContext] userId=${context.userId}, org=${context.organizationId || 'B2C'}, role=${context.role || 'none'}, isDev=${context.isDev}`
-    );
 
     next();
   }

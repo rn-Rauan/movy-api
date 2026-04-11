@@ -11,7 +11,11 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/shared/guards/jwt.guard';
+import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
+import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
+import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
+import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
+import { RoleName } from 'src/shared';
 import {
   ApiTags,
   ApiOperation,
@@ -49,6 +53,8 @@ export class MembershipController {
   ) {}
 
   @Post()
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Create a new membership' })
   @ApiResponse({
     status: 201,
@@ -63,6 +69,8 @@ export class MembershipController {
   }
 
   @Get('user/:userId')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Find all memberships for a user' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -95,6 +103,8 @@ export class MembershipController {
   }
 
   @Get('organization/:organizationId')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Find all memberships for an organization' })
   @ApiParam({
     name: 'organizationId',
@@ -131,6 +141,8 @@ export class MembershipController {
   }
 
   @Get(':userId/:roleId/:organizationId')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Find a membership by composite key' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiParam({ name: 'roleId', description: 'The ID of the role' })
@@ -157,6 +169,8 @@ export class MembershipController {
   }
 
   @Delete(':userId/:roleId/:organizationId')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Remove a membership (soft delete)' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiParam({ name: 'roleId', description: 'The ID of the role' })
@@ -179,6 +193,8 @@ export class MembershipController {
   }
 
   @Patch(':userId/:roleId/:organizationId/restore')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Restore a removed membership' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiParam({ name: 'roleId', description: 'The ID of the role' })

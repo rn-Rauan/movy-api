@@ -31,9 +31,13 @@ import {
   FindAllActiveUsersUseCase,
   FindAllUsersUseCase,
 } from '../../application/use-cases';
-import { JwtAuthGuard } from 'src/shared/guards/jwt.guard';
+import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
-import { TenantContext } from 'src/shared/middleware/tenant-context.middleware';
+import { TenantContext } from 'src/shared/infrastructure/middleware/tenant-context.middleware';
+import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
+import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
+import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
+import { RoleName } from 'src/shared';
 
 @ApiTags('users')
 @Controller('users')
@@ -49,6 +53,8 @@ export class UserController {
   ) {}
 
   @Post()
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({
     status: 201,
@@ -186,6 +192,8 @@ export class UserController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({
     summary: 'Disable a user - DEPRECATED, use /users/me',
     description:

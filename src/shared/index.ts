@@ -15,7 +15,7 @@ export * from './infrastructure/database/repositories/prisma-role.repository';
 export * from './presentation/dtos/paginated.dto';
 
 // Guards
-export * from './guards/jwt.guard';
+export * from './infrastructure/guards/jwt.guard';
 
 // Interceptors
 export * from './presentation/interceptors/logging.interceptor';

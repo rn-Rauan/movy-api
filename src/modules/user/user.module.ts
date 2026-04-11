@@ -13,9 +13,10 @@ import {
   FindAllActiveUsersUseCase,
   FindAllUsersUseCase,
 } from './application/use-cases';
+import { SharedModule } from 'src/shared';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SharedModule],
   controllers: [UserController],
   providers: [
     CreateUserUseCase,

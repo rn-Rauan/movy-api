@@ -34,7 +34,6 @@ export class TenantFilterGuard implements CanActivate {
 
     // Step 2: Developers (isDev=true) bypass tudo
     if (ctx.isDev) {
-      console.log(`[TenantFilterGuard] Developer ${ctx.email} bypasses all checks`);
       return true;
     }
 

@@ -11,7 +11,11 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/shared/guards/jwt.guard';
+import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
+import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
+import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
+import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
+import { RoleName } from 'src/shared';
 import {
   ApiTags,
   ApiOperation,
@@ -50,6 +54,8 @@ export class OrganizationController {
   ) {}
 
   @Post()
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Create a new organization' })
   @ApiResponse({
     status: 201,
@@ -109,6 +115,8 @@ export class OrganizationController {
   }
 
   @Put(':id')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Update an existing organization' })
   @ApiParam({ name: 'id', description: 'The ID of the organization to update' })
   @ApiResponse({
@@ -128,6 +136,8 @@ export class OrganizationController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Disable an organization' })
   @ApiParam({
     name: 'id',
