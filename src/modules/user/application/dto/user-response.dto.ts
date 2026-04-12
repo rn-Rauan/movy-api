@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Status } from 'src/shared/domain/types/status.type';
+import type { Status } from 'src/shared/domain/types/status.type';
 
 export class UserResponseDto {
   @ApiProperty({ example: 'uuid-v4' })

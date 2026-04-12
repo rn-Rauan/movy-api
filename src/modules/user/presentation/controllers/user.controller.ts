@@ -33,11 +33,8 @@ import {
 } from '../../application/use-cases';
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
-import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
-import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
-import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
-import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
-import { Dev, RoleName } from 'src/shared';
+import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
+import { Dev} from 'src/shared';
 import { DevGuard } from 'src/shared/infrastructure/guards/dev.guard';
 
 @ApiTags('users')

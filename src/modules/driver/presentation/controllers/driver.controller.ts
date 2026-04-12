@@ -17,7 +17,7 @@ import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filte
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
 import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
 import { RoleName } from 'src/shared';
-import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
+import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import {
   ApiTags,
   ApiOperation,
