@@ -15,7 +15,7 @@ import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
-import { RoleName } from 'src/shared';
+import { Dev, DevGuard, RoleName } from 'src/shared';
 import {
   ApiTags,
   ApiOperation,
@@ -102,7 +102,9 @@ export class OrganizationController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Find an organization by ID' })
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Find an organization by ID (for ADMIN)' })
   @ApiParam({ name: 'id', description: 'The ID of the organization to find' })
   @ApiResponse({
     status: 200,
@@ -117,7 +119,7 @@ export class OrganizationController {
   @Put(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Update an existing organization' })
+  @ApiOperation({ summary: 'Update an existing organization (for ADMIN)' })
   @ApiParam({ name: 'id', description: 'The ID of the organization to update' })
   @ApiResponse({
     status: 200,
@@ -134,11 +136,11 @@ export class OrganizationController {
     );
     return this.organizationPresenter.toHTTP(organization);
   }
-
+  
   @Delete(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Disable an organization' })
+  @ApiOperation({ summary: 'Disable an organization (for ADMIN)' })
   @ApiParam({
     name: 'id',
     description: 'The ID of the organization to disable',
@@ -154,7 +156,9 @@ export class OrganizationController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Find all organizations' })
+  @UseGuards(DevGuard)
+  @Dev()
+  @ApiOperation({ summary: 'Find all organizations (for dev only)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({

@@ -54,8 +54,9 @@ export class UserController {
   ) {}
 
   @Post()
-  @UseGuards(RolesGuard, TenantFilterGuard)
-  @ApiOperation({ summary: 'Create a new user' })
+  @UseGuards(DevGuard)
+  @Dev()
+  @ApiOperation({ summary: 'Create a new user (for dev only)' })
   @ApiResponse({
     status: 201,
     description: 'The user has been successfully created.',
@@ -130,7 +131,7 @@ export class UserController {
   @Get('active')
   @UseGuards(DevGuard)
   @Dev()
-  @ApiOperation({ summary: 'Find all active users' })
+  @ApiOperation({ summary: 'Find all active users (for dev only)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({
@@ -173,12 +174,14 @@ export class UserController {
   }
 
   @Get(':id')
+  @UseGuards(DevGuard)
+  @Dev()
   @ApiOperation({
     summary: 'Find a user by ID - DEPRECATED, use /users/me',
     description:
       'This endpoint is deprecated. Please use GET /users/me instead.',
   })
-  @ApiParam({ name: 'id', description: 'The ID of the user to find' })
+  @ApiParam({ name: 'id', description: 'The ID of the user to find (for dev only)' })
   @ApiResponse({
     status: 200,
     description: 'Return the user.',
@@ -194,14 +197,14 @@ export class UserController {
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
+  @UseGuards(DevGuard)
+  @Dev()
   @ApiOperation({
     summary: 'Disable a user - DEPRECATED, use /users/me',
     description:
       'This endpoint is deprecated. Please use DELETE /users/me instead.',
   })
-  @ApiParam({ name: 'id', description: 'The ID of the user to disable' })
+  @ApiParam({ name: 'id', description: 'The ID of the user to disable (for dev only)' })
   @ApiResponse({
     status: 200,
     description: 'The user has been successfully disabled.',
