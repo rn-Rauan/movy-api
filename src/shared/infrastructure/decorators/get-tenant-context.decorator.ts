@@ -1,4 +1,8 @@
-import { createParamDecorator, ExecutionContext, BadRequestException } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  BadRequestException,
+} from '@nestjs/common';
 
 /**
  * Decorator para injetar TenantContext em métodos de controller
@@ -13,10 +17,10 @@ export const GetTenantContext = createParamDecorator(
 
     if (!request.context) {
       throw new BadRequestException(
-        'TenantContext not found in request. Ensure TenantContextMiddleware is registered and request is authenticated.'
+        'TenantContext not found in request. Ensure TenantContextMiddleware is registered and request is authenticated.',
       );
     }
 
     return request.context;
-  }
+  },
 );

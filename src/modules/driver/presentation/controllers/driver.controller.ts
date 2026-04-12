@@ -17,7 +17,7 @@ import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filte
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
 import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
 import { RoleName } from 'src/shared';
-import { TenantContext } from 'src/shared/infrastructure/middleware/tenant-context.middleware';
+import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import {
   ApiTags,
   ApiOperation,
@@ -63,9 +63,7 @@ export class DriverController {
     description: 'The driver has been successfully created.',
     type: DriverResponseDto,
   })
-  async create(
-    @Body() createDto: CreateDriverDto,
-  ): Promise<DriverResponseDto> {
+  async create(@Body() createDto: CreateDriverDto): Promise<DriverResponseDto> {
     const driver = await this.createDriverUseCase.execute(createDto);
     return DriverPresenter.toHTTP(driver);
   }
@@ -80,9 +78,7 @@ export class DriverController {
   async getMe(
     @GetTenantContext() context: TenantContext,
   ): Promise<DriverResponseDto> {
-    const driver = await this.findDriverByUserIdUseCase.execute(
-      context.userId,
-    );
+    const driver = await this.findDriverByUserIdUseCase.execute(context.userId);
     return DriverPresenter.toHTTP(driver);
   }
 
@@ -90,7 +86,10 @@ export class DriverController {
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Find all drivers in an organization' })
-  @ApiParam({ name: 'organizationId', description: 'The ID of the organization' })
+  @ApiParam({
+    name: 'organizationId',
+    description: 'The ID of the organization',
+  })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({

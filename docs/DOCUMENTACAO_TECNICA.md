@@ -239,13 +239,105 @@ O módulo de driver foi implementado com arquitetura 100% alinhada com o User Mo
 - ✅ RBAC: @Roles(RoleName.ADMIN), RolesGuard, TenantFilterGuard
 - ✅ Schema: DriverStatus enum (ACTIVE, INACTIVE, SUSPENDED)
 
-### 4.8 Infraestrutura de Desenvolvimento
+### 4.8 RBAC (Role-Based Access Control) Architecture ✅ COMPLETO (11 Abr 2026)
+
+**Problema Identificado e Corrigido:**
+O middleware `TenantContextMiddleware` não funcionava corretamente no pipeline do NestJS porque rodava ANTES do `JwtAuthGuard`. Isso significa que quando o middleware executava, `req.user` ainda não existia (Passport não havia decodificado o JWT), resultando em `req.context` nunca ser populado.
+
+**Solução Implementada:**
+A população de `req.context` foi movida para dentro do `JwtAuthGuard` (após a validação do JWT pelo Passport), garantindo que todos os guards subsequentes tenham acesso ao `TenantContext`.
+
+**Pipeline NestJS (Correto):**
+```
+Request
+  ↓
+JwtAuthGuard.canActivate()
+  ├─ super.canActivate()        → Passport valida JWT, popula req.user
+  ├─ Cria TenantContext        → Extrai organizationId, role, isDev de req.user
+  ├─ req.context = context     → Injetar no request
+  └─ return true
+  ↓
+RolesGuard.canActivate()        → Lê @Roles() metadata, compara com ctx.role
+  ↓
+TenantFilterGuard.canActivate() → Compara :organizationId param com ctx.organizationId
+  ↓
+DevGuard.canActivate()          → Verifica ctx.isDev se @Dev() está presente
+  ↓
+Controller handler
+```
+
+**Três Guards com Responsabilidades Distintas:**
+
+1. **TenantFilterGuard** — *Multi-tenant Isolation*
+   - Pergunta: "Você pertence a essa organização?"
+   - Valida que o `:organizationId` na rota corresponde ao `ctx.organizationId` do JWT
+   - Garante isolamento total entre tenants
+   - Exemplo: `GET /organizations/org-123/drivers` rejeita se `ctx.organizationId !== 'org-123'`
+   - Bypass: Devs (`isDev=true`) pulam essa validação
+
+2. **RolesGuard** — *Authorization by Role*
+   - Pergunta: "Você tem permissão para fazer isso dentro da sua org?"
+   - Lê metadata `@Roles()` e compara com `ctx.role`
+   - Controla o que cada role pode fazer (ADMIN, DRIVER, etc)
+   - Exemplo: `DELETE /organizations/:id` com `@Roles(ADMIN)` rejeita DRIVER mesmo na org correta
+   - Bypass: Devs (`isDev=true`) pulam essa validação
+
+3. **DevGuard** — *Developer-Only Access*
+   - Pergunta: "Você é desenvolvedor?"
+   - Bloqueia acesso de usuários comuns a endpoints internos/debug
+   - Apenas para rotas marcadas com `@Dev()`
+   - Exemplo: `GET /users` (listagem global) é dev-only, `GET /users/me` é qualquer autenticado
+   - Sem bypass automático — isDev é necessário
+
+**Composição de Guards Típica:**
+
+```typescript
+// Rota de negócio com acesso restrito por role
+@UseGuards(JwtAuthGuard)                    // autenticado?
+class OrganizationController {
+  @UseGuards(TenantFilterGuard, RolesGuard)
+  @Roles(RoleName.ADMIN)
+  @Delete('/organizations/:id/drivers/:driverId')
+  deleteDriver() { }  // apenas ADMIN da org pode acessar
+}
+
+// Rota de debug exclusiva para devs
+@UseGuards(JwtAuthGuard)                    // autenticado?
+class DebugController {
+  @UseGuards(DevGuard)
+  @Dev()
+  @Get('/debug/users')
+  debugUsers() { }  // apenas devs podem acessar
+}
+```
+
+**Componentes Implementados:**
+
+| Componente | Arquivo | Descrição |
+|-----------|---------|----------|
+| `@Dev()` decorator | `infrastructure/decorators/dev.decorator.ts` | Marca rota como dev-only |
+| `DevGuard` | `infrastructure/guards/dev.guard.ts` | Valida `ctx.isDev` se `@Dev()` presente |
+| `RolesGuard` | `infrastructure/guards/roles.guard.ts` | Valida `ctx.role` contra `@Roles()` |
+| `TenantFilterGuard` | `infrastructure/guards/tenant-filter.guard.ts` | Valida isolamento multi-tenant |
+| `JwtAuthGuard` | `infrastructure/guards/jwt.guard.ts` | **Novo:** Popula `req.context` após validação |
+| `TenantContext` interface | `infrastructure/types/tenant-context.interface.ts` | **Novo:** Fonte única de verdade, centralizada |
+| `@Roles()` decorator | `infrastructure/decorators/roles.decorator.ts` | Existente, define roles requeridas |
+
+**Detecção de Devs:**
+Devs são identificados pela variável de ambiente `DEV_EMAILS` (CSV), que é verificada durante o enriquecimento do JWT no `JwtPayloadService`. Usuários com email na whitelist recebem `isDev=true` no payload do JWT e **pulam automaticamente** validações de `organizationId` e `role`.
+
+**Status:** ✅ Funcional e testado em produção (11 Abr 2026)
+
+---
+
+### 4.9 Infraestrutura de Desenvolvimento
 - Configuração de ambiente com Docker e Docker Compose.
 - Pipeline de migrações Prisma configurado.
 - Sistema global de tratamento de exceções e logs.
 - Seed automático integrado ao lifecycle de inicialização do Docker.
 - Shared Module padronizado para expor componentes reutilizáveis.
 - Value Objects com validação centralizada (Cnh, CnhCategory, Email, Telephone, etc.)
+- RBAC Architecture com guards descentralizados e contexto centralizado (TenantContext)
 
 ---
 

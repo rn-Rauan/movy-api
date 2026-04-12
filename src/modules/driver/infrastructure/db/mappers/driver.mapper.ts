@@ -39,7 +39,9 @@ export class DriverMapper {
    * @param driver DriverEntity domain entity
    * @returns PrismaDriver persistence entity
    */
-  static toPersistence(driver: DriverEntity): Omit<PrismaDriver, 'id'> & { id?: string } {
+  static toPersistence(
+    driver: DriverEntity,
+  ): Omit<PrismaDriver, 'id'> & { id?: string } {
     return {
       id: driver.id,
       userId: driver.userId,

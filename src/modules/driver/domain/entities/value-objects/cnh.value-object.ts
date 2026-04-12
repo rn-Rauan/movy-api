@@ -28,10 +28,7 @@ export class Cnh {
     const trimmedCnh = cnh.trim();
 
     if (trimmedCnh.length < 9 || trimmedCnh.length > 12) {
-      throw new InvalidCnhError(
-        cnh,
-        'CNH must be between 9 and 12 characters',
-      );
+      throw new InvalidCnhError(cnh, 'CNH must be between 9 and 12 characters');
     }
 
     // Validate alphanumeric only

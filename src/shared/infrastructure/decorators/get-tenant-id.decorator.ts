@@ -1,4 +1,8 @@
-import { createParamDecorator, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 
 /**
  * Decorator para injetar apenas o tenantId do contexto
@@ -13,10 +17,10 @@ export const GetTenantId = createParamDecorator(
 
     if (!request.context?.organizationId) {
       throw new ForbiddenException(
-        'Only organization members can access this resource'
+        'Only organization members can access this resource',
       );
     }
 
     return request.context.organizationId;
-  }
+  },
 );

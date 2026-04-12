@@ -1,10 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
-import {
-  Cnh,
-  CnhCategory,
-} from '../../domain/entities/value-objects';
+import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
 import { CreateDriverDto } from '../dtos';
 import { randomUUID } from 'crypto';
 

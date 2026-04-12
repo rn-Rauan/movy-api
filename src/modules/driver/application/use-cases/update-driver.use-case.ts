@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
-import {
-  Cnh,
-  CnhCategory,
-} from '../../domain/entities/value-objects';
+import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
 import { UpdateDriverDto } from '../dtos';
 
 @Injectable()

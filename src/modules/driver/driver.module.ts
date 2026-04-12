@@ -20,7 +20,7 @@ import { DriverPresenter } from './presentation/mappers/driver.presenter';
   providers: [
     // Presenter
     DriverPresenter,
-    
+
     // Use Cases
     CreateDriverUseCase,
     FindDriverByIdUseCase,
@@ -28,7 +28,7 @@ import { DriverPresenter } from './presentation/mappers/driver.presenter';
     UpdateDriverUseCase,
     RemoveDriverUseCase,
     FindAllDriversByOrganizationUseCase,
-    
+
     // Repository
     {
       provide: DriverRepository,

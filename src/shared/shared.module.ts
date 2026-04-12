@@ -4,13 +4,13 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './infrastructure/database/prisma.module';
 import { JwtAuthGuard } from './infrastructure/guards/jwt.guard';
 import { LoggingInterceptor } from './presentation/interceptors/logging.interceptor';
-import { TenantContextInterceptor } from './presentation/interceptors/tenant-context.interceptor';
 import { AllExceptionsFilter } from './presentation/exceptions/all-exceptions.filter';
 import { BcryptHashProvider } from './providers/hash/bcrypt-hash.provider';
 import { RolesGuard } from './infrastructure/guards/roles.guard';
 import { RoleRepository } from './domain/interfaces/role.repository';
 import { PrismaRoleRepository } from './infrastructure/database/repositories/prisma-role.repository';
 import { TenantFilterGuard } from './infrastructure/guards/tenant-filter.guard';
+import { DevGuard } from './infrastructure/guards/dev.guard';
 
 @Global()
 @Module({
@@ -18,10 +18,9 @@ import { TenantFilterGuard } from './infrastructure/guards/tenant-filter.guard';
   providers: [
     JwtAuthGuard,
     RolesGuard,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TenantContextInterceptor,  // ✅ NOVO: Executa DEPOIS de Guards
-    },
+    DevGuard,
+    // TenantContextMiddleware agora é registrado via AppModule.configure()
+    // Executa ANTES dos guards (pipeline correto)
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
@@ -44,6 +43,7 @@ import { TenantFilterGuard } from './infrastructure/guards/tenant-filter.guard';
     RoleRepository,
     TenantFilterGuard,
     RolesGuard,
+    DevGuard,
   ],
 })
 export class SharedModule {}

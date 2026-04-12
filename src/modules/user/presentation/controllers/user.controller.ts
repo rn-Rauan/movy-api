@@ -33,11 +33,12 @@ import {
 } from '../../application/use-cases';
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
-import { TenantContext } from 'src/shared/infrastructure/middleware/tenant-context.middleware';
+import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
-import { RoleName } from 'src/shared';
+import { Dev, RoleName } from 'src/shared';
+import { DevGuard } from 'src/shared/infrastructure/guards/dev.guard';
 
 @ApiTags('users')
 @Controller('users')
@@ -54,7 +55,6 @@ export class UserController {
 
   @Post()
   @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({
     status: 201,
@@ -128,6 +128,8 @@ export class UserController {
   }
 
   @Get('active')
+  @UseGuards(DevGuard)
+  @Dev()
   @ApiOperation({ summary: 'Find all active users' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -214,6 +216,8 @@ export class UserController {
   }
 
   @Get()
+  @UseGuards(DevGuard)
+  @Dev()
   @ApiOperation({ summary: 'Find all users' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -223,6 +227,7 @@ export class UserController {
     type: PaginatedDto<UserResponseDto>,
   })
   async findAll(
+    @GetTenantContext() context: TenantContext,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<UserResponseDto>> {

@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 05 Abr 2026
+**Última atualização:** 11 Abr 2026 (14:51)
 
 ---
 
@@ -10,9 +10,9 @@
 
 ```
 Total Módulos: 7
-Completo: 5 (71%) - User, Organization, Role Management, Membership, Driver
-Em Progresso: 1 (14%) - Organization Members (RBAC)
-Pendente: 1 (15%)
+Completo: 6 (86%) - User, Organization, Role Management, Membership, Driver, RBAC Guards
+Em Progresso: 1 (14%) - Organization Members (integração)
+Pendente: 0
 ```
 
 ---
@@ -276,10 +276,67 @@ src/shared/guards/
 └── jwt.guard.ts ✅
 ```
 
-**Estimativa:** 2-3 dias (testes + melhorias)
-├── auth.controller.ts
-└── auth.module.ts
+**Status:** Funcional e validado em 11 Abr 2026
+
+---
+
+### RBAC Guards & Authorization ✅ COMPLETO (11 Abr 2026)
+
+**O Problema Identificado:**
+O middleware `TenantContextMiddleware` rodava ANTES do `JwtAuthGuard` no pipeline do NestJS, portanto `req.user` ainda não existia e o contexto não era populado. Guards que dependiam de `req.context` falhavam com erro 400.
+
+**Solução Implementada:**
+Integração da população de `req.context` diretamente no `JwtAuthGuard`, garantindo que esteja disponível para todos os guards subsequentes.
+
+**Pipeline NestJS Corrigido:**
 ```
+Request → JwtAuthGuard (valida JWT, popula req.user e req.context)
+        → RolesGuard / TenantFilterGuard / DevGuard (leem req.context)
+        → Controller
+```
+
+**Componentes Implementados:**
+- ✅ `@Dev()` decorator - Marca rotas como exclusivas para devs
+- ✅ `DevGuard` - Bloqueia acesso de não-devs em rotas `@Dev()`
+- ✅ `TenantContext` interface - Centralizada em `types/tenant-context.interface.ts` (fonte única de verdade)
+- ✅ `JwtAuthGuard` refatorado - Popula `req.context` após validação do JWT
+- ✅ `RolesGuard` refatorado - Import atualizado, bypass implícito para devs
+- ✅ `TenantFilterGuard` refatorado - Import atualizado
+- ✅ Removido `TenantContextMiddleware` do `AppModule` (não era capaz de funcionar no pipeline)
+- ✅ Removido `TenantContextInterceptor` do `SharedModule` (substituído por lógica no `JwtAuthGuard`)
+- ✅ User Controller - Aplicado `@Dev()` em rotas de acesso global
+
+**Três Responsabilidades Distintas:**
+1. **TenantFilterGuard**: "Você pertence a essa organização?" (isolamento multi-tenant)
+2. **RolesGuard**: "Você tem permissão para fazer isso dentro da sua org?" (autorização por role)
+3. **DevGuard**: "Você é desenvolvedor?" (acesso a endpoints internos/debug)
+
+**Arquivos Criados/Modificados:**
+```
+src/shared/
+├── infrastructure/
+│   ├── decorators/
+│   │   └── dev.decorator.ts ✅ (novo)
+│   ├── guards/
+│   │   ├── jwt.guard.ts ✅ (refatorado - agora popula req.context)
+│   │   ├── roles.guard.ts ✅ (import atualizado)
+│   │   ├── tenant-filter.guard.ts ✅ (import atualizado)
+│   │   └── dev.guard.ts ✅ (novo)
+│   └── types/
+│       └── tenant-context.interface.ts ✅ (novo - interface centralizada)
+└── presentation/interceptors/
+    └── tenant-context.interceptor.ts ✅ (marcado @deprecated)
+
+src/modules/user/presentation/controllers/
+└── user.controller.ts ✅ (aplicado @Dev() em rotas de acesso global)
+```
+
+**Compilação:** ✅ TypeScript sem erros (11 Abr 2026)
+**Validação:** ✅ Testado em produção - req.context populando corretamente
+
+**Status:** ✅ FUNCIONAL E OPERACIONAL
+
+**Estimativa (próximas tarefas):** 1-2 dias (integração com Organization Members)
 
 ---
 

@@ -4,9 +4,10 @@ import {
   ExecutionContext,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { TenantContext } from '../middleware/tenant-context.middleware';
+import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 
 /**
  * Guard que valida que recursos pertencem ao tenant do usuário
@@ -24,11 +25,12 @@ export class TenantFilterGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const ctx = request.context as TenantContext;
+    Logger.log(ctx, 'TenantFilterGuard - TenantContext');
 
     // Step 1: Validar que middleware injetou contexto
     if (!ctx) {
       throw new BadRequestException(
-        'TenantContext not found. Ensure TenantContextMiddleware is registered.'
+        'TenantContext not found. Ensure TenantContextMiddleware is registered.',
       );
     }
 
@@ -46,15 +48,13 @@ export class TenantFilterGuard implements CanActivate {
     // Step 4: Se rota especifica organização, validar match
     if (organizationIdParam) {
       if (organizationIdParam !== ctx.organizationId) {
-        throw new ForbiddenException(
-          'You do not have access to this resource'
-        );
+        throw new ForbiddenException('You do not have access to this resource');
       }
     } else {
       // Step 5: Se acesso por :id e user é B2C, negar
       if (!ctx.organizationId && request.params.id) {
         throw new ForbiddenException(
-          'Organization members only. B2C users cannot access this resource.'
+          'Organization members only. B2C users cannot access this resource.',
         );
       }
     }
