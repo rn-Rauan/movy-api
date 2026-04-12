@@ -1,12 +1,27 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsUUID,
+  IsEmail,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateMembershipDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+  })
+  @IsOptional()
   @IsString()
   @IsUUID()
-  @IsNotEmpty({ message: 'User ID is required' })
-  userId: string;
+  userId?: string;
+
+  @ApiProperty({ example: 'user@example.com', required: false })
+  @IsOptional()
+  @IsEmail()
+  userEmail?: string;
 
   @ApiProperty({ example: 1 })
   @IsNumber()

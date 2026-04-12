@@ -16,6 +16,8 @@ import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
 import { Dev, DevGuard, RoleName } from 'src/shared';
+import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
+import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import {
   ApiTags,
   ApiOperation,
@@ -54,8 +56,6 @@ export class OrganizationController {
   ) {}
 
   @Post()
-  @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
   @ApiOperation({ summary: 'Create a new organization' })
   @ApiResponse({
     status: 201,
@@ -64,9 +64,12 @@ export class OrganizationController {
   })
   async create(
     @Body() createDto: CreateOrganizationDto,
+    @GetUser() user: TenantContext,
   ): Promise<OrganizationResponseDto> {
-    const organization =
-      await this.createOrganizationUseCase.execute(createDto);
+    const organization = await this.createOrganizationUseCase.execute(
+      createDto,
+      user.userId,
+    );
     return this.organizationPresenter.toHTTP(organization);
   }
 
@@ -136,7 +139,7 @@ export class OrganizationController {
     );
     return this.organizationPresenter.toHTTP(organization);
   }
-  
+
   @Delete(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)

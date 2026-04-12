@@ -5,9 +5,11 @@ import {
   RegisterDto,
   TokenResponseDto,
 } from '../../application/dtos';
+import { RegisterOrganizationWithAdminDto } from '../../application/dtos/register-organization.dto';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RegisterUseCase } from '../../application/use-cases/register.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
+import { RegisterOrganizationUseCase } from '../../application/use-cases/register-organization-with-admin.use-case';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -16,6 +18,7 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly registerUseCase: RegisterUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    private readonly registerOrganizationUseCase: RegisterOrganizationUseCase,
   ) {}
 
   @Post('login')
@@ -40,6 +43,23 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'User already exists' })
   async register(@Body() registerDto: RegisterDto): Promise<TokenResponseDto> {
     return this.registerUseCase.execute(registerDto);
+  }
+
+  @Post('register-organization')
+  @ApiOperation({ summary: 'Register new user and organization (Atomic)' })
+  @ApiResponse({
+    status: 201,
+    description: 'User and organization registered successfully',
+    type: TokenResponseDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'User or Organization already exists',
+  })
+  async registerOrganization(
+    @Body() registerOrganizationDto: RegisterOrganizationWithAdminDto,
+  ): Promise<TokenResponseDto> {
+    return this.registerOrganizationUseCase.execute(registerOrganizationDto);
   }
 
   @Post('refresh')

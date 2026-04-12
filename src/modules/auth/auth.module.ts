@@ -1,9 +1,10 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
 import { MembershipModule } from '../membership/membership.module';
+import { OrganizationModule } from '../organization/organization.module';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
 import { SharedModule } from 'src/shared/shared.module';
 import { BcryptHashProvider } from 'src/shared/providers/hash/bcrypt-hash.provider';
@@ -14,6 +15,7 @@ import {
   RefreshTokenUseCase,
   RegisterUseCase,
 } from './application/use-cases';
+import { RegisterOrganizationUseCase } from './application/use-cases/register-organization-with-admin.use-case';
 import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 
@@ -22,6 +24,7 @@ import { JwtStrategy } from './infrastructure/jwt.strategy';
   imports: [
     UserModule,
     MembershipModule,
+    forwardRef(() => OrganizationModule),
     PrismaModule,
     SharedModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -38,6 +41,7 @@ import { JwtStrategy } from './infrastructure/jwt.strategy';
   providers: [
     LoginUseCase,
     RegisterUseCase,
+    RegisterOrganizationUseCase,
     RefreshTokenUseCase,
     JwtPayloadService, // ✅ NOVO: Serviço para enriquecer JWTs
     JwtStrategy,

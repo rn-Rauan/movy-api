@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MembershipController } from './presentation/controllers/membership.controller';
 import {
   CreateMembershipUseCase,
@@ -15,9 +15,10 @@ import { FindRoleByUserIdAndOrganizationIdUseCase } from './application/use-case
 import { SharedModule } from 'src/shared';
 import { UserOrganizationRoleResolver } from 'src/shared/domain/interfaces/user-organization-role.resolver';
 import { MembershipUserOrgRoleResolver } from './infrastructure/providers/membership-user-org-role.resolver';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [SharedModule],
+  imports: [SharedModule, forwardRef(() => UserModule)],
   controllers: [MembershipController],
   providers: [
     CreateMembershipUseCase,

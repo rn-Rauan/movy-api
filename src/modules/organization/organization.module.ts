@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { OrganizationController } from './presentation/controllers/organization.controller';
 import {
   CreateOrganizationUseCase,
@@ -12,9 +12,10 @@ import { PrismaOrganizationRepository } from './infrastructure/db/repositories/p
 import { OrganizationRepository } from './domain/interfaces/organization.repository';
 import { OrganizationPresenter } from './presentation/mappers/organization.mapper';
 import { SharedModule } from 'src/shared';
+import { MembershipModule } from '../membership/membership.module';
 
 @Module({
-  imports: [SharedModule],
+  imports: [SharedModule, forwardRef(() => MembershipModule)],
   controllers: [OrganizationController],
   providers: [
     CreateOrganizationUseCase,

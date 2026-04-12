@@ -34,7 +34,7 @@ import {
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
 import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
-import { Dev} from 'src/shared';
+import { Dev } from 'src/shared';
 import { DevGuard } from 'src/shared/infrastructure/guards/dev.guard';
 
 @ApiTags('users')
@@ -178,7 +178,10 @@ export class UserController {
     description:
       'This endpoint is deprecated. Please use GET /users/me instead.',
   })
-  @ApiParam({ name: 'id', description: 'The ID of the user to find (for dev only)' })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the user to find (for dev only)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Return the user.',
@@ -201,7 +204,10 @@ export class UserController {
     description:
       'This endpoint is deprecated. Please use DELETE /users/me instead.',
   })
-  @ApiParam({ name: 'id', description: 'The ID of the user to disable (for dev only)' })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the user to disable (for dev only)',
+  })
   @ApiResponse({
     status: 200,
     description: 'The user has been successfully disabled.',
@@ -218,7 +224,7 @@ export class UserController {
   @Get()
   @UseGuards(DevGuard)
   @Dev()
-  @ApiOperation({ summary: 'Find all users' })
+  @ApiOperation({ summary: 'Find all users (for dev only)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({
