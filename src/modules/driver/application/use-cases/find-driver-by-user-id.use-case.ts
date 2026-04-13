@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
+import { DriverNotFoundError } from '../../domain/entities/errors/driver.errors';
 
 @Injectable()
 export class FindDriverByUserIdUseCase {
@@ -10,7 +11,7 @@ export class FindDriverByUserIdUseCase {
     const driver = await this.driverRepository.findByUserId(userId);
 
     if (!driver) {
-      throw new NotFoundException('Driver not found for this user');
+      throw new DriverNotFoundError(undefined, userId);
     }
 
     return driver;

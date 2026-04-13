@@ -34,20 +34,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (exception instanceof DomainError) {
       message = exception.message;
-      switch (exception.code) {
-        case 'USER_NOT_FOUND':
-          status = HttpStatus.NOT_FOUND;
-          break;
-        case 'USER_EMAIL_ALREADY_EXISTS':
-          status = HttpStatus.CONFLICT;
-          break;
-        case 'INVALID_USER_NAME':
-        case 'INVALID_USER_TELEPHONE':
-        case 'INVALID_PASSWORD':
-          status = HttpStatus.BAD_REQUEST;
-          break;
-        default:
-          status = HttpStatus.INTERNAL_SERVER_ERROR;
+      const code = exception.code;
+
+      if (code.endsWith('_NOT_FOUND')) {
+        status = HttpStatus.NOT_FOUND;
+      } else if (code.endsWith('_ALREADY_EXISTS')) {
+        status = HttpStatus.CONFLICT;
+      } else if (code.startsWith('INVALID_') || code.endsWith('_BAD_REQUEST')) {
+        status = HttpStatus.BAD_REQUEST;
+      } else if (code.endsWith('_FORBIDDEN')) {
+        status = HttpStatus.FORBIDDEN;
+      } else if (code.endsWith('_UNAUTHORIZED')) {
+        status = HttpStatus.UNAUTHORIZED;
+      } else {
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
       }
     } else if (exception instanceof Error) {
       message = exception.message;

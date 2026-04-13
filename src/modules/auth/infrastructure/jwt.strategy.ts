@@ -1,8 +1,7 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UserRepository } from '../../user/domain/interfaces/user.repository';
 import { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
 
 /**
@@ -22,10 +21,7 @@ import { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interfac
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -47,22 +43,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * - userStatus (conta ativa/inativa)
    */
   async validate(payload: any): Promise<JwtPayload> {
-    // Step 1: Validar que usuário existe e está ativo
-    const user = await this.userRepository.findById(payload.sub);
-    if (!user || user.status === 'INACTIVE') {
-      throw new UnauthorizedException('User not found or inactive');
-    }
-
-    // Step 2: Retornar payload enriquecido (já foi enriquecido em LoginUseCase/RefreshTokenUseCase)
-    const jwtPayload: JwtPayload = {
-      sub: user.id,
-      id: user.id,
-      email: user.email,
+    // Trust the JWT payload to avoid DB query on every request.
+    // The payload was enriched during login/refresh.
+    return {
+      sub: payload.sub,
+      id: payload.id,
+      email: payload.email,
       organizationId: payload.organizationId,
       role: payload.role,
       isDev: payload.isDev,
-      userStatus: user.status,
+      userStatus: payload.userStatus,
     };
-    return jwtPayload;
   }
 }

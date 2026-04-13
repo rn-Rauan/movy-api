@@ -1,9 +1,10 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
 import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
 import { CreateDriverDto } from '../dtos';
 import { randomUUID } from 'crypto';
+import { DriverCreationFailedError } from '../../domain/entities/errors/driver.errors';
 
 @Injectable()
 export class CreateDriverUseCase {
@@ -22,7 +23,7 @@ export class CreateDriverUseCase {
     const savedDriver = await this.driverRepository.save(driver);
 
     if (!savedDriver) {
-      throw new InternalServerErrorException('Failed to create driver');
+      throw new DriverCreationFailedError();
     }
 
     return savedDriver;

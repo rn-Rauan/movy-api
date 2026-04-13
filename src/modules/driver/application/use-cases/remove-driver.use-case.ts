@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
+import { DriverNotFoundError } from '../../domain/entities/errors/driver.errors';
 
 @Injectable()
 export class RemoveDriverUseCase {
@@ -9,9 +10,11 @@ export class RemoveDriverUseCase {
     const driver = await this.driverRepository.findById(id);
 
     if (!driver) {
-      throw new NotFoundException('Driver not found');
+      throw new DriverNotFoundError(id);
     }
 
-    await this.driverRepository.delete(id);
+    driver.deactivate();
+    
+    await this.driverRepository.update(driver);
   }
 }

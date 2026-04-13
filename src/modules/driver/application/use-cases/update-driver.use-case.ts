@@ -1,12 +1,12 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
 import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
 import { UpdateDriverDto } from '../dtos';
+import {
+  DriverNotFoundError,
+  DriverUpdateFailedError,
+} from '../../domain/entities/errors/driver.errors';
 
 @Injectable()
 export class UpdateDriverUseCase {
@@ -16,7 +16,7 @@ export class UpdateDriverUseCase {
     const driver = await this.driverRepository.findById(id);
 
     if (!driver) {
-      throw new NotFoundException('Driver not found');
+      throw new DriverNotFoundError(id);
     }
 
     if (input.cnh && input.cnhCategory && input.cnhExpiresAt) {
@@ -40,7 +40,7 @@ export class UpdateDriverUseCase {
     const updatedDriver = await this.driverRepository.update(driver);
 
     if (!updatedDriver) {
-      throw new InternalServerErrorException('Failed to update driver');
+      throw new DriverUpdateFailedError();
     }
 
     return updatedDriver;

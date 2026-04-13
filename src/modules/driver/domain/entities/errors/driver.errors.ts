@@ -86,3 +86,25 @@ export class DriverNotFoundError extends DriverValidationError {
     );
   }
 }
+
+/**
+ * Erro de falha ao criar driver
+ */
+export class DriverCreationFailedError extends DomainError {
+  code = 'DRIVER_CREATION_FAILED';
+
+  constructor(message: string = 'Failed to create driver') {
+    super(message);
+  }
+}
+
+/**
+ * Erro de falha ao atualizar driver
+ */
+export class DriverUpdateFailedError extends DomainError {
+  code = 'DRIVER_UPDATE_FAILED';
+
+  constructor(message: string = 'Failed to update driver') {
+    super(message);
+  }
+}
