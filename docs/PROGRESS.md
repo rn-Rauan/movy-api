@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 11 Abr 2026 (14:51)
+**Última atualização:** 13 Abr 2026 (23:59)
 
 ---
 
@@ -10,8 +10,8 @@
 
 ```
 Total Módulos: 7
-Completo: 6 (86%) - User, Organization, Role Management, Membership, Driver, RBAC Guards
-Em Progresso: 1 (14%) - Organization Members (integração)
+Completo: 7 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth (registro com org)
+Em Progresso: 0
 Pendente: 0
 ```
 
@@ -98,9 +98,9 @@ src/modules/membership/
   - Cnh: Validação de 9-12 caracteres alfanuméricos
   - CnhCategory: Enum A-E com validação
 - ✅ DriverMapper com hidratação de value objects
-- ✅ Domain Errors (7 tipos de erro específicos)
-- ✅ Repository pattern (IDriverRepository, PrismaDriverRepository)
-- ✅ Use Cases (6 total): Create, Update, FindById, FindByUserId, FindByOrganization, Remove
+- ✅ Domain Errors (9+ tipos de erro específicos, incluindo DriverCreationFailedError e DriverUpdateFailedError — refatorado 13 Abr)
+- ✅ Repository pattern (IDriverRepository, PrismaDriverRepository — refatorado 13 Abr)
+- ✅ Use Cases (6 total): Create, Update, FindById, FindByUserId, FindByOrganization, Remove (error handling aprimorado — 13 Abr)
 - ✅ DTOs com @ApiProperty decorators (create, update, response)
 - ✅ Controller com endpoints REST (POST, GET, PUT, DELETE)
 - ✅ Presenter com métodos estáticos (toHTTP, toHTTPList)
@@ -119,7 +119,7 @@ src/modules/driver/
 ├── application/use-cases/ ✅ (6 use cases)
 ├── domain/
 │   ├── entities/driver.entity.ts ✅
-│   ├── errors/driver.errors.ts ✅ (7 error types)
+│   ├── errors/driver.errors.ts ✅ (9 error types)
 │   ├── value-objects/ ✅ (cnh, cnh-category)
 │   └── interfaces/driver.repository.interface.ts ✅
 ├── infrastructure/
@@ -142,6 +142,12 @@ src/modules/driver/
 - ✅ Mapper com toDomain/toPersistence
 - ✅ Presenter com métodos estáticos
 - ✅ DTOs com Swagger documentation
+
+**Refactor (13 Abr 2026):**
+- Use cases reescritos com error handling mais preciso e tipagem aprimorada
+- `PrismaDriverRepository` reestruturado para melhor consistência
+- Novos tipos de erro adicionados ao `driver.errors.ts`
+- Compilação TypeScript ✅ sem erros
 
 **Status:** Funcional e 100% alinhado com User Module. Compilação ✅
 
@@ -175,7 +181,7 @@ src/modules/driver/
 - [ ] Swagger docs integrado (já está com @ApiTags e decorators)
 
 **Use Cases Implementados (6 total):**
-- ✅ CreateOrganizationUseCase - Validação e criação com slug auto-gerado
+- ✅ CreateOrganizationUseCase - Validação e criação com slug auto-gerado (atualizado: aceita `userId` e cria membership ADMIN automaticamente — 12 Abr)
 - ✅ FindAllOrganizationsUseCase - Listagem paginada
 - ✅ FindAllActiveOrganizationsUseCase - Listagem paginada (apenas ativas)
 - ✅ FindOrganizationByIdUseCase - Busca com tratamento 404
@@ -242,41 +248,55 @@ src/modules/organization/
 
 ## ⏳ FASE 2: Core Features (Abr-Mai 2026)
 
-### Authentication & JWT � IN PROGRESS (85%)
+### Authentication & JWT ✅ COMPLETO (13 Abr 2026)
 
 **Backend (API REST):**
 - [x] POST `/auth/login` - Login com email/password
 - [x] POST `/auth/register` - Registrar novo user
 - [x] POST `/auth/refresh` - Refresh token
+- [x] POST `/auth/register-organization` - Registro de organização + admin em uma chamada ✅ (12 Abr)
 - [x] JWT Strategy + Passport
+- [x] JWT Strategy otimizado - sem query ao banco em cada request ✅ (13 Abr)
 - [x] JwtAuthGuard para proteger rotas
 - [x] Swagger docs ✅ (05 Abr 2026)
 - [ ] Testes unitários (80%+)
 - [ ] Logout (invalidação de tokens)
 
-**Arquivos criados:**
+**Novo Use Case - RegisterOrganizationWithAdminUseCase (12 Abr 2026):**
+- Orquestra criação de usuário + organização + login automático em um único fluxo
+- `RegisterOrganizationWithAdminDto`: DTO unificado (dados do admin + dados da org)
+- `CreateOrganizationUseCase` atualizado para aceitar `userId` e criar membership ADMIN automaticamente
+
+**Otimização JWT Strategy (13 Abr 2026):**
+- Removida query ao banco (`userRepository.findById`) a cada requisição autenticada
+- Strategy agora confia no payload do JWT (enriquecido em login/refresh)
+- Melhoria de performance em rotas autenticadas
+
+**Arquivos criados/modificados:**
 ```
 src/modules/auth/
-├── auth.module.ts ✅
+├── auth.module.ts ✅ (atualizado)
 ├── application/dtos/
 │   ├── login.dto.ts ✅
 │   ├── register.dto.ts ✅
-│   └── token-response.dto.ts ✅
+│   ├── token-response.dto.ts ✅
+│   └── register-organization.dto.ts ✅ (novo - 12 Abr)
 ├── application/use-cases/
 │   ├── login.use-case.ts ✅
 │   ├── register.use-case.ts ✅
-│   └── refresh-token.use-case.ts ✅
+│   ├── refresh-token.use-case.ts ✅
+│   └── register-organization-with-admin.use-case.ts ✅ (novo - 12 Abr)
 ├── infrastructure/
-│   └── jwt.strategy.ts ✅
+│   └── jwt.strategy.ts ✅ (refatorado - sem DB query - 13 Abr)
 ├── presentation/controllers/
-│   └── auth.controller.ts ✅
+│   └── auth.controller.ts ✅ (atualizado - novo endpoint)
 └── README.md ✅
 
 src/shared/guards/
 └── jwt.guard.ts ✅
 ```
 
-**Status:** Funcional e validado em 11 Abr 2026
+**Status:** ✅ COMPLETO e validado em 13 Abr 2026
 
 ---
 
@@ -305,6 +325,7 @@ Request → JwtAuthGuard (valida JWT, popula req.user e req.context)
 - ✅ Removido `TenantContextMiddleware` do `AppModule` (não era capaz de funcionar no pipeline)
 - ✅ Removido `TenantContextInterceptor` do `SharedModule` (substituído por lógica no `JwtAuthGuard`)
 - ✅ User Controller - Aplicado `@Dev()` em rotas de acesso global
+- ✅ Organization Controller - Aplicado `@Dev()` em rotas de acesso global (12 Abr)
 
 **Três Responsabilidades Distintas:**
 1. **TenantFilterGuard**: "Você pertence a essa organização?" (isolamento multi-tenant)
@@ -316,7 +337,8 @@ Request → JwtAuthGuard (valida JWT, popula req.user e req.context)
 src/shared/
 ├── infrastructure/
 │   ├── decorators/
-│   │   └── dev.decorator.ts ✅ (novo)
+│   │   ├── dev.decorator.ts ✅ (novo)
+│   │   └── get-user.decorator.ts ✅ (novo - 12 Abr)
 │   ├── guards/
 │   │   ├── jwt.guard.ts ✅ (refatorado - agora popula req.context)
 │   │   ├── roles.guard.ts ✅ (import atualizado)
@@ -324,19 +346,23 @@ src/shared/
 │   │   └── dev.guard.ts ✅ (novo)
 │   └── types/
 │       └── tenant-context.interface.ts ✅ (novo - interface centralizada)
-└── presentation/interceptors/
-    └── tenant-context.interceptor.ts ✅ (marcado @deprecated)
+└── presentation/
+    ├── interceptors/
+    │   └── tenant-context.interceptor.ts ✅ (marcado @deprecated)
+    └── exceptions/
+        └── all-exceptions.filter.ts ✅ (refatorado - mapeamento por padrão de código - 13 Abr)
 
 src/modules/user/presentation/controllers/
 └── user.controller.ts ✅ (aplicado @Dev() em rotas de acesso global)
+
+src/modules/organization/presentation/controllers/
+└── organization.controller.ts ✅ (aplicado @Dev() em rotas de acesso global - 12 Abr)
 ```
 
-**Compilação:** ✅ TypeScript sem erros (11 Abr 2026)
+**Compilação:** ✅ TypeScript sem erros (13 Abr 2026)
 **Validação:** ✅ Testado em produção - req.context populando corretamente
 
 **Status:** ✅ FUNCIONAL E OPERACIONAL
-
-**Estimativa (próximas tarefas):** 1-2 dias (integração com Organization Members)
 
 ---
 

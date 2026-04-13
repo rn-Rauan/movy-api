@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 11 Abr 2026 
+**Última atualização:** 13 Abr 2026 
 
 ---
 
@@ -36,7 +36,11 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | RBAC Guards + @Dev() decorator | ✅ Pronto (11 Abr) |
 | ✅ | TenantContext centralizado | ✅ Pronto (11 Abr) |
 | ✅ | Bug fix: Pipeline JWT + Guards | ✅ Pronto (11 Abr) |
-| ⏳ | Organization members (integração) | 1-2 dias |
+| ✅ | Endpoint register-organization (admin + org em uma chamada) | ✅ Pronto (12 Abr) |
+| ✅ | JWT Strategy otimizado (sem query ao banco por request) | ✅ Pronto (13 Abr) |
+| ✅ | Driver use cases refatorados + error handling aprimorado | ✅ Pronto (13 Abr) |
+| ✅ | AllExceptionsFilter refatorado (mapeamento por padrão de código) | ✅ Pronto (13 Abr) |
+| ✅ | Organization members (criação de membership ADMIN automática) | ✅ Pronto (12 Abr) |
 | ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
 | ⏳ | Testes 80%+ coverage | 3-4 dias |
 
@@ -61,6 +65,16 @@ MVP PRONTO: 15 de Junho 2026
 - ✅ Schema Prisma: DriverStatus enum (ACTIVE, INACTIVE, SUSPENDED) com migrations
 - ✅ Compilação: TypeScript ✅ sem erros
 - ✅ Validação em Produção: Testado em dev server - req.context populando corretamente
+
+**Progresso em 12-13 Abr 2026:**
+- ✅ Auth Module: Endpoint `POST /auth/register-organization` implementado (admin + org em uma chamada)
+- ✅ Auth Module: `RegisterOrganizationWithAdminUseCase` e `RegisterOrganizationWithAdminDto` criados
+- ✅ Organization Module: `CreateOrganizationUseCase` atualizado para criar membership ADMIN automaticamente
+- ✅ JWT Strategy: Otimizado para não consultar banco a cada request autenticado
+- ✅ Driver Module: Use cases e repository refatorados com error handling mais robusto
+- ✅ AllExceptionsFilter: Refatorado com mapeamento de erros por padrão de código
+- ✅ TypeScript: Imports migrados para `import type` + configuração ajustada
+- ✅ Compilação: ✅ sem erros
 
 ---
 

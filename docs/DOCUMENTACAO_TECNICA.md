@@ -99,20 +99,22 @@ As seguintes funcionalidades foram implementadas e validadas:
 - **`DELETE /users/:id`**: Implementação de **Soft Delete**. Em vez de uma exclusão física, a operação altera o status do usuário para `INACTIVE`. Esta abordagem preserva a integridade referencial dos dados e o histórico do sistema, sendo uma prática recomendada para sistemas complexos.
 
 ### 4.2.1 Módulo de Autenticação (JWT)
-O módulo de autenticação implementa um sistema completo de login, registro e refresh de tokens JWT, seguindo os princípios de Clean Architecture:
+O módulo de autenticação implementa um sistema completo de login, registro, refresh de tokens JWT e registro de organização com admin, seguindo os princípios de Clean Architecture:
 
 **Endpoints REST:**
 - **`POST /auth/login`**: Autenticação de usuário com email e senha, retornando access token e refresh token.
 - **`POST /auth/register`**: Registro de novo usuário com validação de dados e hashing de senha.
 - **`POST /auth/refresh`**: Renovação de access token utilizando refresh token válido.
+- **`POST /auth/register-organization`**: Fluxo unificado de registro — cria usuário (admin), organização e membership ADMIN em uma única chamada, retornando os tokens de acesso diretamente *(adicionado 12 Abr 2026)*.
 
 **Use Cases Implementados:**
 1. `LoginUseCase`: Validação de credenciais, geração de tokens JWT e retorno de dados do usuário.
 2. `RegisterUseCase`: Criação de novo usuário com validação de email único e hashing de senha.
 3. `RefreshTokenUseCase`: Validação de refresh token e geração de novo par de tokens.
+4. `RegisterOrganizationWithAdminUseCase`: Orquestra criação de usuário + organização + membership ADMIN + login automático em um único fluxo transacional *(adicionado 12 Abr 2026)*.
 
 **Infraestrutura de Segurança:**
-- **JWT Strategy**: Implementação customizada com Passport.js para validação de tokens.
+- **JWT Strategy**: Implementação customizada com Passport.js para validação de tokens. *Otimizado em 13 Abr 2026* — a query ao banco (`userRepository.findById`) foi removida do ciclo de validação. A strategy agora confia exclusivamente no payload do JWT (enriquecido no momento do login), resultando em melhoria significativa de performance por eliminar uma consulta ao banco a cada request autenticado.
 - **Bcrypt**: Hashing seguro de senhas com salt rounds configuráveis.
 - **JwtAuthGuard**: Guard global para proteção de rotas autenticadas.
 - **Token Response**: DTO estruturado com access token, refresh token e dados do usuário.
@@ -224,7 +226,7 @@ O módulo de driver foi implementado com arquitetura 100% alinhada com o User Mo
 - Static factory create() e restore() para DDD compliance
 
 **Domain Errors:**
-- InvalidCnhError, InvalidCnhCategoryError, DriverNotFoundError, DriverAlreadyExistsError, etc (7 tipos)
+- InvalidCnhError, InvalidCnhCategoryError, DriverNotFoundError, DriverAlreadyExistsError, DriverCreationFailedError, DriverUpdateFailedError, e outros *(9+ tipos após refactoring em 13 Abr 2026)*
 
 **Mapper Pattern:**
 - toDomain(): Hidratação de value objects via Cnh.create(), CnhCategory.create()
@@ -407,6 +409,31 @@ Implementada a arquitetura completa do módulo Driver com total alinhamento com 
 
 ---
 
+## 6.2 Implementações Recentes (12-13 Abr 2026)
+
+### Endpoint Register-Organization (12 Abr 2026)
+Implementado fluxo unificado de onboarding: um único endpoint `POST /auth/register-organization` que encapsula criação de usuário + organização + membership ADMIN + geração de tokens.
+- `RegisterOrganizationWithAdminDto`: DTO unificado com validação de dados do admin e da organização.
+- `RegisterOrganizationWithAdminUseCase`: Orquestra os use cases de criação em sequência e retorna tokens de acesso.
+- `CreateOrganizationUseCase` atualizado para aceitar `userId` e criar automaticamente a membership ADMIN.
+- Migration Prisma aplicada para suportar as novas relações.
+
+### Otimização da JWT Strategy (13 Abr 2026)
+O `JwtStrategy.validate()` foi refatorado para eliminar a consulta ao banco de dados (`userRepository.findById`) executada a cada request autenticado. A strategy agora retorna diretamente o payload do JWT, que é enriquecido no momento do login/refresh com todos os dados necessários (`userId`, `organizationId`, `role`, `isDev`). Isso elimina latencia desnecessária e reduz carga no banco.
+
+### Refactoring Driver Module (13 Abr 2026)
+- Use cases reescritos com error handling mais preciso e tipó forte TypeScript.
+- `PrismaDriverRepository` reestruturado para maior consistência e confiabilidade.
+- Novos tipos de erro adicionados ao `driver.errors.ts` (total: 9+ tipos).
+
+### AllExceptionsFilter Refatorado (13 Abr 2026)
+O filtro global de exceções foi refatorado para usar mapeamento de erros por padrão de código de erro de domínio, tornando o código mais declarativo e facilmente extensível para novos tipos de erro sem alterar a lógica de despacho.
+
+### TypeScript: Migração para `import type` (12 Abr 2026)
+Imports de tipos foram migrados para a sintaxe `import type` em todos os módulos relevantes, melhorando o isolamento de dependências em tempo de compilação e seguindo boas práticas de TypeScript.
+
+---
+
 ## 6.1 Implementações Anteriores (05 Abr 2026)
 
 ### Role Management & Database Seeding
@@ -427,35 +454,33 @@ O script de seed foi configurado para:
 
 ## 7. Próximos Passos
 
-1. **Organização - Membros e Permissões:** Integrar Membership Module com Organization, adicionar endpoints para gerenciar membros com roles.
-2. **Testes Unitários:** Implementar 80%+ coverage para todos os módulos.
-3. **Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.
+1. **Testes Unitários:** Implementar 80%+ coverage para todos os módulos.
+2. **Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.
+3. **Organização - Endpoints de Membros:** Adicionar endpoints `/organizations/:id/members` para CRUD completo de membros (auto-criação na recistão já implementada).
 4. **Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).
 5. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
 6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 11 de abril de 2026, foi implementado com sucesso:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 13 de abril de 2026, a **Fase 1 foi concluída com sucesso (100%)**:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
-- ✅ **Auth Module**: Sistema completo de autenticação com login, registro e refresh tokens JWT.
+- ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT e endpoint de registro de organização com admin *(atualizado 12-13 Abr)*.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy e soft delete.
-- ✅ **Driver Module**: CRUD completo com value objects para CNH, 100% alinhado com User Module.
-- ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, 100% alinhado com User Module *(refatorado 13 Abr)*.
+- ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação. Criação automática de membership ADMIN no registro de organização *(atualizado 12 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
 - ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory).
 - ✅ **Validation Errors** para tratamento de erros específicos do domínio.
-- ✅ **Global Exception Handling** com AllExceptionsFilter para tradução de erros de domínio em respostas HTTP.
-- ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard implementados e aplicados.
+- ✅ **Global Exception Handling** com AllExceptionsFilter refatorado (mapeamento por padrão de código) *(atualizado 13 Abr)*.
+- ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard, DevGuard implementados e aplicados.
+- ✅ **JWT Strategy otimizada**: Sem query ao banco por request autenticado *(adicionado 13 Abr)*.
 
-A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant. 
+A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **90% da Fase 1** (User ✅ + Organization ✅ + Roles ✅ + Driver ✅ + Membership ✅), com os próximos passos focados em:
-3. Completar gestão de membros de organização com endpoints de integração.
-4. Implementar CI/CD com GitHub Actions e testes 80%+.
-5. Iniciar desenvolvimento dos módulos de core business (Vehicles, Trips, Bookings).
+**Progresso atual:** **Fase 1 100% COMPLETA** (✅). Iniciando Fase 2 (Core Business Logic: Vehicles, Trips, Bookings).
 
 ---
 
