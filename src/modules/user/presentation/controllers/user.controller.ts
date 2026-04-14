@@ -141,7 +141,7 @@ export class UserController {
   @UseGuards(DevGuard)
   @Dev()
   @ApiOperation({
-    summary: 'Find a user by ID - DEPRECATED, use /users/me',
+    summary: 'Find a user by ID - DEPRECATED, use /users/me (for dev only)',
     description:
       'This endpoint is deprecated. Please use GET /users/me instead.',
   })
@@ -163,7 +163,7 @@ export class UserController {
   @UseGuards(DevGuard)
   @Dev()
   @ApiOperation({
-    summary: 'Disable a user - DEPRECATED, use /users/me',
+    summary: 'Disable a user - DEPRECATED, use /users/me (for dev only)',
     description:
       'This endpoint is deprecated. Please use DELETE /users/me instead.',
   })

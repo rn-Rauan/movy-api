@@ -55,7 +55,7 @@ export class MembershipController {
   @Post()
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Create a new membership' })
+  @ApiOperation({ summary: 'Create a new membership (for ADMIN)' })
   @ApiResponse({
     status: 201,
     description: 'The membership has been successfully created.',
@@ -71,7 +71,7 @@ export class MembershipController {
   @Get('user/:userId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find all memberships for a user' })
+  @ApiOperation({ summary: 'Find all memberships for a user (for ADMIN)' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -101,7 +101,7 @@ export class MembershipController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find all memberships for an organization' })
+  @ApiOperation({ summary: 'Find all memberships for an organization (for ADMIN)' })
   @ApiParam({
     name: 'organizationId',
     description: 'The ID of the organization',
@@ -135,7 +135,7 @@ export class MembershipController {
   @Get(':userId/:roleId/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find a membership by composite key' })
+  @ApiOperation({ summary: 'Find a membership by composite key (for ADMIN)' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiParam({ name: 'roleId', description: 'The ID of the role' })
   @ApiParam({
@@ -163,7 +163,7 @@ export class MembershipController {
   @Delete(':userId/:roleId/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Remove a membership (soft delete)' })
+  @ApiOperation({ summary: 'Remove a membership (soft delete) (for ADMIN)' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiParam({ name: 'roleId', description: 'The ID of the role' })
   @ApiParam({
@@ -187,7 +187,7 @@ export class MembershipController {
   @Patch(':userId/:roleId/:organizationId/restore')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Restore a removed membership' })
+  @ApiOperation({ summary: 'Restore a removed membership (for ADMIN)' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiParam({ name: 'roleId', description: 'The ID of the role' })
   @ApiParam({

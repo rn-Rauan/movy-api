@@ -107,3 +107,11 @@ export class InactiveOrganizationError extends DomainError {
     super(`Organization with id "${id}" is inactive`);
   }
 }
+
+export class OrganizationForbiddenError extends DomainError {
+  code = 'ORGANIZATION_ACCESS_FORBIDDEN';
+
+  constructor(id: string) {
+    super(`You do not have access to organization "${id}"`);
+  }
+}

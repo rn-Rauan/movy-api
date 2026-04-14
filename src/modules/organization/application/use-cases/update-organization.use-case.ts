@@ -5,10 +5,12 @@ import {
   InactiveOrganizationError,
   OrganizationAlreadyExistsError,
   OrganizationEmailAlreadyExistsError,
+  OrganizationForbiddenError,
   OrganizationNotFoundError,
   OrganizationSlugAlreadyExistsError,
 } from '../../domain/entities/errors/organization.errors';
 import { UpdateOrganizationDto } from '../dtos/update-organization.dto';
+import { TenantContextParams } from '../dtos';
 
 @Injectable()
 export class UpdateOrganizationUseCase {
@@ -19,11 +21,21 @@ export class UpdateOrganizationUseCase {
   async execute(
     id: string,
     updateDto: UpdateOrganizationDto,
+    tenantContext?: TenantContextParams,
   ): Promise<Organization> {
     const organization = await this.organizationRepository.findById(id);
 
     if (!organization) {
       throw new OrganizationNotFoundError(id);
+    }
+
+    if (
+      tenantContext &&
+      !tenantContext.isDev &&
+      tenantContext.tenantOrganizationId &&
+      organization.id !== tenantContext.tenantOrganizationId
+    ) {
+      throw new OrganizationForbiddenError(id);
     }
 
     if (organization.status === 'INACTIVE') {

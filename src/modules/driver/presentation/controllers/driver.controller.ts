@@ -85,7 +85,7 @@ export class DriverController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find all drivers in an organization' })
+  @ApiOperation({ summary: 'Find all drivers in an organization (for ADMIN)' })
   @ApiParam({
     name: 'organizationId',
     description: 'The ID of the organization',
@@ -115,7 +115,7 @@ export class DriverController {
   @Get(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find a driver by ID' })
+  @ApiOperation({ summary: 'Find a driver by ID (for ADMIN)' })
   @ApiParam({ name: 'id', description: 'The ID of the driver to find' })
   @ApiResponse({
     status: 200,
@@ -148,7 +148,7 @@ export class DriverController {
   @Delete(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Delete a driver' })
+  @ApiOperation({ summary: 'Delete a driver (for ADMIN)' })
   @ApiParam({ name: 'id', description: 'The ID of the driver to delete' })
   @ApiResponse({
     status: 200,

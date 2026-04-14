@@ -114,8 +114,14 @@ export class OrganizationController {
     description: 'Return the organization.',
     type: OrganizationResponseDto,
   })
-  async findById(@Param('id') id: string): Promise<OrganizationResponseDto> {
-    const organization = await this.findOrganizationByIdUseCase.execute(id);
+  async findById(
+    @Param('id') id: string,
+    @GetUser() user: TenantContext,
+  ): Promise<OrganizationResponseDto> {
+    const organization = await this.findOrganizationByIdUseCase.execute(id, {
+      tenantOrganizationId: user.organizationId,
+      isDev: user.isDev,
+    });
     return this.organizationPresenter.toHTTP(organization);
   }
 
@@ -132,10 +138,15 @@ export class OrganizationController {
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateOrganizationDto,
+    @GetUser() user: TenantContext,
   ): Promise<OrganizationResponseDto> {
     const organization = await this.updateOrganizationUseCase.execute(
       id,
       updateDto,
+      {
+        tenantOrganizationId: user.organizationId,
+        isDev: user.isDev,
+      },
     );
     return this.organizationPresenter.toHTTP(organization);
   }
@@ -153,8 +164,14 @@ export class OrganizationController {
     description: 'The organization has been successfully disabled.',
     type: Boolean,
   })
-  async delete(@Param('id') id: string): Promise<boolean> {
-    await this.deleteOrganizationUseCase.execute(id);
+  async delete(
+    @Param('id') id: string,
+    @GetUser() user: TenantContext,
+  ): Promise<boolean> {
+    await this.deleteOrganizationUseCase.execute(id, {
+      tenantOrganizationId: user.organizationId,
+      isDev: user.isDev,
+    });
     return true;
   }
 
