@@ -7,6 +7,8 @@ export abstract class OrganizationRepository {
   abstract save(organization: Organization): Promise<Organization | null>;
   abstract findById(id: string): Promise<Organization | null>;
   abstract findByCnpj(cnpj: string): Promise<Organization | null>;
+  abstract findBySlug(slug: string): Promise<Organization | null>;
+  abstract findByEmail(email: string): Promise<Organization | null>;
   abstract update(organization: Organization): Promise<Organization | null>;
   abstract findAll(
     options: PaginationOptions,

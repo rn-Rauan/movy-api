@@ -36,6 +36,24 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
     if (!organizationData) return null;
     return OrganizationMapper.toDomain(organizationData);
   }
+  async findBySlug(slug: string): Promise<Organization | null> {
+    const organizationData = await this.prisma.organization.findUnique({
+      where: {
+        slug: slug,
+      },
+    });
+    if (!organizationData) return null;
+    return OrganizationMapper.toDomain(organizationData);
+  }
+  async findByEmail(email: string): Promise<Organization | null> {
+    const organizationData = await this.prisma.organization.findUnique({
+      where: {
+        email: email,
+      },
+    });
+    if (!organizationData) return null;
+    return OrganizationMapper.toDomain(organizationData);
+  }
   async update(organization: Organization): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.update({
       where: {
@@ -50,14 +68,18 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   ): Promise<PaginatedResponse<Organization>> {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
-    const organizationData = await this.prisma.organization.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip: skip,
-      take: limit,
-    });
-    const total = await this.prisma.organization.count();
+
+    const [organizationData, total] = await this.prisma.$transaction([
+      this.prisma.organization.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: skip,
+        take: limit,
+      }),
+      this.prisma.organization.count(),
+    ]);
+
     return {
       data: organizationData.map((org) => OrganizationMapper.toDomain(org)),
       total: total,
@@ -71,21 +93,19 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   ): Promise<PaginatedResponse<Organization>> {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
-    const organizationData = await this.prisma.organization.findMany({
-      where: {
-        status: 'ACTIVE',
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip: skip,
-      take: limit,
-    });
-    const total = await this.prisma.organization.count({
-      where: {
-        status: 'ACTIVE',
-      },
-    });
+    const where = { status: 'ACTIVE' as const };
+
+    const [organizationData, total] = await this.prisma.$transaction([
+      this.prisma.organization.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: skip,
+        take: limit,
+      }),
+      this.prisma.organization.count({ where }),
+    ]);
 
     return {
       data: organizationData.map((org) => OrganizationMapper.toDomain(org)),

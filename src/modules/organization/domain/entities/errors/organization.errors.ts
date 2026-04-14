@@ -81,6 +81,22 @@ export class OrganizationAlreadyExistsError extends DomainError {
   }
 }
 
+export class OrganizationEmailAlreadyExistsError extends DomainError {
+  code = 'ORGANIZATION_EMAIL_ALREADY_EXISTS';
+
+  constructor(email: string) {
+    super(`Organization with email "${email}" already exists.`);
+  }
+}
+
+export class OrganizationSlugAlreadyExistsError extends DomainError {
+  code = 'ORGANIZATION_SLUG_ALREADY_EXISTS';
+
+  constructor(slug: string) {
+    super(`Organization with slug "${slug}" already exists.`);
+  }
+}
+
 /**
  * Erro de Organização inativa
  */

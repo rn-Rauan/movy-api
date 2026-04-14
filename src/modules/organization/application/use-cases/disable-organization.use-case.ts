@@ -4,7 +4,6 @@ import {
   InactiveOrganizationError,
   OrganizationNotFoundError,
 } from '../../domain/entities/errors/organization.errors';
-import { Status } from 'src/shared/domain/types/status.type';
 import { Organization } from '../../domain/entities';
 
 @Injectable()
@@ -24,7 +23,7 @@ export class DisableOrganizationUseCase {
       throw new InactiveOrganizationError(id);
     }
 
-    organization.setStatus('INACTIVE' as Status);
+    organization.setStatus('INACTIVE');
     await this.organizationRepository.update(organization);
 
     return organization;

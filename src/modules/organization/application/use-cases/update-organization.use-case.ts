@@ -4,7 +4,9 @@ import { Organization } from '../../domain/entities';
 import {
   InactiveOrganizationError,
   OrganizationAlreadyExistsError,
+  OrganizationEmailAlreadyExistsError,
   OrganizationNotFoundError,
+  OrganizationSlugAlreadyExistsError,
 } from '../../domain/entities/errors/organization.errors';
 import { UpdateOrganizationDto } from '../dtos/update-organization.dto';
 
@@ -33,6 +35,12 @@ export class UpdateOrganizationUseCase {
     }
 
     if (updateDto.email) {
+      const existingByEmail = await this.organizationRepository.findByEmail(
+        updateDto.email,
+      );
+      if (existingByEmail && existingByEmail.id !== organization.id) {
+        throw new OrganizationEmailAlreadyExistsError(updateDto.email);
+      }
       organization.setEmail(updateDto.email);
     }
 
@@ -51,6 +59,12 @@ export class UpdateOrganizationUseCase {
     }
 
     if (updateDto.slug) {
+      const existingBySlug = await this.organizationRepository.findBySlug(
+        updateDto.slug,
+      );
+      if (existingBySlug && existingBySlug.id !== organization.id) {
+        throw new OrganizationSlugAlreadyExistsError(updateDto.slug);
+      }
       organization.setSlug(updateDto.slug);
     }
 
