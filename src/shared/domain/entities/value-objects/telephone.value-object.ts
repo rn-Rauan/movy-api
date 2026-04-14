@@ -31,6 +31,13 @@ export class Telephone {
   }
 
   /**
+   * Restore a Telephone from persistence (skips validation)
+   */
+  static restore(telephone: string): Telephone {
+    return new Telephone(telephone);
+  }
+
+  /**
    * Get telephone value
    */
   get value_(): string {

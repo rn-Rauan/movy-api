@@ -16,9 +16,9 @@ export class UserMapper {
     return User.restore({
       id: raw.id,
       name: UserName.create(raw.name),
-      email: Email.create(raw.email),
+      email: Email.restore(raw.email),
       passwordHash: PasswordHash.create(raw.passwordHash),
-      telephone: Telephone.create(raw.telephone),
+      telephone: Telephone.restore(raw.telephone),
       status: raw.status,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,

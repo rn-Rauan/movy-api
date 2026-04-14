@@ -7,8 +7,6 @@ import { LoggingInterceptor } from './presentation/interceptors/logging.intercep
 import { AllExceptionsFilter } from './presentation/exceptions/all-exceptions.filter';
 import { BcryptHashProvider } from './providers/hash/bcrypt-hash.provider';
 import { RolesGuard } from './infrastructure/guards/roles.guard';
-import { RoleRepository } from './domain/interfaces/role.repository';
-import { PrismaRoleRepository } from './infrastructure/database/repositories/prisma-role.repository';
 import { TenantFilterGuard } from './infrastructure/guards/tenant-filter.guard';
 import { DevGuard } from './infrastructure/guards/dev.guard';
 
@@ -19,8 +17,8 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
     JwtAuthGuard,
     RolesGuard,
     DevGuard,
-    // TenantContextMiddleware agora é registrado via AppModule.configure()
-    // Executa ANTES dos guards (pipeline correto)
+    // TenantContextMiddleware é dead code (req.user não existe antes dos guards)
+    // TenantContext é criado pelo JwtAuthGuard
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
@@ -29,10 +27,6 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
     },
-    {
-      provide: RoleRepository,
-      useClass: PrismaRoleRepository,
-    },
     BcryptHashProvider,
     TenantFilterGuard,
   ],
@@ -40,7 +34,6 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
     PrismaModule,
     JwtAuthGuard,
     BcryptHashProvider,
-    RoleRepository,
     TenantFilterGuard,
     RolesGuard,
     DevGuard,

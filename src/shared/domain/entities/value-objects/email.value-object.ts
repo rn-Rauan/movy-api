@@ -31,6 +31,13 @@ export class Email {
   }
 
   /**
+   * Restore an Email from persistence (skips validation)
+   */
+  static restore(email: string): Email {
+    return new Email(email);
+  }
+
+  /**
    * Get email value
    */
   get value_(): string {

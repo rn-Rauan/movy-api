@@ -34,6 +34,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (exception instanceof DomainError) {
       message = exception.message;
+      error = exception.code;
       const code = exception.code;
 
       if (code.endsWith('_NOT_FOUND')) {
