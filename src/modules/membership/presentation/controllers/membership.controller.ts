@@ -90,12 +90,8 @@ export class MembershipController {
       { page, limit },
     );
 
-    const data = paginatedResult.data.map((m) =>
-      this.membershipPresenter.toHTTP(m),
-    );
-
     return new PaginatedDto(
-      data,
+      this.membershipPresenter.toListHTTP(paginatedResult.data),
       paginatedResult.total,
       paginatedResult.page,
       paginatedResult.limit,
@@ -128,12 +124,8 @@ export class MembershipController {
         limit,
       });
 
-    const data = paginatedResult.data.map((m) =>
-      this.membershipPresenter.toHTTP(m),
-    );
-
     return new PaginatedDto(
-      data,
+      this.membershipPresenter.toListHTTP(paginatedResult.data),
       paginatedResult.total,
       paginatedResult.page,
       paginatedResult.limit,

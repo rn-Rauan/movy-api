@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { MembershipRepository } from '../../domain/interfaces/membership.repository';
 import { Role } from 'src/shared/domain/entities/role.entity';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';

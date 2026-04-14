@@ -47,7 +47,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [membershipData, total] = await Promise.all([
+    const [membershipData, total] = await this.prisma.$transaction([
       this.prisma.organizationMembership.findMany({
         where: { userId },
         skip,
@@ -74,7 +74,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [membershipData, total] = await Promise.all([
+    const [membershipData, total] = await this.prisma.$transaction([
       this.prisma.organizationMembership.findMany({
         where: { organizationId },
         skip,

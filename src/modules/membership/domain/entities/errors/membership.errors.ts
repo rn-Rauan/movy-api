@@ -27,3 +27,19 @@ export class MembershipAlreadyExistsError extends DomainError {
     );
   }
 }
+
+export class UserNotFoundForMembershipError extends DomainError {
+  code = 'USER_FOR_MEMBERSHIP_NOT_FOUND';
+
+  constructor(email: string) {
+    super(`User with email "${email}" not found`);
+  }
+}
+
+export class MembershipMissingIdentifierError extends DomainError {
+  code = 'MEMBERSHIP_MISSING_IDENTIFIER_BAD_REQUEST';
+
+  constructor() {
+    super('userId or userEmail must be provided');
+  }
+}
