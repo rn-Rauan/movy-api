@@ -13,9 +13,9 @@ import { AuthController } from './presentation/controllers/auth.controller';
 import {
   LoginUseCase,
   RefreshTokenUseCase,
+  RegisterOrganizationWithAdminUseCase,
   RegisterUseCase,
 } from './application/use-cases';
-import { RegisterOrganizationUseCase } from './application/use-cases/register-organization-with-admin.use-case';
 import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 
@@ -31,17 +31,23 @@ import { JwtStrategy } from './infrastructure/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'fallback-secret',
-        signOptions: { expiresIn: '1h' },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is not set');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '1h' },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
   providers: [
     LoginUseCase,
     RegisterUseCase,
-    RegisterOrganizationUseCase,
+    RegisterOrganizationWithAdminUseCase,
     RefreshTokenUseCase,
     JwtPayloadService, // ✅ NOVO: Serviço para enriquecer JWTs
     JwtStrategy,

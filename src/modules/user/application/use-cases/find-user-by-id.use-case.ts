@@ -9,7 +9,7 @@ export class FindUserByIdUseCase {
 
   async execute(userId: string): Promise<User> {
     const user = await this.userRepository.findById(userId);
-    if (!user || user.status == 'INACTIVE') {
+    if (!user || user.status === 'INACTIVE') {
       throw new UserNotFoundError(userId);
     }
     return user;

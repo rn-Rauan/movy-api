@@ -60,12 +60,8 @@ export class UserController {
     type: UserResponseDto,
   })
   async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    try {
-      const user = await this.createUserUseCase.execute(createUserDto);
-      return UserPresenter.toHTTP(user);
-    } catch (error) {
-      throw error;
-    }
+    const user = await this.createUserUseCase.execute(createUserDto);
+    return UserPresenter.toHTTP(user);
   }
 
   @Get('me')
@@ -78,12 +74,8 @@ export class UserController {
   async getMe(
     @GetTenantContext() context: TenantContext,
   ): Promise<UserResponseDto> {
-    try {
-      const user = await this.findUserByIdUseCase.execute(context.userId);
-      return UserPresenter.toHTTP(user);
-    } catch (error) {
-      throw error;
-    }
+    const user = await this.findUserByIdUseCase.execute(context.userId);
+    return UserPresenter.toHTTP(user);
   }
 
   @Put('me')
@@ -97,15 +89,11 @@ export class UserController {
     @GetTenantContext() context: TenantContext,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    try {
-      const user = await this.updateUserUseCase.execute(
-        context.userId,
-        updateUserDto,
-      );
-      return UserPresenter.toHTTP(user);
-    } catch (error) {
-      throw error;
-    }
+    const user = await this.updateUserUseCase.execute(
+      context.userId,
+      updateUserDto,
+    );
+    return UserPresenter.toHTTP(user);
   }
 
   @Delete('me')
@@ -117,12 +105,8 @@ export class UserController {
   async disableMe(
     @GetTenantContext() context: TenantContext,
   ): Promise<{ success: boolean; message: string }> {
-    try {
-      await this.disableUserUseCase.execute(context.userId);
-      return { success: true, message: 'User account disabled' };
-    } catch (error) {
-      throw error;
-    }
+    await this.disableUserUseCase.execute(context.userId);
+    return { success: true, message: 'User account disabled' };
   }
 
   @Get('active')
@@ -140,34 +124,17 @@ export class UserController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<UserResponseDto>> {
-    try {
-      const paginatedResult = await this.findAllActiveUsersUseCase.execute({
-        page,
-        limit,
-      });
+    const paginatedResult = await this.findAllActiveUsersUseCase.execute({
+      page,
+      limit,
+    });
 
-      const data = paginatedResult.data.map(
-        (user) =>
-          new UserResponseDto({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            telephone: user.telephone,
-            status: user.status,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          }),
-      );
-
-      return new PaginatedDto(
-        data,
-        paginatedResult.total,
-        paginatedResult.page,
-        paginatedResult.limit,
-      );
-    } catch (error) {
-      throw error;
-    }
+    return new PaginatedDto(
+      UserPresenter.toHTTPList(paginatedResult.data),
+      paginatedResult.total,
+      paginatedResult.page,
+      paginatedResult.limit,
+    );
   }
 
   @Get(':id')
@@ -188,12 +155,8 @@ export class UserController {
     type: UserResponseDto,
   })
   async findById(@Param('id') id: string): Promise<UserResponseDto> {
-    try {
-      const user = await this.findUserByIdUseCase.execute(id);
-      return UserPresenter.toHTTP(user);
-    } catch (error) {
-      throw error;
-    }
+    const user = await this.findUserByIdUseCase.execute(id);
+    return UserPresenter.toHTTP(user);
   }
 
   @Delete(':id')
@@ -213,12 +176,8 @@ export class UserController {
     description: 'The user has been successfully disabled.',
   })
   async disable(@Param('id') id: string): Promise<boolean> {
-    try {
-      await this.disableUserUseCase.execute(id);
-      return true;
-    } catch (error) {
-      throw error;
-    }
+    await this.disableUserUseCase.execute(id);
+    return true;
   }
 
   @Get()
@@ -237,33 +196,16 @@ export class UserController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<UserResponseDto>> {
-    try {
-      const paginatedResult = await this.findAllUserUseCase.execute({
-        page,
-        limit,
-      });
+    const paginatedResult = await this.findAllUserUseCase.execute({
+      page,
+      limit,
+    });
 
-      const data = paginatedResult.data.map(
-        (user) =>
-          new UserResponseDto({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            telephone: user.telephone,
-            status: user.status,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          }),
-      );
-
-      return new PaginatedDto(
-        data,
-        paginatedResult.total,
-        paginatedResult.page,
-        paginatedResult.limit,
-      );
-    } catch (error) {
-      throw error;
-    }
+    return new PaginatedDto(
+      UserPresenter.toHTTPList(paginatedResult.data),
+      paginatedResult.total,
+      paginatedResult.page,
+      paginatedResult.limit,
+    );
   }
 }

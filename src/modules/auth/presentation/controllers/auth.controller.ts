@@ -9,7 +9,7 @@ import { RegisterOrganizationWithAdminDto } from '../../application/dtos/registe
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RegisterUseCase } from '../../application/use-cases/register.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
-import { RegisterOrganizationUseCase } from '../../application/use-cases/register-organization-with-admin.use-case';
+import { RegisterOrganizationWithAdminUseCase } from '../../application/use-cases';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -18,7 +18,7 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly registerUseCase: RegisterUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
-    private readonly registerOrganizationUseCase: RegisterOrganizationUseCase,
+    private readonly registerOrganizationWithAdminUseCase: RegisterOrganizationWithAdminUseCase,
   ) {}
 
   @Post('login')
@@ -59,7 +59,7 @@ export class AuthController {
   async registerOrganization(
     @Body() registerOrganizationDto: RegisterOrganizationWithAdminDto,
   ): Promise<TokenResponseDto> {
-    return this.registerOrganizationUseCase.execute(registerOrganizationDto);
+    return this.registerOrganizationWithAdminUseCase.execute(registerOrganizationDto);
   }
 
   @Post('refresh')

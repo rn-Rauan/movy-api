@@ -4,7 +4,6 @@ import {
   InactiveUserError,
   UserNotFoundError,
 } from '../../domain/entities/errors/user.errors';
-import { Status } from 'src/shared/domain/types/status.type';
 import { User } from '../../domain/entities';
 
 @Injectable()
@@ -16,11 +15,11 @@ export class DisableUserUseCase {
     if (!user) {
       throw new UserNotFoundError(userId);
     }
-    if (user.status == 'INACTIVE') {
+    if (user.status === 'INACTIVE') {
       throw new InactiveUserError(user.id);
     }
 
-    user.setStatus('INACTIVE' as Status);
+    user.setStatus('INACTIVE');
     await this.userRepository.update(user);
     return user;
   }

@@ -21,7 +21,7 @@ export class UpdateUserUseCase {
     if (!user) {
       throw new UserNotFoundError(userId);
     }
-    if (user.status == 'INACTIVE') {
+    if (user.status === 'INACTIVE') {
       throw new InactiveUserError(user.id);
     }
     if (updateUserDto.name) {
