@@ -43,3 +43,23 @@ export class MembershipMissingIdentifierError extends DomainError {
     super('userId or userEmail must be provided');
   }
 }
+
+export class DriverNotFoundForMembershipError extends DomainError {
+  code = 'DRIVER_NOT_FOUND_FOR_MEMBERSHIP_BAD_REQUEST';
+
+  constructor(userEmail: string) {
+    super(
+      `Cannot create DRIVER membership: No driver profile found for user "${userEmail}". Driver must be registered before adding to an organization.`,
+    );
+  }
+}
+
+export class DriverNotAssociatedWithOrganizationError extends DomainError {
+  code = 'DRIVER_NOT_IN_ORGANIZATION_BAD_REQUEST';
+
+  constructor(userEmail: string, organizationId: string) {
+    super(
+      `Cannot create DRIVER membership: Driver profile for user "${userEmail}" is not associated with organization "${organizationId}".`,
+    );
+  }
+}

@@ -16,9 +16,14 @@ import { SharedModule } from 'src/shared';
 import { UserOrganizationRoleResolver } from 'src/shared/domain/interfaces/user-organization-role.resolver';
 import { MembershipUserOrgRoleResolver } from './infrastructure/providers/membership-user-org-role.resolver';
 import { UserModule } from '../user/user.module';
+import { DriverModule } from '../driver/driver.module';
 
 @Module({
-  imports: [SharedModule, forwardRef(() => UserModule)],
+  imports: [
+    SharedModule,
+    forwardRef(() => UserModule),
+    DriverModule,
+  ],
   controllers: [MembershipController],
   providers: [
     CreateMembershipUseCase,
