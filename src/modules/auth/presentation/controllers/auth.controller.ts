@@ -59,7 +59,9 @@ export class AuthController {
   async registerOrganization(
     @Body() registerOrganizationDto: RegisterOrganizationWithAdminDto,
   ): Promise<TokenResponseDto> {
-    return this.registerOrganizationWithAdminUseCase.execute(registerOrganizationDto);
+    return this.registerOrganizationWithAdminUseCase.execute(
+      registerOrganizationDto,
+    );
   }
 
   @Post('refresh')

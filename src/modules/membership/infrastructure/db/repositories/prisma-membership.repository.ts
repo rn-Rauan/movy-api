@@ -43,19 +43,19 @@ export class PrismaMembershipRepository implements MembershipRepository {
   async findByUserId(
     userId: string,
     options: PaginationOptions,
+    organizationId?: string,
   ): Promise<PaginatedResponse<Membership>> {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
+    const where = organizationId ? { userId, organizationId } : { userId };
 
     const [membershipData, total] = await this.prisma.$transaction([
       this.prisma.organizationMembership.findMany({
-        where: { userId },
+        where,
         skip,
         take: limit,
       }),
-      this.prisma.organizationMembership.count({
-        where: { userId },
-      }),
+      this.prisma.organizationMembership.count({ where }),
     ]);
 
     return {

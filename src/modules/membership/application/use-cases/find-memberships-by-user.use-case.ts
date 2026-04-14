@@ -13,7 +13,12 @@ export class FindMembershipsByUserUseCase {
   async execute(
     userId: string,
     options: PaginationOptions,
+    organizationId?: string,
   ): Promise<PaginatedResponse<Membership>> {
-    return this.membershipRepository.findByUserId(userId, options);
+    return this.membershipRepository.findByUserId(
+      userId,
+      options,
+      organizationId,
+    );
   }
 }

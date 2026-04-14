@@ -10,11 +10,14 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
+import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
+import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import { RoleName } from 'src/shared';
 import {
   ApiTags,
@@ -63,8 +66,15 @@ export class MembershipController {
   })
   async create(
     @Body() createDto: CreateMembershipDto,
+    @GetUser() user: TenantContext,
   ): Promise<MembershipResponseDto> {
-    const membership = await this.createMembershipUseCase.execute(createDto);
+    if (!user.organizationId) {
+      throw new BadRequestException('No organization context found in token');
+    }
+    const membership = await this.createMembershipUseCase.execute(
+      createDto,
+      user.organizationId,
+    );
     return this.membershipPresenter.toHTTP(membership);
   }
 
@@ -84,10 +94,13 @@ export class MembershipController {
     @Param('userId') userId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @GetUser() user: TenantContext,
   ): Promise<PaginatedDto<MembershipResponseDto>> {
+    const organizationId = user.isDev ? undefined : user.organizationId;
     const paginatedResult = await this.findMembershipsByUserUseCase.execute(
       userId,
       { page, limit },
+      organizationId,
     );
 
     return new PaginatedDto(
@@ -101,7 +114,9 @@ export class MembershipController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find all memberships for an organization (for ADMIN)' })
+  @ApiOperation({
+    summary: 'Find all memberships for an organization (for ADMIN)',
+  })
   @ApiParam({
     name: 'organizationId',
     description: 'The ID of the organization',

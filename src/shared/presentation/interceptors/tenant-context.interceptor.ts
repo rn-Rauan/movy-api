@@ -6,4 +6,3 @@
  */
 
 export type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
-

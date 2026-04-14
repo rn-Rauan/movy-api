@@ -9,7 +9,9 @@ import { TokenResponseDto } from '../dtos';
 
 @Injectable()
 export class RegisterOrganizationWithAdminUseCase {
-  private readonly logger = new Logger(RegisterOrganizationWithAdminUseCase.name);
+  private readonly logger = new Logger(
+    RegisterOrganizationWithAdminUseCase.name,
+  );
 
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
@@ -59,9 +61,7 @@ export class RegisterOrganizationWithAdminUseCase {
     }
 
     // 3. Generate JWT directly (no re-authentication needed)
-    const enrichedPayload = await this.jwtPayloadService.enrichPayload(
-      user.id,
-    );
+    const enrichedPayload = await this.jwtPayloadService.enrichPayload(user.id);
     const accessToken = this.jwtService.sign(enrichedPayload);
     const refreshToken = this.jwtService.sign(enrichedPayload, {
       expiresIn: '7d',

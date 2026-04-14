@@ -14,7 +14,7 @@ export class RemoveDriverUseCase {
     }
 
     driver.deactivate();
-    
+
     await this.driverRepository.update(driver);
   }
 }

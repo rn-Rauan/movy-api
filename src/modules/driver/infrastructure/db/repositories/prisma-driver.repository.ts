@@ -79,6 +79,6 @@ export class PrismaDriverRepository implements DriverRepository {
   async delete(id: string): Promise<void> {
     await this.prismaService.driver.delete({
       where: { id },
-    }); 
+    });
   }
 }

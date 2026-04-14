@@ -6,7 +6,6 @@ import {
   Membership,
   MembershipAlreadyExistsError,
   UserNotFoundForMembershipError,
-  MembershipMissingIdentifierError,
 } from '../../domain/entities';
 
 @Injectable()
@@ -16,29 +15,22 @@ export class CreateMembershipUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(dto: CreateMembershipDto): Promise<Membership> {
-    let userId = dto.userId;
-
-    if (!userId && dto.userEmail) {
-      const user = await this.userRepository.findByEmail(dto.userEmail);
-      if (!user) {
-        throw new UserNotFoundForMembershipError(dto.userEmail);
-      }
-      userId = user.id;
-    }
-
-    if (!userId) {
-      throw new MembershipMissingIdentifierError();
+  async execute(
+    dto: CreateMembershipDto,
+    tenantOrganizationId: string,
+  ): Promise<Membership> {
+    const user = await this.userRepository.findByEmail(dto.userEmail);
+    if (!user) {
+      throw new UserNotFoundForMembershipError(dto.userEmail);
     }
 
     const membershipExists = await this.membershipRepository.findByCompositeKey(
-      userId,
+      user.id,
       dto.roleId,
-      dto.organizationId,
+      tenantOrganizationId,
     );
 
     if (membershipExists) {
-      // If soft-deleted, reactivate instead of throwing error
       if (membershipExists.removedAt !== null) {
         membershipExists.restore_membership();
         await this.membershipRepository.update(membershipExists);
@@ -46,16 +38,16 @@ export class CreateMembershipUseCase {
       }
 
       throw new MembershipAlreadyExistsError(
-        userId,
+        user.id,
         dto.roleId,
-        dto.organizationId,
+        tenantOrganizationId,
       );
     }
 
     const membership = Membership.create({
-      userId: userId,
+      userId: user.id,
       roleId: dto.roleId,
-      organizationId: dto.organizationId,
+      organizationId: tenantOrganizationId,
     });
 
     await this.membershipRepository.save(membership);

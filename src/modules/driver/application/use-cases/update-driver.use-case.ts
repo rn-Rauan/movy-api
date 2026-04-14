@@ -21,7 +21,8 @@ export class UpdateDriverUseCase {
     }
 
     const hasCnhFields = input.cnh || input.cnhCategory || input.cnhExpiresAt;
-    const hasAllCnhFields = input.cnh && input.cnhCategory && input.cnhExpiresAt;
+    const hasAllCnhFields =
+      input.cnh && input.cnhCategory && input.cnhExpiresAt;
 
     if (hasCnhFields && !hasAllCnhFields) {
       throw new PartialCnhUpdateError();

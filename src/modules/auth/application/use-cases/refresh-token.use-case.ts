@@ -37,9 +37,7 @@ export class RefreshTokenUseCase {
     this.logger.debug(
       `[Refresh Token] Enriching JWT payload for userId: ${user.id}`,
     );
-    const enrichedPayload = await this.jwtPayloadService.enrichPayload(
-      user.id,
-    );
+    const enrichedPayload = await this.jwtPayloadService.enrichPayload(user.id);
 
     const accessToken = this.jwtService.sign(enrichedPayload);
     const newRefreshToken = this.jwtService.sign(enrichedPayload, {

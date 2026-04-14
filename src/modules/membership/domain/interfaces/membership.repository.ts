@@ -25,6 +25,7 @@ export abstract class MembershipRepository {
   abstract findByUserId(
     userId: string,
     options: PaginationOptions,
+    organizationId?: string,
   ): Promise<PaginatedResponse<Membership>>;
   abstract findByOrganizationId(
     organizationId: string,
