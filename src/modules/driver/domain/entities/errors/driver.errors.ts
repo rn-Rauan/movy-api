@@ -108,3 +108,13 @@ export class DriverUpdateFailedError extends DomainError {
     super(message);
   }
 }
+
+export class PartialCnhUpdateError extends DriverValidationError {
+  code = 'INVALID_PARTIAL_CNH_UPDATE_BAD_REQUEST';
+
+  constructor() {
+    super(
+      'To update CNH, all fields must be provided: cnh, cnhCategory, cnhExpiresAt',
+    );
+  }
+}

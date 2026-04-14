@@ -4,6 +4,7 @@ import {
   Cnh,
   CnhCategory,
 } from 'src/modules/driver/domain/entities/value-objects';
+import { CnhCategoryType } from 'src/modules/driver/domain/entities/value-objects/cnh-category.value-object';
 import { DriverStatus } from 'src/modules/driver/domain/interfaces/enums/driver-status.enum';
 
 /**
@@ -25,8 +26,8 @@ export class DriverMapper {
       id: raw.id,
       userId: raw.userId,
       organizationId: raw.organizationId,
-      cnh: Cnh.create(raw.cnh),
-      cnhCategory: CnhCategory.create(raw.cnhCategory),
+      cnh: Cnh.restore(raw.cnh),
+      cnhCategory: CnhCategory.restore(raw.cnhCategory as CnhCategoryType),
       cnhExpiresAt: raw.cnhExpiresAt,
       driverStatus: raw.driverStatus as DriverStatus,
       createdAt: raw.createdAt,
@@ -49,7 +50,7 @@ export class DriverMapper {
       cnh: driver.cnh.value_,
       cnhCategory: driver.cnhCategory.value_,
       cnhExpiresAt: driver.cnhExpiresAt,
-      driverStatus: driver.driverStatus as DriverStatus,
+      driverStatus: driver.driverStatus,
       createdAt: driver.createdAt,
       updatedAt: driver.updatedAt,
     };

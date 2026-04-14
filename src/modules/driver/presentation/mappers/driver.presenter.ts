@@ -1,8 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { DriverEntity } from '../../domain/entities/driver.entity';
 import { DriverResponseDto } from '../../application/dtos/driver-response.dto';
 
-@Injectable()
 export class DriverPresenter {
   static toHTTP(driver: DriverEntity): DriverResponseDto {
     return new DriverResponseDto({

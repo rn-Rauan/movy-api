@@ -45,6 +45,13 @@ export class CnhCategory {
   }
 
   /**
+   * Restore a CNH Category from persistence (skips validation)
+   */
+  static restore(category: CnhCategoryType): CnhCategory {
+    return new CnhCategory(category);
+  }
+
+  /**
    * Get category value
    */
   get value_(): CnhCategoryType {

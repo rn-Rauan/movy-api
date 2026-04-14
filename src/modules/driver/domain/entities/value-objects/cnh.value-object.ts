@@ -43,6 +43,13 @@ export class Cnh {
   }
 
   /**
+   * Restore a CNH from persistence (skips validation)
+   */
+  static restore(cnh: string): Cnh {
+    return new Cnh(cnh);
+  }
+
+  /**
    * Get CNH value
    */
   get value_(): string {

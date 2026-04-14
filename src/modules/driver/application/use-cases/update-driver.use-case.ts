@@ -6,6 +6,7 @@ import { UpdateDriverDto } from '../dtos';
 import {
   DriverNotFoundError,
   DriverUpdateFailedError,
+  PartialCnhUpdateError,
 } from '../../domain/entities/errors/driver.errors';
 
 @Injectable()
@@ -19,11 +20,18 @@ export class UpdateDriverUseCase {
       throw new DriverNotFoundError(id);
     }
 
-    if (input.cnh && input.cnhCategory && input.cnhExpiresAt) {
+    const hasCnhFields = input.cnh || input.cnhCategory || input.cnhExpiresAt;
+    const hasAllCnhFields = input.cnh && input.cnhCategory && input.cnhExpiresAt;
+
+    if (hasCnhFields && !hasAllCnhFields) {
+      throw new PartialCnhUpdateError();
+    }
+
+    if (hasAllCnhFields) {
       driver.updateCnh(
-        Cnh.create(input.cnh),
-        CnhCategory.create(input.cnhCategory),
-        new Date(input.cnhExpiresAt),
+        Cnh.create(input.cnh!),
+        CnhCategory.create(input.cnhCategory!),
+        new Date(input.cnhExpiresAt!),
       );
     }
 

@@ -12,15 +12,11 @@ import {
 import { PrismaDriverRepository } from './infrastructure/db/repositories/prisma-driver.repository';
 import { DriverRepository } from './domain/interfaces';
 import { DriverController } from './presentation/controllers/driver.controller';
-import { DriverPresenter } from './presentation/mappers/driver.presenter';
 
 @Module({
   imports: [PrismaModule, SharedModule],
   controllers: [DriverController],
   providers: [
-    // Presenter
-    DriverPresenter,
-
     // Use Cases
     CreateDriverUseCase,
     FindDriverByIdUseCase,
