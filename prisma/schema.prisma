@@ -73,6 +73,13 @@ enum Shift {
   EVENING
 }
 
+enum VehicleType {
+  VAN
+  BUS
+  MINIBUS
+  CAR
+}
+
 enum PlanName {
   FREE
   BASIC
@@ -225,7 +232,7 @@ model Vehicle {
   id             String         @id @default(uuid())
   plate          String         @unique @db.VarChar(10)
   model          String         @db.VarChar(255)
-  type           String         @db.VarChar(100)
+  type           VehicleType
   maxCapacity    Int
   status         Status         @default(ACTIVE)
   organizationId String
@@ -277,14 +284,14 @@ model TripInstance {
   organizationId         String
   tripStatus             TripStatus @default(SCHEDULED)
   statusForRecurringTrip Status? // Only for recurring trips
-  totalCapacity          Int
+  totalCapacity          Int        // Snapshot of vehicle capacity at scheduling time (historical)
   departureTime          DateTime
   arrivalEstimate        DateTime
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
   // Relations
-  driver       Driver               @relation("TripDriver", fields: [driverId], references: [userId], onDelete: Cascade)
+  driver       Driver               @relation("TripDriver", fields: [driverId], references: [id], onDelete: Cascade)
   vehicle      Vehicle              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Cascade)
   tripTemplate TripTemplate         @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id], onDelete: Cascade)
   enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
@@ -351,6 +358,7 @@ model AuditLog {
   organizationId String
   userId         String
   action         String   @db.VarChar(255)
+  details        Json?    // Context: entityType, entityId, changes, ipAddress, etc.
   timestamp      DateTime @default(now())
 
   // Relations

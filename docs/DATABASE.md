@@ -17,9 +17,10 @@ Indica o estado geral de registros:
 
 #### RoleName
 Define os papéis (roles) de usuários:
-- `ADMIN` - Administrador
+- `ADMIN` - Administrador da organização
 - `DRIVER` - Motorista
-- `PASSENGER` - Passageiro
+
+> **Nota:** Passageiro não é um role explícito. Qualquer usuário autenticado que não possua role de ADMIN ou DRIVER em uma organização é considerado passageiro.
 
 #### RouteType
 Tipos de rota para viagens:
@@ -151,7 +152,7 @@ Define os papéis disponíveis no sistema.
 
 ```sql
 id (INT) - Chave primária
-name (RoleName) - ADMIN | DRIVER | PASSENGER
+name (RoleName) - ADMIN | DRIVER
 createdAt (DATETIME) - Data de criação
 updatedAt (DATETIME) - Última atualização
 ```
@@ -232,7 +233,7 @@ Dados de veículos da frota.
 id (UUID) - Chave primária
 plate (VARCHAR) - Placa do veículo (única)
 model (VARCHAR) - Modelo/Marca
-type (VARCHAR) - Tipo (ônibus, van, carro, etc)
+type (VehicleType) - Tipo: VAN | BUS | MINIBUS | CAR
 maxCapacity (INT) - Capacidade máxima
 status (Status) - ACTIVE | INACTIVE
 organizationId (UUID) - FK Organization
@@ -366,14 +367,11 @@ Rastreamento de ações importantes no sistema.
 
 ```sql
 id (UUID) - Chave primária
-action (VARCHAR) - Ação realizada (ex: CREATE, UPDATE, DELETE)
-entityType (VARCHAR) - Tipo de entidade afetada
-entityId (UUID) - ID da entidade
-userId (UUID) - FK User (quem realizou a ação)
 organizationId (UUID) - FK Organization
-changes (JSON) - Alterações realizadas
-ipAddress (VARCHAR) - IP de origem
-createdAt (DATETIME) - Data da ação
+userId (UUID) - FK User (quem realizou a ação)
+action (VARCHAR) - Ação realizada (ex: CREATE_VEHICLE, UPDATE_DRIVER)
+details (JSON) - Contexto opcional: entityType, entityId, changes, ipAddress, etc.
+timestamp (DATETIME) - Data da ação
 ```
 
 **Relações:**

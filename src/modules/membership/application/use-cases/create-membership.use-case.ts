@@ -42,6 +42,13 @@ export class CreateMembershipUseCase {
     );
 
     if (membershipExists) {
+      // If soft-deleted, reactivate instead of throwing error
+      if (membershipExists.removedAt !== null) {
+        membershipExists.restore_membership();
+        await this.membershipRepository.update(membershipExists);
+        return membershipExists;
+      }
+
       throw new MembershipAlreadyExistsError(
         userId,
         dto.roleId,
