@@ -10,6 +10,7 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
@@ -29,6 +30,7 @@ import {
   CreateDriverDto,
   UpdateDriverDto,
   DriverResponseDto,
+  DriverLookupResponseDto,
 } from '../../application/dtos';
 import { DriverPresenter } from '../mappers/driver.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
@@ -39,6 +41,7 @@ import {
   UpdateDriverUseCase,
   RemoveDriverUseCase,
   FindAllDriversByOrganizationUseCase,
+  LookupDriverUseCase,
 } from '../../application/use-cases';
 
 @ApiTags('drivers')
@@ -52,19 +55,26 @@ export class DriverController {
     private readonly updateDriverUseCase: UpdateDriverUseCase,
     private readonly removeDriverUseCase: RemoveDriverUseCase,
     private readonly findAllDriversByOrganizationUseCase: FindAllDriversByOrganizationUseCase,
+    private readonly lookupDriverUseCase: LookupDriverUseCase,
   ) {}
 
   @Post()
-  @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Create a new driver' })
+  @ApiOperation({
+    summary: 'Create a new driver profile',
+  })
   @ApiResponse({
     status: 201,
-    description: 'The driver has been successfully created.',
+    description: 'Driver profile created successfully.',
     type: DriverResponseDto,
   })
-  async create(@Body() createDto: CreateDriverDto): Promise<DriverResponseDto> {
-    const driver = await this.createDriverUseCase.execute(createDto);
+  async create(
+    @Body() createDto: CreateDriverDto,
+    @GetUser() context: TenantContext,
+  ): Promise<DriverResponseDto> {
+    const driver = await this.createDriverUseCase.execute(
+      context.userId,
+      createDto,
+    );
     return DriverPresenter.toHTTP(driver);
   }
 
@@ -78,6 +88,37 @@ export class DriverController {
   async getMe(@GetUser() context: TenantContext): Promise<DriverResponseDto> {
     const driver = await this.findDriverByUserIdUseCase.execute(context.userId);
     return DriverPresenter.toHTTP(driver);
+  }
+
+  @Get('lookup')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({
+    summary:
+      'Buscar perfil de motorista por e-mail + CNH (Admin, antes de vincular à org)',
+  })
+  @ApiQuery({ name: 'email', required: true, example: 'joao@email.com' })
+  @ApiQuery({ name: 'cnh', required: true, example: '123456789' })
+  @ApiResponse({
+    status: 200,
+    description: 'Driver profile found.',
+    type: DriverLookupResponseDto,
+  })
+  async lookup(
+    @Query('email') email: string,
+    @Query('cnh') cnh: string,
+  ): Promise<DriverLookupResponseDto> {
+    if (!email || !email.trim()) {
+      throw new BadRequestException(
+        'Query parameter "email" is required and cannot be empty',
+      );
+    }
+    if (!cnh || !cnh.trim()) {
+      throw new BadRequestException(
+        'Query parameter "cnh" is required and cannot be empty',
+      );
+    }
+    return this.lookupDriverUseCase.execute(email, cnh);
   }
 
   @Get('organization/:organizationId')
@@ -104,10 +145,12 @@ export class DriverController {
       organizationId,
       { page, limit },
     );
-
-    const data = DriverPresenter.toHTTPList(result.data);
-
-    return new PaginatedDto(data, result.total, result.page, result.limit);
+    return new PaginatedDto(
+      DriverPresenter.toHTTPList(result.data),
+      result.total,
+      result.page,
+      result.limit,
+    );
   }
 
   @Get(':id')

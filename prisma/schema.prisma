@@ -132,7 +132,6 @@ model Organization {
   auditLogs     AuditLog[]       @relation("AuditLogOrganization")
   subscriptions Subscription[]   @relation("OrganizationSubscription")
   tripInstances  TripInstance[]    @relation("TripInstanceOrganization")
-  drivers       Driver[]         @relation("DriverOrganization") 
 
   @@index([slug])
   @@index([status])
@@ -209,9 +208,6 @@ model OrganizationMembership {
 model Driver {
   id             String         @id @default(uuid())
   userId         String         @unique
-  // Intentionally not unique: an organization can have multiple drivers.
-  // The one-to-one constraint is enforced on userId, not organizationId.
-  organizationId String
   cnh            String         @unique @db.VarChar(20)
   cnhCategory    String         @db.VarChar(5)
   cnhExpiresAt   DateTime
@@ -221,10 +217,8 @@ model Driver {
 
   // Relations
   user          User           @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization    @relation("DriverOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
   tripInstances TripInstance[] @relation("TripDriver")
 
-  @@index([organizationId])
   @@map("driver")
 }
 

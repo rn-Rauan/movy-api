@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 14 Abr 2026
+**Última atualização:** 15 Abr 2026
 
 ---
 
@@ -76,6 +76,8 @@ src/shared/
 - ✅ **[14 Abr]** `DriverNotFoundForMembershipError` (código `DRIVER_NOT_FOUND_FOR_MEMBERSHIP_BAD_REQUEST` → HTTP 400)
 - ✅ **[14 Abr]** `DriverNotAssociatedWithOrganizationError` (código `DRIVER_NOT_IN_ORGANIZATION_BAD_REQUEST` → HTTP 400)
 - ✅ **[14 Abr]** Ordem de validação corrigida: Driver validado ANTES do check de soft-delete (previne bypass)
+- ✅ **[15 Abr]** `DriverNotAssociatedWithOrganizationError` removido (não mais necessário após redesign do Driver)
+- ✅ **[15 Abr]** Validação de prerequisito Driver simplificada: verifica apenas existência de perfil Driver (sem check de org)
 - [ ] Testes unitários (0% - pendente)
 
 **Arquivos criados:**
@@ -98,17 +100,17 @@ src/modules/membership/
 
 ---
 
-### Driver Module ✅ COMPLETO (11 Abr 2026)
+### Driver Module ✅ COMPLETO (11 Abr 2026) | 🔄 Redesign Arquitetural (15 Abr 2026)
 - ✅ Entity DriverEntity com Value Objects (Cnh, CnhCategory)
 - ✅ Value Objects com validação completa
   - Cnh: Validação de 9-12 caracteres alfanuméricos
   - CnhCategory: Enum A-E com validação
 - ✅ DriverMapper com hidratação de value objects
-- ✅ Domain Errors (9+ tipos de erro específicos, incluindo DriverCreationFailedError e DriverUpdateFailedError — refatorado 13 Abr)
-- ✅ Repository pattern (IDriverRepository, PrismaDriverRepository — refatorado 13 Abr)
-- ✅ Use Cases (6 total): Create, Update, FindById, FindByUserId, FindByOrganization, Remove (error handling aprimorado — 13 Abr)
-- ✅ DTOs com @ApiProperty decorators (create, update, response)
-- ✅ Controller com endpoints REST (POST, GET, PUT, DELETE)
+- ✅ Domain Errors (11+ tipos de erro específicos, incluindo DriverAlreadyExistsError — novo 15 Abr)
+- ✅ Repository pattern (DriverRepository, PrismaDriverRepository)
+- ✅ Use Cases (7 total): Create, Update, FindById, FindByUserId, FindByOrganization, Remove, **Lookup** *(novo 15 Abr)*
+- ✅ DTOs com @ApiProperty decorators (create, update, response, **lookup-response** *(novo 15 Abr)*)
+- ✅ Controller com endpoints REST (POST, GET, PUT, DELETE, **GET /lookup** *(novo 15 Abr)*)
 - ✅ Presenter com métodos estáticos (toHTTP, toHTTPList)
 - ✅ RBAC Guards: RolesGuard, TenantFilterGuard nos endpoints
 - ✅ Paginação via PaginationOptions + PaginatedResponse
@@ -116,25 +118,35 @@ src/modules/membership/
 - ✅ 100% alinhado com User Module architecture
 - ✅ Schema Prisma com DriverStatus enum
 - ✅ Compilação sem erros TypeScript ✅
+- ✅ **[15 Abr]** `organizationId` removido do model Driver (migration `remove_org_from_driver` aplicada)
+- ✅ **[15 Abr]** Driver agora desacoplado de Organization — vínculo via `OrganizationMembership`
+- ✅ **[15 Abr]** `POST /drivers` é self-service: usuário cria próprio perfil, `userId` vem do JWT
+- ✅ **[15 Abr]** `LookupDriverUseCase`: admin busca driver por email + CNH (verificação de identidade)
+- ✅ **[15 Abr]** `GET /drivers/lookup` endpoint (ADMIN only) com validação de query params
+- ✅ **[15 Abr]** `DriverLookupResponseDto` e `DriverProfileNotFoundByEmailError` criados
+- ✅ **[15 Abr]** `findByOrganizationId` reimplementado via JOIN (`user.userRoles.some`)
+- ✅ **[15 Abr]** `findByCnh()` adicionado ao `DriverRepository`
+- ✅ **[15 Abr]** `DriverAlreadyExistsError` — previne criação duplicada de perfil driver (HTTP 409)
+- ✅ **[15 Abr]** `DriverModule` importa `UserModule` (para `UserRepository` no LookupDriverUseCase)
 - ❌ Testes unitários (0% - pendente)
 
 **Arquivos implementados:**
 ```
 src/modules/driver/
-├── application/dto/ ✅ (create-driver, update-driver, driver-response)
-├── application/use-cases/ ✅ (6 use cases)
+├── application/dtos/ ✅ (create-driver, update-driver, driver-response, driver-lookup-response)
+├── application/use-cases/ ✅ (7 use cases)
 ├── domain/
 │   ├── entities/driver.entity.ts ✅
-│   ├── errors/driver.errors.ts ✅ (9 error types)
+│   ├── errors/driver.errors.ts ✅ (11+ error types)
 │   ├── value-objects/ ✅ (cnh, cnh-category)
-│   └── interfaces/driver.repository.interface.ts ✅
+│   └── interfaces/driver.repository.ts ✅ (inclui findByCnh)
 ├── infrastructure/
 │   ├── db/mappers/driver.mapper.ts ✅
 │   └── db/repositories/prisma-driver.repository.ts ✅
 ├── presentation/
 │   ├── controllers/driver.controller.ts ✅
 │   └── mappers/driver.presenter.ts ✅
-├── driver.module.ts ✅
+├── driver.module.ts ✅ (importa UserModule)
 └── README.md ✅
 ```
 
@@ -155,7 +167,16 @@ src/modules/driver/
 - Novos tipos de erro adicionados ao `driver.errors.ts`
 - Compilação TypeScript ✅ sem erros
 
-**Status:** Funcional e 100% alinhado com User Module. Compilação ✅
+**Redesign Arquitetural (15 Abr 2026):**
+- `organizationId` removido do model `Driver` — drivers agora são entidades globais vinculadas a organizações via `OrganizationMembership`
+- Isso resolve o problema fundamental: antes, um usuário só podia ser driver de **uma** org. Agora pode ser driver de múltiplas orgs
+- `POST /drivers` virou self-service (qualquer usuário autenticado preenche CNH/categoria/expiração)
+- Admin usa `GET /drivers/lookup?email=x&cnh=y` para verificar identidade antes de vincular via membership
+- `findByOrganizationId` reimplementado com JOIN: `user.userRoles.some({ organizationId, role: { name: 'DRIVER' } })`
+- Migration `remove_org_from_driver` aplicada com sucesso
+- Verificada prevenção de duplicatas: `@@id([userId, roleId, organizationId])` na `OrganizationMembership` + check no `CreateMembershipUseCase`
+
+**Status:** Funcional, redesenhado e compilando. Compilação ✅
 
 ---
 
@@ -264,7 +285,7 @@ src/modules/organization/
 
 ## ⏳ FASE 2: Core Features (Abr-Mai 2026)
 
-### Authentication & JWT ✅ COMPLETO (14 Abr 2026)
+### Authentication & JWT ✅ COMPLETO (14 Abr 2026) | 🔄 Hardening (15 Abr 2026)
 
 **Backend (API REST):**
 - [x] POST `/auth/login` - Login com email/password
@@ -275,6 +296,9 @@ src/modules/organization/
 - [x] JWT Strategy + Passport
 - [x] JWT Strategy otimizado - sem query ao banco em cada request ✅ (13 Abr)
 - [x] JwtAuthGuard para proteger rotas
+- [x] `RefreshTokenDto` com class-validator ✅ (15 Abr)
+- [x] `@Global()` removido do AuthModule ✅ (15 Abr)
+- [x] Rate limiting global (`@nestjs/throttler`, 60 req/min) ✅ (15 Abr)
 - [x] Swagger docs ✅ (05 Abr 2026)
 - [ ] Testes unitários (80%+)
 - [ ] Logout (invalidação de tokens)
@@ -307,11 +331,12 @@ src/modules/organization/
 **Arquivos criados/modificados:**
 ```
 src/modules/auth/
-├── auth.module.ts ✅ (atualizado)
+├── auth.module.ts ✅ (atualizado - @Global removido 15 Abr)
 ├── application/dtos/
 │   ├── login.dto.ts ✅
 │   ├── register.dto.ts ✅
 │   ├── token-response.dto.ts ✅
+│   ├── refresh-token.dto.ts ✅ (novo - 15 Abr)
 │   ├── register-organization.dto.ts ✅ (novo - 12 Abr)
 │   └── setup-organization.dto.ts ✅ (novo - 14 Abr)
 ├── application/use-cases/
@@ -323,14 +348,14 @@ src/modules/auth/
 ├── infrastructure/
 │   └── jwt.strategy.ts ✅ (refatorado - sem DB query - 13 Abr)
 ├── presentation/controllers/
-│   └── auth.controller.ts ✅ (atualizado - novos endpoints)
+│   └── auth.controller.ts ✅ (atualizado - RefreshTokenDto 15 Abr)
 └── README.md ✅
 
 src/shared/guards/
 └── jwt.guard.ts ✅
 ```
 
-**Status:** ✅ COMPLETO e validado em 14 Abr 2026
+**Status:** ✅ COMPLETO e hardened em 15 Abr 2026
 
 ---
 

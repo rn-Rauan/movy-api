@@ -6,7 +6,6 @@ export class DriverPresenter {
     return new DriverResponseDto({
       id: driver.id,
       userId: driver.userId,
-      organizationId: driver.organizationId,
       cnh: driver.cnh.value_,
       cnhCategory: driver.cnhCategory.value_,
       cnhExpiresAt: driver.cnhExpiresAt,

@@ -17,8 +17,6 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
     JwtAuthGuard,
     RolesGuard,
     DevGuard,
-    // TenantContextMiddleware é dead code (req.user não existe antes dos guards)
-    // TenantContext é criado pelo JwtAuthGuard
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,

@@ -77,13 +77,24 @@ export class InvalidDriverStatusError extends DriverValidationError {
  * Erro de driver não encontrado
  */
 export class DriverNotFoundError extends DriverValidationError {
-  code = 'DRIVER_NOT_FOUND';
+  code = 'DRIVER_NOT_FOUND_BAD_REQUEST';
 
-  constructor(driverId?: string, userId?: string) {
-    const identifier = driverId || userId;
+  constructor(driverId?: string, userId?: string, cnh?: string) {
+    const identifier = driverId ?? userId ?? (cnh ? `CNH ${cnh}` : undefined);
     super(
       `Driver${identifier ? ` with identifier "${identifier}"` : ''} not found`,
     );
+  }
+}
+
+/**
+ * Erro: nenhum perfil de motorista associado ao e-mail informado
+ */
+export class DriverProfileNotFoundByEmailError extends DriverValidationError {
+  code = 'DRIVER_PROFILE_NOT_FOUND_BAD_REQUEST';
+
+  constructor(email: string) {
+    super(`No user found with email "${email}". Cannot perform driver lookup.`);
   }
 }
 
@@ -106,6 +117,17 @@ export class DriverUpdateFailedError extends DomainError {
 
   constructor(message: string = 'Failed to update driver') {
     super(message);
+  }
+}
+
+/**
+ * Erro: usuário já possui perfil de motorista
+ */
+export class DriverAlreadyExistsError extends DriverValidationError {
+  code = 'DRIVER_ALREADY_EXISTS_CONFLICT';
+
+  constructor(userId: string) {
+    super(`User "${userId}" already has a driver profile`);
   }
 }
 

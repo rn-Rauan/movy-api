@@ -7,7 +7,6 @@ import {
   PaginationOptions,
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
-import { DriverStatus } from 'src/modules/driver/domain/interfaces/enums/driver-status.enum';
 
 @Injectable()
 export class PrismaDriverRepository implements DriverRepository {
@@ -17,17 +16,12 @@ export class PrismaDriverRepository implements DriverRepository {
 
   async save(driver: DriverEntity): Promise<DriverEntity | null> {
     const data = DriverMapper.toPersistence(driver);
-    await this.prismaService.driver.create({
-      data: data,
-    });
+    await this.prismaService.driver.create({ data });
     return driver;
   }
 
   async findById(id: string): Promise<DriverEntity | null> {
-    const raw = await this.prismaService.driver.findUnique({
-      where: { id },
-    });
-
+    const raw = await this.prismaService.driver.findUnique({ where: { id } });
     return raw ? DriverMapper.toDomain(raw) : null;
   }
 
@@ -35,7 +29,13 @@ export class PrismaDriverRepository implements DriverRepository {
     const raw = await this.prismaService.driver.findUnique({
       where: { userId },
     });
+    return raw ? DriverMapper.toDomain(raw) : null;
+  }
 
+  async findByCnh(cnh: string): Promise<DriverEntity | null> {
+    const raw = await this.prismaService.driver.findUnique({
+      where: { cnh },
+    });
     return raw ? DriverMapper.toDomain(raw) : null;
   }
 
@@ -46,20 +46,41 @@ export class PrismaDriverRepository implements DriverRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
+    // Drivers vinculados à org via OrganizationMembership com role=DRIVER
     const [drivers, total] = await this.prismaService.$transaction([
       this.prismaService.driver.findMany({
-        where: { organizationId },
+        where: {
+          user: {
+            userRoles: {
+              some: {
+                organizationId,
+                removedAt: null,
+                role: { name: 'DRIVER' },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
-        skip: skip,
+        skip,
         take: limit,
       }),
       this.prismaService.driver.count({
-        where: { organizationId },
+        where: {
+          user: {
+            userRoles: {
+              some: {
+                organizationId,
+                removedAt: null,
+                role: { name: 'DRIVER' },
+              },
+            },
+          },
+        },
       }),
     ]);
 
     return {
-      data: drivers.map((driver) => DriverMapper.toDomain(driver)),
+      data: drivers.map((d) => DriverMapper.toDomain(d)),
       total,
       page,
       limit,
@@ -69,16 +90,11 @@ export class PrismaDriverRepository implements DriverRepository {
 
   async update(driver: DriverEntity): Promise<DriverEntity | null> {
     const data = DriverMapper.toPersistence(driver);
-    await this.prismaService.driver.update({
-      where: { id: driver.id },
-      data: data,
-    });
+    await this.prismaService.driver.update({ where: { id: driver.id }, data });
     return driver;
   }
 
   async delete(id: string): Promise<void> {
-    await this.prismaService.driver.delete({
-      where: { id },
-    });
+    await this.prismaService.driver.delete({ where: { id } });
   }
 }

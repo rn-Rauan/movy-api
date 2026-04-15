@@ -7,7 +7,6 @@ import { Cnh, CnhCategory } from './value-objects';
 export interface DriverProps {
   readonly id: string;
   userId: string;
-  organizationId: string;
   cnh: Cnh;
   cnhCategory: CnhCategory;
   cnhExpiresAt: Date;
@@ -60,10 +59,6 @@ export class DriverEntity {
 
   get userId(): string {
     return this.props.userId;
-  }
-
-  get organizationId(): string {
-    return this.props.organizationId;
   }
 
   get cnh(): Cnh {

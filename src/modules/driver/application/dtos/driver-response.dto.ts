@@ -15,12 +15,6 @@ export class DriverResponseDto {
   userId: string;
 
   @ApiProperty({
-    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    description: 'The organization ID this driver belongs to',
-  })
-  organizationId: string;
-
-  @ApiProperty({
     example: '123456789',
     description: 'Driver license number (CNH)',
   })

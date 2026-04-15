@@ -4,28 +4,11 @@ import {
   IsIn,
   IsNotEmpty,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
 
 export class CreateDriverDto {
-  @ApiProperty({
-    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    description: 'The ID of the user',
-  })
-  @IsUUID(undefined, { message: 'User ID must be a valid UUID' })
-  @IsNotEmpty({ message: 'User ID is required' })
-  userId: string;
-
-  @ApiProperty({
-    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    description: 'The ID of the organization',
-  })
-  @IsUUID(undefined, { message: 'Organization ID must be a valid UUID' })
-  @IsNotEmpty({ message: 'Organization ID is required' })
-  organizationId: string;
-
   @ApiProperty({
     example: '123456789',
     description: 'Driver license number (CNH)',

@@ -8,24 +8,24 @@ import {
   UpdateDriverUseCase,
   RemoveDriverUseCase,
   FindAllDriversByOrganizationUseCase,
+  LookupDriverUseCase,
 } from './application/use-cases';
 import { PrismaDriverRepository } from './infrastructure/db/repositories/prisma-driver.repository';
 import { DriverRepository } from './domain/interfaces';
 import { DriverController } from './presentation/controllers/driver.controller';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [PrismaModule, SharedModule],
+  imports: [PrismaModule, SharedModule, UserModule],
   controllers: [DriverController],
   providers: [
-    // Use Cases
     CreateDriverUseCase,
     FindDriverByIdUseCase,
     FindDriverByUserIdUseCase,
     UpdateDriverUseCase,
     RemoveDriverUseCase,
     FindAllDriversByOrganizationUseCase,
-
-    // Repository
+    LookupDriverUseCase,
     {
       provide: DriverRepository,
       useClass: PrismaDriverRepository,
@@ -38,6 +38,7 @@ import { DriverController } from './presentation/controllers/driver.controller';
     UpdateDriverUseCase,
     RemoveDriverUseCase,
     FindAllDriversByOrganizationUseCase,
+    LookupDriverUseCase,
     DriverRepository,
   ],
 })

@@ -10,7 +10,6 @@ import {
   MembershipAlreadyExistsError,
   UserNotFoundForMembershipError,
   DriverNotFoundForMembershipError,
-  DriverNotAssociatedWithOrganizationError,
 } from '../../domain/entities';
 
 @Injectable()
@@ -37,12 +36,6 @@ export class CreateMembershipUseCase {
       const driver = await this.driverRepository.findByUserId(user.id);
       if (!driver) {
         throw new DriverNotFoundForMembershipError(dto.userEmail);
-      }
-      if (driver.organizationId !== tenantOrganizationId) {
-        throw new DriverNotAssociatedWithOrganizationError(
-          dto.userEmail,
-          tenantOrganizationId,
-        );
       }
     }
 

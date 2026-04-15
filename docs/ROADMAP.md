@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 14 Abr 2026 
+**Última atualização:** 15 Abr 2026 
 
 ---
 
@@ -47,6 +47,13 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | Decoupling: CreateOrganizationUseCase com SRP, OrganizationModule sem MembershipModule | ✅ Pronto (14 Abr) |
 | ✅ | POST /organizations restrito a @Dev() | ✅ Pronto (14 Abr) |
 | ✅ | SetupOrganizationForExistingUserUseCase + POST /auth/setup-organization | ✅ Pronto (14 Abr) |
+| ✅ | Senior code audit (7.5/10) + 15 correções P2/P3 aplicadas | ✅ Pronto (14-15 Abr) |
+| ✅ | Driver architecture redesign (desacoplamento Organization, self-service, lookup) | ✅ Pronto (15 Abr) |
+| ✅ | Final sweep + 4 correções (duplicata driver, validação lookup, cleanup deps) | ✅ Pronto (15 Abr) |
+| ✅ | Rate limiting global (@nestjs/throttler, 60 req/min) | ✅ Pronto (14 Abr) |
+| ✅ | RefreshTokenDto + validação de body | ✅ Pronto (14 Abr) |
+| ✅ | Remoção de dead code (6+ arquivos), @Global() do AuthModule, deps não usadas | ✅ Pronto (14-15 Abr) |
+| ✅ | tsconfig strict:true + ESLint fix | ✅ Pronto (14 Abr) |
 | ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
 | ⏳ | Testes 80%+ coverage | 3-4 dias |
 
@@ -98,6 +105,42 @@ MVP PRONTO: 15 de Junho 2026
 - ✅ Organization Module: `OrganizationModule` sem `forwardRef(MembershipModule)` — zero acoplamento
 - ✅ Auth Module: `SetupOrganizationForExistingUserUseCase` criado — usuário já logado pode criar org e receber novo JWT
 - ✅ Auth Module: `POST /auth/setup-organization` endpoint implementado (requer JWT válido)
+- ✅ Senior Code Audit: Nota 7.5/10, 5 críticos / 7 médios / 8 menores identificados
+- ✅ Compilação: ✅ sem erros (`npx tsc --noEmit`)
+
+**Progresso em 15 Abr 2026 (Senior Audit Fixes + Driver Redesign):**
+- ✅ **15 correções P2/P3 do audit aplicadas:**
+  - P3: `RefreshTokenDto` criado com class-validator
+  - M2: `@nestjs/throttler` instalado e configurado (60 req/min global via APP_GUARD)
+  - M3: Dead code deletado (UserOrganizationRoleResolver, MembershipUserOrgRoleResolver)
+  - M4: Consolidação `GetTenantContext` → `GetUser` (decorator duplicado removido)
+  - M5: `TenantFilterGuard` — lógica B2C corrigida (removida checagem frágil de `params.id`)
+  - M6: `@Global()` removido do `AuthModule`
+  - M7: `npm audit fix` removido do `Dockerfile`
+  - m1: ESLint fix (removido `@eslint/eslintrc` incompatível com flat config)
+  - m2: Teste e2e corrigido (`'Hello World!'` → `'Api Initialized'`)
+  - m3: Dead code files + diretórios vazios deletados
+  - m4: `GetTenantId`: `ForbiddenException` → `BadRequestException`
+  - m5: `@supabase/supabase-js` removido do package.json
+  - m6: `restore_membership()` → `restoreMembership()` (3 arquivos)
+  - m7: `tsconfig.json`: `strict: true` substituiu flags individuais
+  - m8: `movy_db_data/` adicionado ao `.gitignore`
+- ✅ **Driver Architecture Redesign (desacoplamento de Organization):**
+  - `organizationId` removido do model `Driver` (migration `remove_org_from_driver` aplicada)
+  - Drivers agora vinculados a orgs via `OrganizationMembership` (tabela pivot existente)
+  - `POST /drivers` agora é self-service (usuário cria próprio perfil, userId vem do JWT)
+  - Novo `LookupDriverUseCase`: admin busca driver por email + CNH (verificação de identidade)
+  - Novo `GET /drivers/lookup` endpoint (ADMIN only)
+  - Novo `DriverLookupResponseDto`, `DriverProfileNotFoundByEmailError`
+  - `findByOrganizationId` reimplementado via JOIN: `user.userRoles.some({ organizationId, role.name: DRIVER })`
+  - Novo `findByCnh()` no `DriverRepository`
+  - `DriverModule` importa `UserModule` (para `UserRepository` no LookupDriverUseCase)
+  - `CreateMembershipUseCase` simplificado: removido `DriverNotAssociatedWithOrganizationError` (não mais necessário)
+- ✅ **Final sweep + 4 correções adicionais:**
+  - `@supabase/supabase-js` removido das dependencies (havia persistido)
+  - `@types/passport-jwt` movido de dependencies para devDependencies
+  - `CreateDriverUseCase`: check de duplicata adicionado (`DriverAlreadyExistsError` → HTTP 409)
+  - `GET /drivers/lookup`: validação de query params `email` e `cnh` (não podem ser vazios)
 - ✅ Compilação: ✅ sem erros (`npx tsc --noEmit`)
 
 ---

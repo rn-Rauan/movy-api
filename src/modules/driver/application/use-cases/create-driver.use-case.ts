@@ -4,17 +4,25 @@ import { DriverEntity } from '../../domain/entities/driver.entity';
 import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
 import { CreateDriverDto } from '../dtos';
 import { randomUUID } from 'crypto';
-import { DriverCreationFailedError } from '../../domain/entities/errors/driver.errors';
+import {
+  DriverCreationFailedError,
+  DriverAlreadyExistsError,
+} from '../../domain/entities/errors/driver.errors';
 
 @Injectable()
 export class CreateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
-  async execute(input: CreateDriverDto): Promise<DriverEntity> {
+  async execute(userId: string, input: CreateDriverDto): Promise<DriverEntity> {
+    // Check if user already has a driver profile
+    const existing = await this.driverRepository.findByUserId(userId);
+    if (existing) {
+      throw new DriverAlreadyExistsError(userId);
+    }
+
     const driver = DriverEntity.create({
       id: randomUUID(),
-      userId: input.userId,
-      organizationId: input.organizationId,
+      userId,
       cnh: Cnh.create(input.cnh),
       cnhCategory: CnhCategory.create(input.cnhCategory),
       cnhExpiresAt: new Date(input.cnhExpiresAt),

@@ -25,7 +25,6 @@ export class DriverMapper {
     return DriverEntity.restore({
       id: raw.id,
       userId: raw.userId,
-      organizationId: raw.organizationId,
       cnh: Cnh.restore(raw.cnh),
       cnhCategory: CnhCategory.restore(raw.cnhCategory as CnhCategoryType),
       cnhExpiresAt: raw.cnhExpiresAt,
@@ -46,7 +45,6 @@ export class DriverMapper {
     return {
       id: driver.id,
       userId: driver.userId,
-      organizationId: driver.organizationId,
       cnh: driver.cnh.value_,
       cnhCategory: driver.cnhCategory.value_,
       cnhExpiresAt: driver.cnhExpiresAt,
