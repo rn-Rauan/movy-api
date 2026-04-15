@@ -15,6 +15,7 @@ import {
   RefreshTokenUseCase,
   RegisterOrganizationWithAdminUseCase,
   RegisterUseCase,
+  SetupOrganizationForExistingUserUseCase,
 } from './application/use-cases';
 import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
@@ -48,6 +49,7 @@ import { JwtStrategy } from './infrastructure/jwt.strategy';
     LoginUseCase,
     RegisterUseCase,
     RegisterOrganizationWithAdminUseCase,
+    SetupOrganizationForExistingUserUseCase,
     RefreshTokenUseCase,
     JwtPayloadService, // ✅ NOVO: Serviço para enriquecer JWTs
     JwtStrategy,

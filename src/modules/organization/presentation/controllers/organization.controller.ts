@@ -56,7 +56,9 @@ export class OrganizationController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new organization' })
+  @UseGuards(DevGuard)
+  @Dev()
+  @ApiOperation({ summary: 'Create a new organization (dev only)' })
   @ApiResponse({
     status: 201,
     description: 'The organization has been successfully created.',
@@ -64,12 +66,9 @@ export class OrganizationController {
   })
   async create(
     @Body() createDto: CreateOrganizationDto,
-    @GetUser() user: TenantContext,
   ): Promise<OrganizationResponseDto> {
-    const organization = await this.createOrganizationUseCase.execute(
-      createDto,
-      user.userId,
-    );
+    const organization =
+      await this.createOrganizationUseCase.execute(createDto);
     return this.organizationPresenter.toHTTP(organization);
   }
 

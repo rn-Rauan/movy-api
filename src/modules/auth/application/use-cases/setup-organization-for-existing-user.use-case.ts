@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { CreateUserUseCase } from '../../../user/application/use-cases';
 import { CreateOrganizationUseCase } from '../../../organization/application/use-cases';
 import { CreateMembershipUseCase } from '../../../membership/application/use-cases';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
@@ -8,56 +7,46 @@ import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
 import { JwtPayloadService } from '../services/jwt-payload.service';
-import { RegisterOrganizationWithAdminDto } from '../dtos/register-organization.dto';
+import { SetupOrganizationDto } from '../dtos/setup-organization.dto';
 import { TokenResponseDto } from '../dtos';
 
 @Injectable()
-export class RegisterOrganizationWithAdminUseCase {
+export class SetupOrganizationForExistingUserUseCase {
   private readonly logger = new Logger(
-    RegisterOrganizationWithAdminUseCase.name,
+    SetupOrganizationForExistingUserUseCase.name,
   );
 
   constructor(
-    private readonly createUserUseCase: CreateUserUseCase,
     private readonly createOrganizationUseCase: CreateOrganizationUseCase,
     private readonly createMembershipUseCase: CreateMembershipUseCase,
     private readonly roleRepository: RoleRepository,
+    private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly jwtPayloadService: JwtPayloadService,
-    private readonly userRepository: UserRepository,
   ) {}
 
   async execute(
-    dto: RegisterOrganizationWithAdminDto,
+    dto: SetupOrganizationDto,
+    userId: string,
   ): Promise<TokenResponseDto> {
-    // 1. Create the User
-    const user = await this.createUserUseCase.execute({
-      name: dto.userName,
-      email: dto.userEmail,
-      password: dto.userPassword,
-      telephone: dto.userTelephone,
-    });
-
-    // 2. Create the Organization
-    let organization;
-    try {
-      organization = await this.createOrganizationUseCase.execute({
-        name: dto.organizationName,
-        cnpj: dto.cnpj,
-        email: dto.organizationEmail,
-        telephone: dto.organizationTelephone,
-        address: dto.address,
-        slug: dto.slug,
-      });
-    } catch (error) {
-      this.logger.warn(
-        `[RegisterOrg] Organization creation failed, compensating: deleting user ${user.id}`,
-      );
-      await this.compensateUser(user.id);
-      throw error;
+    // 1. Confirm user exists and is active
+    const user = await this.userRepository.findById(userId);
+    if (!user || user.status === 'INACTIVE') {
+      throw new Error('User not found or inactive');
     }
 
+    // 2. Create the Organization
+    const organization = await this.createOrganizationUseCase.execute({
+      name: dto.organizationName,
+      cnpj: dto.cnpj,
+      email: dto.organizationEmail,
+      telephone: dto.organizationTelephone,
+      address: dto.address,
+      slug: dto.slug,
+    });
+
     // 3. Create ADMIN membership linking user to organization
+    // If membership fails, org is left without an admin — compensate by removing org
     try {
       const adminRole = await this.roleRepository.findByName(RoleName.ADMIN);
       if (!adminRole) {
@@ -65,26 +54,25 @@ export class RegisterOrganizationWithAdminUseCase {
       }
 
       await this.createMembershipUseCase.execute(
-        { userEmail: dto.userEmail, roleId: adminRole.id },
+        { userEmail: user.email, roleId: adminRole.id },
         organization.id,
       );
     } catch (error) {
       this.logger.warn(
-        `[RegisterOrg] Membership creation failed, compensating: deleting user ${user.id}`,
+        `[SetupOrg] Membership creation failed for user ${userId}, org ${organization.id} left orphan — manual cleanup may be needed`,
       );
-      await this.compensateUser(user.id);
       throw error;
     }
 
-    // 4. Generate JWT directly (no re-authentication needed)
-    const enrichedPayload = await this.jwtPayloadService.enrichPayload(user.id);
+    // 4. Re-issue JWT with the new organization context
+    const enrichedPayload = await this.jwtPayloadService.enrichPayload(userId);
     const accessToken = this.jwtService.sign(enrichedPayload);
     const refreshToken = this.jwtService.sign(enrichedPayload, {
       expiresIn: '7d',
     });
 
     this.logger.log(
-      `[RegisterOrg] SUCCESS: userId=${user.id}, org=${enrichedPayload.organizationId}`,
+      `[SetupOrg] SUCCESS: userId=${userId}, org=${enrichedPayload.organizationId}`,
     );
 
     return {
@@ -96,15 +84,5 @@ export class RegisterOrganizationWithAdminUseCase {
         email: user.email,
       },
     };
-  }
-
-  private async compensateUser(userId: string): Promise<void> {
-    try {
-      await this.userRepository.delete(userId);
-    } catch (deleteError) {
-      this.logger.error(
-        `[RegisterOrg] Compensation failed: could not delete user ${userId}`,
-      );
-    }
   }
 }

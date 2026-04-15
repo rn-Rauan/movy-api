@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   LoginDto,
   RegisterDto,
+  SetupOrganizationDto,
   TokenResponseDto,
 } from '../../application/dtos';
 import { RegisterOrganizationWithAdminDto } from '../../application/dtos/register-organization.dto';
@@ -10,6 +11,10 @@ import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RegisterUseCase } from '../../application/use-cases/register.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { RegisterOrganizationWithAdminUseCase } from '../../application/use-cases';
+import { SetupOrganizationForExistingUserUseCase } from '../../application/use-cases';
+import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
+import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
+import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -19,6 +24,7 @@ export class AuthController {
     private readonly registerUseCase: RegisterUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly registerOrganizationWithAdminUseCase: RegisterOrganizationWithAdminUseCase,
+    private readonly setupOrganizationForExistingUserUseCase: SetupOrganizationForExistingUserUseCase,
   ) {}
 
   @Post('login')
@@ -64,8 +70,28 @@ export class AuthController {
     );
   }
 
+  @Post('setup-organization')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Create an organization for an already-authenticated user',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Organization created and new JWT issued with org context',
+    type: TokenResponseDto,
+  })
+  @ApiResponse({ status: 409, description: 'Organization already exists' })
+  async setupOrganization(
+    @Body() setupDto: SetupOrganizationDto,
+    @GetUser() user: TenantContext,
+  ): Promise<TokenResponseDto> {
+    return this.setupOrganizationForExistingUserUseCase.execute(
+      setupDto,
+      user.userId,
+    );
+  }
+
   @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
     description: 'Token refreshed successfully',
