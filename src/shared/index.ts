@@ -23,7 +23,7 @@ export * from './infrastructure/guards/dev.guard';
 // Decorators
 export * from './infrastructure/decorators/roles.decorator';
 export * from './infrastructure/decorators/dev.decorator';
-export * from './infrastructure/decorators/get-tenant-context.decorator';
+export * from './infrastructure/decorators/get-user.decorator';
 export * from './infrastructure/decorators/get-tenant-id.decorator';
 
 // Types

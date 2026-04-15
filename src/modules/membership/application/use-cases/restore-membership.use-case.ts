@@ -21,7 +21,7 @@ export class RestoreMembershipUseCase {
       throw new MembershipNotFoundError(userId, roleId, organizationId);
     }
 
-    membership.restore_membership();
+    membership.restoreMembership();
     await this.membershipRepository.update(membership);
   }
 }

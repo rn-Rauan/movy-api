@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 13 Abr 2026 (23:59)
+**Última atualização:** 14 Abr 2026
 
 ---
 
@@ -58,18 +58,24 @@ src/shared/
 
 ---
 
-### Membership Module ✅ COMPLETO (05 Abr 2026)
+### Membership Module ✅ COMPLETO (05 Abr 2026) | 🔄 Security Hardening (14 Abr 2026)
 - ✅ Entity Membership com chave composta (userId, roleId, organizationId)
 - ✅ Repository pattern com PrismaMembershipRepository
 - ✅ Mapper para conversão domínio ↔ persistência
 - ✅ Use Cases: Create, FindByCompositeKey, FindByUser, FindByOrganization, Remove, Restore
 - ✅ Controller REST com endpoints CRUD (POST, GET, DELETE, PATCH)
-- ✅ DTOs com validação (CreateMembershipDto, MembershipResponseDto)
 - ✅ Soft delete via removedAt
 - ✅ Paginação em listagens
 - ✅ Tratamento de erros específicos (MembershipAlreadyExistsError, MembershipNotFoundError)
 - ✅ Presenter para respostas HTTP
 - ✅ Integração com SharedModule (Prisma, Guards)
+- ✅ **[14 Abr]** `CreateMembershipDto` simplificado: apenas `{ userEmail: string, roleId: number }` — `userId?` e `organizationId` removidos do body
+- ✅ **[14 Abr]** Isolamento de tenant em `POST /memberships`: `organizationId` vem exclusivamente do JWT
+- ✅ **[14 Abr]** `GET /memberships/user/:userId` filtrado pela org do caller (não-devs não vêem dados de outras orgs)
+- ✅ **[14 Abr]** Validação de prerequisito Driver: ROLE DRIVER requer perfil `Driver` existente e associado à org
+- ✅ **[14 Abr]** `DriverNotFoundForMembershipError` (código `DRIVER_NOT_FOUND_FOR_MEMBERSHIP_BAD_REQUEST` → HTTP 400)
+- ✅ **[14 Abr]** `DriverNotAssociatedWithOrganizationError` (código `DRIVER_NOT_IN_ORGANIZATION_BAD_REQUEST` → HTTP 400)
+- ✅ **[14 Abr]** Ordem de validação corrigida: Driver validado ANTES do check de soft-delete (previne bypass)
 - [ ] Testes unitários (0% - pendente)
 
 **Arquivos criados:**
@@ -181,12 +187,22 @@ src/modules/driver/
 - [ ] Swagger docs integrado (já está com @ApiTags e decorators)
 
 **Use Cases Implementados (6 total):**
-- ✅ CreateOrganizationUseCase - Validação e criação com slug auto-gerado (atualizado: aceita `userId` e cria membership ADMIN automaticamente — 12 Abr)
+- ✅ CreateOrganizationUseCase - Validação e criação com slug auto-gerado *(refatorado 14 Abr: SRP — apenas cria org, sem deps de Membership/Role)*
 - ✅ FindAllOrganizationsUseCase - Listagem paginada
 - ✅ FindAllActiveOrganizationsUseCase - Listagem paginada (apenas ativas)
-- ✅ FindOrganizationByIdUseCase - Busca com tratamento 404
-- ✅ UpdateOrganizationUseCase - Atualização com re-validação
-- ✅ DisableOrganizationUseCase - Soft delete com timestamp
+- ✅ FindOrganizationByIdUseCase - Busca com tratamento 404 *(atualizado 14 Abr: usa `OrganizationForbiddenError` em vez de `ForbiddenException`)*
+- ✅ UpdateOrganizationUseCase - Atualização com re-validação *(atualizado 14 Abr: usa `OrganizationForbiddenError`)*
+- ✅ DisableOrganizationUseCase - Soft delete com timestamp *(atualizado 14 Abr: usa `OrganizationForbiddenError`)*
+
+**Domain Errors:**
+- ✅ `OrganizationNotFoundError`, `OrganizationAlreadyExistsError`
+- ✅ **[14 Abr]** `OrganizationForbiddenError` (código `ORGANIZATION_ACCESS_FORBIDDEN` → HTTP 403) — substitui `ForbiddenException` do NestJS nos use-cases
+- ✅ **[14 Abr]** `TenantContextParams` movido para `application/dtos/index.ts` (desacoplamento entre use-cases)
+
+**Decoupling (14 Abr 2026):**
+- ✅ `POST /organizations` agora é `@Dev()` apenas — criação real via `/auth/register-organization`
+- ✅ `OrganizationModule` não importa mais `MembershipModule` (`forwardRef` removido) — zero acoplamento
+- ✅ `RegisterOrganizationWithAdminUseCase` no Auth Module assume a orquestração completa (User → Org → Membership)
 
 **Value Objects Implementados (5 total):**
 - ✅ Cnpj - Validação de CNPJ com dígitos verificadores
@@ -248,13 +264,14 @@ src/modules/organization/
 
 ## ⏳ FASE 2: Core Features (Abr-Mai 2026)
 
-### Authentication & JWT ✅ COMPLETO (13 Abr 2026)
+### Authentication & JWT ✅ COMPLETO (14 Abr 2026)
 
 **Backend (API REST):**
 - [x] POST `/auth/login` - Login com email/password
 - [x] POST `/auth/register` - Registrar novo user
 - [x] POST `/auth/refresh` - Refresh token
 - [x] POST `/auth/register-organization` - Registro de organização + admin em uma chamada ✅ (12 Abr)
+- [x] POST `/auth/setup-organization` - Usuário já autenticado cria org e recebe novo JWT ✅ (14 Abr)
 - [x] JWT Strategy + Passport
 - [x] JWT Strategy otimizado - sem query ao banco em cada request ✅ (13 Abr)
 - [x] JwtAuthGuard para proteger rotas
@@ -262,10 +279,25 @@ src/modules/organization/
 - [ ] Testes unitários (80%+)
 - [ ] Logout (invalidação de tokens)
 
-**Novo Use Case - RegisterOrganizationWithAdminUseCase (12 Abr 2026):**
+**Use Cases Implementados:**
+1. `LoginUseCase` - Valida credenciais, gera tokens JWT
+2. `RegisterUseCase` - Cria usuário com validação e hash de senha
+3. `RefreshTokenUseCase` - Valida refresh token e gera novo par
+4. `RegisterOrganizationWithAdminUseCase` - Orquestra User → Org → Membership com compensação em 2 estágios *(atualizado 14 Abr: agora orquestrador completo, sem deps no CreateOrganizationUseCase)*
+5. `SetupOrganizationForExistingUserUseCase` - Usuário já logado cria org, obtém membership ADMIN e recebe JWT atualizado *(novo 14 Abr)*
+
+**Novo Use Case - SetupOrganizationForExistingUserUseCase (14 Abr 2026):**
+- Para usuários já autenticados que ainda não possuem organização
+- Valida usuário existe e está ACTIVE
+- Cria org → cria membership ADMIN → re-emite JWT com novo contexto de org
+- Frontend recebe token atualizado na mesma chamada (sem precisar re-logar)
+- `SetupOrganizationDto`: `{ organizationName, cnpj, organizationEmail, organizationTelephone, address, slug }`
+
+**Novo Use Case - RegisterOrganizationWithAdminUseCase (12 Abr 2026, atualizado 14 Abr):**
 - Orquestra criação de usuário + organização + login automático em um único fluxo
 - `RegisterOrganizationWithAdminDto`: DTO unificado (dados do admin + dados da org)
-- `CreateOrganizationUseCase` atualizado para aceitar `userId` e criar membership ADMIN automaticamente
+- Compensação em 2 estágios: `compensateUser()` chamado se org ou membership falhar
+- `CreateOrganizationUseCase` simplificado para SRP (apenas cria org) — membership agora é responsabilidade do orquestrador
 
 **Otimização JWT Strategy (13 Abr 2026):**
 - Removida query ao banco (`userRepository.findById`) a cada requisição autenticada
@@ -280,23 +312,25 @@ src/modules/auth/
 │   ├── login.dto.ts ✅
 │   ├── register.dto.ts ✅
 │   ├── token-response.dto.ts ✅
-│   └── register-organization.dto.ts ✅ (novo - 12 Abr)
+│   ├── register-organization.dto.ts ✅ (novo - 12 Abr)
+│   └── setup-organization.dto.ts ✅ (novo - 14 Abr)
 ├── application/use-cases/
 │   ├── login.use-case.ts ✅
 │   ├── register.use-case.ts ✅
 │   ├── refresh-token.use-case.ts ✅
-│   └── register-organization-with-admin.use-case.ts ✅ (novo - 12 Abr)
+│   ├── register-organization-with-admin.use-case.ts ✅ (atualizado - 14 Abr)
+│   └── setup-organization-for-existing-user.use-case.ts ✅ (novo - 14 Abr)
 ├── infrastructure/
 │   └── jwt.strategy.ts ✅ (refatorado - sem DB query - 13 Abr)
 ├── presentation/controllers/
-│   └── auth.controller.ts ✅ (atualizado - novo endpoint)
+│   └── auth.controller.ts ✅ (atualizado - novos endpoints)
 └── README.md ✅
 
 src/shared/guards/
 └── jwt.guard.ts ✅
 ```
 
-**Status:** ✅ COMPLETO e validado em 13 Abr 2026
+**Status:** ✅ COMPLETO e validado em 14 Abr 2026
 
 ---
 

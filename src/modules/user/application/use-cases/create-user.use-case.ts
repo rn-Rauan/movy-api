@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
+import { CreateUserDto } from '../dtos/create-user.dto';
 import { User } from '../../domain/entities';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { UserEmailAlreadyExistsError } from '../../domain/entities/errors/user.errors';

@@ -6,7 +6,7 @@ import {
   UserEmailAlreadyExistsError,
   UserNotFoundError,
 } from '../../domain/entities/errors/user.errors';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdateUserDto } from '../dtos/update-user.dto';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 
 @Injectable()

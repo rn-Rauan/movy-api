@@ -1,1 +1,1 @@
-export * from './driver.repository.interface';
+export * from './driver.repository';

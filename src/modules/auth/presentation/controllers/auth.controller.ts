@@ -2,6 +2,7 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   LoginDto,
+  RefreshTokenDto,
   RegisterDto,
   SetupOrganizationDto,
   TokenResponseDto,
@@ -92,15 +93,14 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
     description: 'Token refreshed successfully',
     type: TokenResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refresh(
-    @Body('refreshToken') refreshToken: string,
-  ): Promise<TokenResponseDto> {
-    return this.refreshTokenUseCase.execute(refreshToken);
+  async refresh(@Body() dto: RefreshTokenDto): Promise<TokenResponseDto> {
+    return this.refreshTokenUseCase.execute(dto.refreshToken);
   }
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateMembershipDto } from '../dtos';
 import { MembershipRepository } from '../../domain/interfaces/membership.repository';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
-import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository.interface';
+import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 import {
@@ -54,7 +54,7 @@ export class CreateMembershipUseCase {
 
     if (membershipExists) {
       if (membershipExists.removedAt !== null) {
-        membershipExists.restore_membership();
+        membershipExists.restoreMembership();
         await this.membershipRepository.update(membershipExists);
         return membershipExists;
       }

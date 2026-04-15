@@ -13,17 +13,11 @@ import { MembershipRepository } from './domain/interfaces/membership.repository'
 import { MembershipPresenter } from './presentation/mappers/membership.presenter';
 import { FindRoleByUserIdAndOrganizationIdUseCase } from './application/use-cases/find-role-by-user-and-organization.use-case';
 import { SharedModule } from 'src/shared';
-import { UserOrganizationRoleResolver } from 'src/shared/domain/interfaces/user-organization-role.resolver';
-import { MembershipUserOrgRoleResolver } from './infrastructure/providers/membership-user-org-role.resolver';
 import { UserModule } from '../user/user.module';
 import { DriverModule } from '../driver/driver.module';
 
 @Module({
-  imports: [
-    SharedModule,
-    forwardRef(() => UserModule),
-    DriverModule,
-  ],
+  imports: [SharedModule, forwardRef(() => UserModule), DriverModule],
   controllers: [MembershipController],
   providers: [
     CreateMembershipUseCase,
@@ -37,10 +31,6 @@ import { DriverModule } from '../driver/driver.module';
       provide: MembershipRepository,
       useClass: PrismaMembershipRepository,
     },
-    {
-      provide: UserOrganizationRoleResolver,
-      useClass: MembershipUserOrgRoleResolver,
-    },
     MembershipPresenter,
   ],
   exports: [
@@ -52,7 +42,6 @@ import { DriverModule } from '../driver/driver.module';
     RestoreMembershipUseCase,
     MembershipRepository,
     FindRoleByUserIdAndOrganizationIdUseCase,
-    UserOrganizationRoleResolver,
   ],
 })
 export class MembershipModule {}

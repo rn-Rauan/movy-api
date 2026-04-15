@@ -15,7 +15,7 @@ import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { RolesGuard } from 'src/shared/infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from 'src/shared/infrastructure/guards/tenant-filter.guard';
 import { Roles } from 'src/shared/infrastructure/decorators/roles.decorator';
-import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
+import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
 import { RoleName } from 'src/shared';
 import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import {
@@ -75,9 +75,7 @@ export class DriverController {
     description: 'Return current driver profile.',
     type: DriverResponseDto,
   })
-  async getMe(
-    @GetTenantContext() context: TenantContext,
-  ): Promise<DriverResponseDto> {
+  async getMe(@GetUser() context: TenantContext): Promise<DriverResponseDto> {
     const driver = await this.findDriverByUserIdUseCase.execute(context.userId);
     return DriverPresenter.toHTTP(driver);
   }

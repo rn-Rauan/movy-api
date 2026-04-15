@@ -18,9 +18,9 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { CreateUserDto } from '../../application/dto/create-user.dto';
-import { UserResponseDto } from '../../application/dto/user-response.dto';
-import { UpdateUserDto } from '../../application/dto/update-user.dto';
+import { CreateUserDto } from '../../application/dtos/create-user.dto';
+import { UserResponseDto } from '../../application/dtos/user-response.dto';
+import { UpdateUserDto } from '../../application/dtos/update-user.dto';
 import { UserPresenter } from '../mappers/user.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 import {
@@ -32,7 +32,7 @@ import {
   FindAllUsersUseCase,
 } from '../../application/use-cases';
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
-import { GetTenantContext } from 'src/shared/infrastructure/decorators/get-tenant-context.decorator';
+import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
 import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 import { Dev } from 'src/shared';
 import { DevGuard } from 'src/shared/infrastructure/guards/dev.guard';
@@ -71,9 +71,7 @@ export class UserController {
     description: 'Return current user profile.',
     type: UserResponseDto,
   })
-  async getMe(
-    @GetTenantContext() context: TenantContext,
-  ): Promise<UserResponseDto> {
+  async getMe(@GetUser() context: TenantContext): Promise<UserResponseDto> {
     const user = await this.findUserByIdUseCase.execute(context.userId);
     return UserPresenter.toHTTP(user);
   }
@@ -86,7 +84,7 @@ export class UserController {
     type: UserResponseDto,
   })
   async updateMe(
-    @GetTenantContext() context: TenantContext,
+    @GetUser() context: TenantContext,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     const user = await this.updateUserUseCase.execute(
@@ -103,7 +101,7 @@ export class UserController {
     description: 'The user has been successfully disabled.',
   })
   async disableMe(
-    @GetTenantContext() context: TenantContext,
+    @GetUser() context: TenantContext,
   ): Promise<{ success: boolean; message: string }> {
     await this.disableUserUseCase.execute(context.userId);
     return { success: true, message: 'User account disabled' };
@@ -192,7 +190,7 @@ export class UserController {
     type: PaginatedDto<UserResponseDto>,
   })
   async findAll(
-    @GetTenantContext() context: TenantContext,
+    @GetUser() context: TenantContext,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<UserResponseDto>> {

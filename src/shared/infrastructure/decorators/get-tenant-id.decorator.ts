@@ -1,7 +1,7 @@
 import {
   createParamDecorator,
   ExecutionContext,
-  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 
 /**
@@ -16,8 +16,8 @@ export const GetTenantId = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
 
     if (!request.context?.organizationId) {
-      throw new ForbiddenException(
-        'Only organization members can access this resource',
+      throw new BadRequestException(
+        'Only organization members can access this resource. No organizationId in context.',
       );
     }
 

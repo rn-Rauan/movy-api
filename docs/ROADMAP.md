@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 13 Abr 2026 
+**Última atualização:** 14 Abr 2026 
 
 ---
 
@@ -41,6 +41,12 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | Driver use cases refatorados + error handling aprimorado | ✅ Pronto (13 Abr) |
 | ✅ | AllExceptionsFilter refatorado (mapeamento por padrão de código) | ✅ Pronto (13 Abr) |
 | ✅ | Organization members (criação de membership ADMIN automática) | ✅ Pronto (12 Abr) |
+| ✅ | Organization security hardening (OrganizationForbiddenError, TenantContextParams) | ✅ Pronto (14 Abr) |
+| ✅ | Membership DTO simplificado + tenant isolation (organizationId via JWT) | ✅ Pronto (14 Abr) |
+| ✅ | Driver prerequisite validation em CreateMembership | ✅ Pronto (14 Abr) |
+| ✅ | Decoupling: CreateOrganizationUseCase com SRP, OrganizationModule sem MembershipModule | ✅ Pronto (14 Abr) |
+| ✅ | POST /organizations restrito a @Dev() | ✅ Pronto (14 Abr) |
+| ✅ | SetupOrganizationForExistingUserUseCase + POST /auth/setup-organization | ✅ Pronto (14 Abr) |
 | ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
 | ⏳ | Testes 80%+ coverage | 3-4 dias |
 
@@ -75,6 +81,24 @@ MVP PRONTO: 15 de Junho 2026
 - ✅ AllExceptionsFilter: Refatorado com mapeamento de erros por padrão de código
 - ✅ TypeScript: Imports migrados para `import type` + configuração ajustada
 - ✅ Compilação: ✅ sem erros
+
+**Progresso em 14 Abr 2026:**
+- ✅ Organization Module: `OrganizationForbiddenError` adicionado (código `ORGANIZATION_ACCESS_FORBIDDEN` → HTTP 403)
+- ✅ Organization Module: `TenantContextParams` movido para `application/dtos/index.ts` (acoplamento removido entre use-cases)
+- ✅ Organization Module: `ForbiddenException` (@nestjs/common) removido dos 3 use-cases de org → substituído por `OrganizationForbiddenError`
+- ✅ Membership Module: `CreateMembershipDto` simplificado para `{ userEmail: string, roleId: number }` (removido `userId?` e `organizationId` do body)
+- ✅ Membership Module: `organizationId` agora vem exclusivamente do JWT (isolamento de tenant na criação)
+- ✅ Membership Module: `GET /memberships/user/:userId` filtrado pela org do caller (não-devs não veem dados de outras orgs)
+- ✅ Membership Module: Validação de prerequisito Driver implementada (`DriverNotFoundForMembershipError`, `DriverNotAssociatedWithOrganizationError`)
+- ✅ Membership Module: Erros de Driver corrigidos para sufixos reconhecidos pelo AllExceptionsFilter (`_BAD_REQUEST`)
+- ✅ Membership Module: Ordem de validação corrigida — validação de Driver ocorre ANTES da checagem de soft-delete
+- ✅ Organization Module: `CreateOrganizationUseCase` refatorado para SRP — apenas cria org, sem deps de Membership/Role
+- ✅ Auth Module: `RegisterOrganizationWithAdminUseCase` atualizado como orquestrador completo (User → Org → Membership + compensação)
+- ✅ Organization Module: `POST /organizations` restrito a `@Dev()` — fluxo real passa pelo `/auth/register-organization`
+- ✅ Organization Module: `OrganizationModule` sem `forwardRef(MembershipModule)` — zero acoplamento
+- ✅ Auth Module: `SetupOrganizationForExistingUserUseCase` criado — usuário já logado pode criar org e receber novo JWT
+- ✅ Auth Module: `POST /auth/setup-organization` endpoint implementado (requer JWT válido)
+- ✅ Compilação: ✅ sem erros (`npx tsc --noEmit`)
 
 ---
 

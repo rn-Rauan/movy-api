@@ -44,6 +44,9 @@ lerna-debug.log*
 
 # Prisma generated files
 /generated/prisma
+
+# Docker PostgreSQL data
+movy_db_data/
 /generated
 
 
@@ -61,7 +64,6 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 
-/movy_db_data
 referencias.bib
 DOC-TCC.tex
 DEV_GUIDE.md

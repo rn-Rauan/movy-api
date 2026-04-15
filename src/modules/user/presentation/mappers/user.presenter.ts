@@ -1,4 +1,4 @@
-import { UserResponseDto } from '../../application/dto/user-response.dto';
+import { UserResponseDto } from '../../application/dtos/user-response.dto';
 import { User } from '../../domain/entities';
 
 export class UserPresenter {

@@ -50,13 +50,11 @@ export class TenantFilterGuard implements CanActivate {
       if (organizationIdParam !== ctx.organizationId) {
         throw new ForbiddenException('You do not have access to this resource');
       }
-    } else {
-      // Step 5: Se acesso por :id e user é B2C, negar
-      if (!ctx.organizationId && request.params.id) {
-        throw new ForbiddenException(
-          'Organization members only. B2C users cannot access this resource.',
-        );
-      }
+    } else if (!ctx.organizationId) {
+      // Step 5: Usuário B2C (sem org) não pode acessar rotas protegidas por tenant
+      throw new ForbiddenException(
+        'Organization members only. B2C users cannot access this resource.',
+      );
     }
 
     return true;

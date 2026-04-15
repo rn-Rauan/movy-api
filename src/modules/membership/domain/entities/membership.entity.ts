@@ -68,7 +68,7 @@ export class Membership {
     this.props.removedAt = new Date();
   }
 
-  restore_membership(): void {
+  restoreMembership(): void {
     this.props.removedAt = null;
   }
 }
