@@ -4,7 +4,14 @@ import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 
 /**
  * Interface that defines the properties of the User entity.
- *
+ * @property {string} id - Unique identifier for the user.
+ * @property {UserName} name - User's name.
+ * @property {Email} email - User's email address.
+ * @property {PasswordHash} passwordHash - Hashed password for authentication.
+ * @property {Telephone} telephone - User's telephone number.
+ * @property {Date} createdAt - Timestamp of when the user was created.
+ * @property {Date} updatedAt - Timestamp of the last update to the user's data.
+ * @property {Status} status - Current status of the user (e.g., ACTIVE, INACTIVE).
  */
 export interface UserProps {
   readonly id: string;
