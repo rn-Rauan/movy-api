@@ -10,6 +10,11 @@ import {
 export class FindAllUsersUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
+  /**
+   * Find all users with pagination.
+   * @param options - Pagination options for (page, limit)
+   * @returns Paginated response with user entities
+   */
   async execute(options: PaginationOptions): Promise<PaginatedResponse<User>> {
     return await this.userRepository.findAll(options);
   }

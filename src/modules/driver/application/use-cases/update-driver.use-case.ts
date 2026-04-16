@@ -13,6 +13,15 @@ import {
 export class UpdateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
+  /**
+   * Partially updates a driver profile.
+   * @param id - UUID of the driver to update
+   * @param input - Optional fields for update (CNH fields must be sent together)
+   * @returns DriverEntity with updated data
+   * @throws DriverNotFoundError if driver does not exist
+   * @throws PartialCnhUpdateError if only some CNH fields are provided
+   * @throws DriverUpdateFailedError if persistence fails
+   */
   async execute(id: string, input: UpdateDriverDto): Promise<DriverEntity> {
     const driver = await this.driverRepository.findById(id);
 

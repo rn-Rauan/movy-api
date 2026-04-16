@@ -8,6 +8,13 @@ import {
   MinLength,
 } from 'class-validator';
 
+/**
+ * DTO for partial update of a driver profile.
+ * @param cnh - Driver license number (optional, must send all CNH fields together)
+ * @param cnhCategory - License category (optional)
+ * @param cnhExpiresAt - License expiration date (optional)
+ * @param status - Driver status: ACTIVE, INACTIVE, SUSPENDED (optional)
+ */
 export class UpdateDriverDto {
   @ApiPropertyOptional({
     example: '123456789',

@@ -27,6 +27,15 @@ export class RegisterOrganizationWithAdminUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
+  /**
+   * Registers a new user + organization in a single transaction, linking them as ADMIN.
+   * Compensates (deletes user) if organization or membership creation fails.
+   * @param dto - User and organization registration data
+   * @returns TokenResponseDto with enriched JWT tokens and user info
+   * @throws UserEmailAlreadyExistsError if user email is already taken
+   * @throws OrganizationAlreadyExistsError if CNPJ is already registered
+   * @throws RoleNotFoundError if ADMIN role does not exist in the system
+   */
   async execute(
     dto: RegisterOrganizationWithAdminDto,
   ): Promise<TokenResponseDto> {

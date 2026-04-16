@@ -13,6 +13,12 @@ export class CreateUserUseCase {
     private readonly hashProvider: HashProvider,
   ) {}
 
+  /**
+   * Create a new user in the system.
+   * @param userDto - User creation data
+   * @returns Created User entity persisted
+   * @throws UserEmailAlreadyExistsError if the email already exists
+   */
   async execute(userDto: CreateUserDto): Promise<User> {
     const userExists = await this.userRepository.findByEmail(userDto.email);
 

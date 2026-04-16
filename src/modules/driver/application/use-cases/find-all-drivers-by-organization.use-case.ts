@@ -7,6 +7,12 @@ import { PaginatedResponse, PaginationOptions } from 'src/shared';
 export class FindAllDriversByOrganizationUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
+  /**
+   * Lists all drivers belonging to an organization with pagination.
+   * @param organizationId - UUID of the organization
+   * @param options - Pagination options (page, limit)
+   * @returns Paginated response with DriverEntity list
+   */
   async execute(
     organizationId: string,
     options: PaginationOptions,

@@ -6,6 +6,14 @@ import { MembershipNotFoundError } from '../../domain/entities';
 export class RestoreMembershipUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}
 
+  /**
+   * Restore a membership for a user within an organization.
+   * @param userId - UUID of the user to restore the membership for
+   * @param roleId - ID of the role assigned to the user within the organization
+   * @param organizationId - UUID of the organization to restore the membership from
+   * @throws MembershipNotFoundError if no membership is found with the given composite key
+   * @returns void
+      */
   async execute(
     userId: string,
     roleId: number,

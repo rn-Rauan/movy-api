@@ -17,6 +17,14 @@ export class FindRoleByUserIdAndOrganizationIdUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
+  /**
+   * Find the role assigned to a user within an organization.
+   * @param userId - UUID of the user to search for the role
+   * @param organizationId - UUID of the organization to search for the role
+   * @throws MembershipNotFoundError if no membership is found with the given user and organization
+   * @throws RoleNotFoundError if the role associated with the membership is not found
+   * @returns Role entity found by user and organization
+   */
   async execute({ userId, organizationId }: Input): Promise<Role> {
     const membership =
       await this.membershipRepository.findByUserIdAndOrganizationId(

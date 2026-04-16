@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * @param data - Array of paginated items
+ * @param total - Total number of items
+ * @param page - Current page number
+ * @param limit - Items per page
+ * @param totalPages - Total number of pages
+ */
 export class PaginatedDto<T> {
   @ApiProperty({ isArray: true })
   readonly data: T[];

@@ -10,6 +10,12 @@ import {
 export class FindMembershipsByOrganizationUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}
 
+  /**
+   * Find all memberships for a given organization.
+   * @param organizationId - UUID of the organization to search for memberships
+   * @param options - Pagination options
+   * @returns Paginated response containing memberships for the given organization
+   */
   async execute(
     organizationId: string,
     options: PaginationOptions,

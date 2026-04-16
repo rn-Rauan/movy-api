@@ -7,6 +7,12 @@ import { User } from '../../domain/entities';
 export class FindUserByIdUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
+  /**
+   * Find active user by ID.
+   * @param userId - User ID to be found
+   * @returns User entity found
+   * @throws UserNotFoundError if the user does not exist or is inactive
+   */
   async execute(userId: string): Promise<User> {
     const user = await this.userRepository.findById(userId);
     if (!user || user.status === 'INACTIVE') {

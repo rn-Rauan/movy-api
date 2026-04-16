@@ -10,6 +10,12 @@ export class RegisterUseCase {
     private readonly loginUseCase: LoginUseCase,
   ) {}
 
+  /**
+   * Registers a new user and automatically logs them in.
+   * @param registerDto - User registration data (name, email, password, telephone)
+   * @returns TokenResponseDto with access token, refresh token, and user info
+   * @throws UserEmailAlreadyExistsError if email is already taken
+   */
   async execute(registerDto: RegisterDto): Promise<TokenResponseDto> {
     // Create the user
     await this.createUserUseCase.execute({

@@ -9,6 +9,10 @@ import { RoleName } from 'generated/prisma/enums';
 export class PrismaRoleRepository implements RoleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * @param id - Numeric ID of the role
+   * @returns Role entity or null if not found
+   */
   async findById(id: number): Promise<Role | null> {
     const role = await this.prisma.role.findUnique({
       where: { id },
@@ -19,6 +23,10 @@ export class PrismaRoleRepository implements RoleRepository {
     return RoleMapper.toDomain(role);
   }
 
+  /**
+   * @param name - Role name enum value (e.g. 'ADMIN')
+   * @returns Role entity or null if not found
+   */
   async findByName(name: RoleName): Promise<Role | null> {
     const role = await this.prisma.role.findUnique({
       where: { name },

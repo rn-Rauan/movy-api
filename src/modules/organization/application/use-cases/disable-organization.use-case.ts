@@ -14,6 +14,15 @@ export class DisableOrganizationUseCase {
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 
+  /**
+   * Disables an organization by ID.
+   * @param id - UUID of the organization to disable
+   * @param tenantContext - Context of the tenant for access validation
+   * @returns Organization entity with status INACTIVE
+   * @throws OrganizationNotFoundError if the organization does not exist
+   * @throws OrganizationForbiddenError if the tenant does not have access to the organization
+   * @throws InactiveOrganizationError if the organization is already inactive
+   */
   async execute(
     id: string,
     tenantContext?: TenantContextParams,

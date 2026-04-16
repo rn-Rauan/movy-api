@@ -2,6 +2,11 @@ import { OrganizationResponseDto } from '../../application/dtos/organization-res
 import { Organization } from '../../domain/entities';
 
 export class OrganizationPresenter {
+  /**
+   * Maps an Organization entity to HTTP response DTO for API consumption.
+   * @param organization - Organization entity from the domain
+   * @returns OrganizationResponseDto formatted for the API
+   */
   toHTTP(organization: Organization): OrganizationResponseDto {
     return new OrganizationResponseDto({
       id: organization.id,
@@ -16,6 +21,12 @@ export class OrganizationPresenter {
       updatedAt: organization.updatedAt,
     });
   }
+
+  /**
+   * Maps a list of Organization entities to HTTP response DTOs for API consumption.
+   * @param organizations - Array of Organization entities from the domain
+   * @returns Array of OrganizationResponseDto formatted for the API
+   */
   toListHTTP(organizations: Organization[]): OrganizationResponseDto[] {
     return organizations.map((organization) => this.toHTTP(organization));
   }

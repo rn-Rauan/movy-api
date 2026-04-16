@@ -6,6 +6,11 @@ import { DriverNotFoundError } from '../../domain/entities/errors/driver.errors'
 export class RemoveDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
+  /**
+   * Soft-deletes a driver by setting status to INACTIVE.
+   * @param id - UUID of the driver to deactivate
+   * @throws DriverNotFoundError if driver does not exist
+   */
   async execute(id: string): Promise<void> {
     const driver = await this.driverRepository.findById(id);
 

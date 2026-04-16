@@ -17,6 +17,13 @@ export class LoginUseCase {
     private readonly jwtPayloadService: JwtPayloadService,
   ) {}
 
+  /**
+   * Authenticates a user by email/password and returns enriched JWT tokens.
+   * @param loginDto - Login credentials (email, password)
+   * @returns TokenResponseDto with access token, refresh token, and user info
+   * @throws UserNotFoundError if user with given email does not exist
+   * @throws UnauthorizedException if user is inactive or password is invalid
+   */
   async execute(loginDto: LoginDto): Promise<TokenResponseDto> {
     this.logger.log(`[Login] Attempt for email: ${loginDto.email}`);
 

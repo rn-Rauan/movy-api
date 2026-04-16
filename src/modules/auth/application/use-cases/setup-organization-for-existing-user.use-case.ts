@@ -25,6 +25,16 @@ export class SetupOrganizationForExistingUserUseCase {
     private readonly jwtPayloadService: JwtPayloadService,
   ) {}
 
+  /**
+   * Creates an organization for an already authenticated user and links them as ADMIN.
+   * Re-issues JWT with the new organization context.
+   * @param dto - Organization setup data (name, CNPJ, email, telephone, address, slug)
+   * @param userId - UUID of the authenticated user
+   * @returns TokenResponseDto with enriched JWT tokens and user info
+   * @throws Error if user does not exist or is inactive
+   * @throws OrganizationAlreadyExistsError if CNPJ is already registered
+   * @throws RoleNotFoundError if ADMIN role does not exist in the system
+   */
   async execute(
     dto: SetupOrganizationDto,
     userId: string,

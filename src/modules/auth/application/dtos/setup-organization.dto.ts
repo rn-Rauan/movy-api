@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
+/**
+ * DTO for setting up an organization for an already authenticated user.
+ * @param organizationName - Name of the organization
+ * @param cnpj - Unique CNPJ
+ * @param organizationEmail - Organization's contact email
+ * @param organizationTelephone - Organization's contact telephone
+ * @param address - Organization's address
+ * @param slug - Unique URL slug for the organization
+ */
 export class SetupOrganizationDto {
   @ApiProperty({ example: 'My Company' })
   @IsString()

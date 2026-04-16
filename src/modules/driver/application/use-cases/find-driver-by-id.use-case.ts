@@ -7,6 +7,12 @@ import { DriverNotFoundError } from '../../domain/entities/errors/driver.errors'
 export class FindDriverByIdUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
+  /**
+   * Finds a driver by its unique ID.
+   * @param id - UUID of the driver
+   * @returns DriverEntity found
+   * @throws DriverNotFoundError if driver does not exist
+   */
   async execute(id: string): Promise<DriverEntity> {
     const driver = await this.driverRepository.findById(id);
 

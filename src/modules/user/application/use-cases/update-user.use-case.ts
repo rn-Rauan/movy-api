@@ -16,6 +16,15 @@ export class UpdateUserUseCase {
     private readonly hashProvider: HashProvider,
   ) {}
 
+  /**
+   * Update user data partially.
+   * @param userId - User ID to be updated
+   * @param updateUserDto - Optional fields for update
+   * @returns User entity updated
+   * @throws UserNotFoundError if the user does not exist
+   * @throws InactiveUserError if the user is inactive
+   * @throws UserEmailAlreadyExistsError if the new email is already in use
+   */
   async execute(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userRepository.findById(userId);
     if (!user) {

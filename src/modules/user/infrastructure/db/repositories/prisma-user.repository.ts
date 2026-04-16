@@ -12,6 +12,10 @@ import {
 export class PrismaUserRepository implements UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * @param user - User entity to be persisted
+   * @returns Persisted User entity or null in case of failure
+   */
   async save(user: User): Promise<User | null> {
     const userData = await this.prisma.user.create({
       data: UserMapper.toPersistence(user),
@@ -20,6 +24,10 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(userData);
   }
 
+  /**
+   * @param id - UUID of the user to be found
+   * @returns User entity or null if not found
+   */
   async findById(id: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({
       where: {
@@ -32,6 +40,10 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(user);
   }
 
+  /**
+   * @param email - Email of the user
+   * @returns User entity or null if not found
+   */
   async findByEmail(email: string): Promise<User | null> {
     const userData = await this.prisma.user.findUnique({
       where: {
@@ -44,6 +56,10 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(userData);
   }
 
+  /**
+   * @param user - User entity with updated data
+   * @returns Updated User entity or null if not found  
+   */
   async update(user: User): Promise<User | null> {
     const userData = await this.prisma.user.update({
       where: {
@@ -55,6 +71,10 @@ export class PrismaUserRepository implements UserRepository {
     return UserMapper.toDomain(userData);
   }
 
+  /**
+   * @param options - Pagination options (page, limit)
+   * @returns Paginated response with active User entities
+   */
   async findAllActive(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<User>> {
@@ -88,6 +108,10 @@ export class PrismaUserRepository implements UserRepository {
     };
   }
 
+  /**
+   * @param options - Pagination options (page, limit)
+   * @returns Paginated response with all User entities
+   */
   async findAll(options: PaginationOptions): Promise<PaginatedResponse<User>> {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
@@ -112,6 +136,9 @@ export class PrismaUserRepository implements UserRepository {
     };
   }
 
+  /**
+   * @param id - UUID of the user to be deleted
+   */
   async delete(id: string): Promise<void> {
     await this.prisma.user.delete({
       where: {

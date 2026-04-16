@@ -6,6 +6,13 @@ import { Membership, MembershipNotFoundError } from '../../domain/entities';
 export class FindMembershipByCompositeKeyUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}
 
+  /**
+   * @param userId - UUID of the user associated with the membership
+   * @param roleId - ID of the role assigned to the user within the organization
+   * @param organizationId - UUID of the organization to which the membership belongs
+   * @returns Membership entity found by composite key
+   * @throws MembershipNotFoundError if no membership is found with the given composite key
+   */
   async execute(
     userId: string,
     roleId: number,

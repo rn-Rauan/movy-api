@@ -10,6 +10,13 @@ import { User } from '../../domain/entities';
 export class DisableUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
+  /**
+   * Disable (soft delete) a user by ID.
+   * @param userId - User ID to be disabled
+   * @returns User entity with status INACTIVE
+   * @throws UserNotFoundError if the user does not exist
+   * @throws InactiveUserError if the user is already inactive
+   */
   async execute(userId: string): Promise<User> {
     const user = await this.userRepository.findById(userId);
     if (!user) {

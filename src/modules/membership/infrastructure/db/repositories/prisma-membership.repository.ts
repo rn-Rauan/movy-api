@@ -15,6 +15,10 @@ import { Injectable } from '@nestjs/common';
 export class PrismaMembershipRepository implements MembershipRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * @param membership - Membership entity to persist
+   * @returns Membership entity created
+   */
   async save(membership: Membership): Promise<Membership> {
     const membershipData = await this.prisma.organizationMembership.create({
       data: MembershipMapper.toPersistence(membership),
@@ -22,6 +26,12 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return MembershipMapper.toDomain(membershipData);
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @param roleId - Role ID
+   * @param organizationId - UUID of the organization
+   * @returns Membership entity or null if not found
+   */
   async findByCompositeKey(
     userId: string,
     roleId: number,
@@ -40,6 +50,12 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return MembershipMapper.toDomain(membershipData);
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @param options - Pagination options (page, limit)
+   * @param organizationId - Optional organization UUID filter
+   * @returns Paginated response with membership entities
+   */
   async findByUserId(
     userId: string,
     options: PaginationOptions,
@@ -67,6 +83,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
     };
   }
 
+  /**
+   * @param organizationId - UUID of the organization
+   * @param options - Pagination options (page, limit)
+   * @returns Paginated response with membership entities
+   */
   async findByOrganizationId(
     organizationId: string,
     options: PaginationOptions,
@@ -94,6 +115,10 @@ export class PrismaMembershipRepository implements MembershipRepository {
     };
   }
 
+  /**
+   * @param membership - Membership entity with updated data
+   * @returns Membership entity updated
+   */
   async update(membership: Membership): Promise<Membership> {
     const membershipData = await this.prisma.organizationMembership.update({
       where: {
@@ -108,6 +133,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return MembershipMapper.toDomain(membershipData);
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @param organizationId - UUID of the organization
+   * @returns Membership entity or null if not found
+   */
   async findByUserIdAndOrganizationId(
     userId: string,
     organizationId: string,
@@ -123,6 +153,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return MembershipMapper.toDomain(membershipData);
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @param roleId - Role ID
+   * @param organizationId - UUID of the organization
+   */
   async delete(
     userId: string,
     roleId: number,
@@ -142,6 +177,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
   // ============================================
   // JWT-specific Operations
   // ============================================
+
+  /**
+   * @param userId - UUID of the user
+   * @returns First active membership DTO or null
+   */
   async findFirstActiveByUserId(
     userId: string,
   ): Promise<FirstMembershipDTO | null> {
@@ -171,6 +211,10 @@ export class PrismaMembershipRepository implements MembershipRepository {
     };
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @returns Array of active membership DTOs
+   */
   async findAllActiveByUserId(userId: string): Promise<FirstMembershipDTO[]> {
     const memberships = await this.prisma.organizationMembership.findMany({
       where: {
@@ -194,6 +238,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
     }));
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @param organizationId - UUID of the organization
+   * @returns true if active membership exists
+   */
   async hasActiveMembership(
     userId: string,
     organizationId: string,

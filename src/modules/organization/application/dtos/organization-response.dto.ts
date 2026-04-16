@@ -1,6 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { Status } from 'src/shared/domain/types/status.type';
 
+/**
+ * DTO for organization response with public data.
+ * @param id - Unique identifier (UUID v4)
+ * @param name - Organization name
+ * @param cnpj - Unique CNPJ number for the organization
+ * @param email - Email contact
+ * @param telephone - Contact telephone
+ * @param slug - URL slug for the organization's URL
+ * @param address - Organization address
+ * @param status - Current status (ACTIVE | INACTIVE)
+ * @param createdAt - Creation date
+ * @param updatedAt - Last update date
+ */
 export class OrganizationResponseDto {
   @ApiProperty({ example: 'uuid-v4' })
   id: string;

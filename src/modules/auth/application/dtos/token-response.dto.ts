@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Response DTO containing JWT tokens and basic user info.
+ * @param accessToken - JWT access token
+ * @param refreshToken - JWT refresh token (7d expiry)
+ * @param user - Basic user info (id, name, email)
+ */
 export class TokenResponseDto {
   @ApiProperty({
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',

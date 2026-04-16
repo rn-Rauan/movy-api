@@ -12,6 +12,11 @@ export class FindAllOrganizationsUseCase {
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 
+  /**
+   * Finds all organizations (including inactive).
+   * @param options - Pagination options (page, limit)
+   * @returns Paginated response with all Organization entities
+   */
   async execute(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Organization>> {

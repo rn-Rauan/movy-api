@@ -13,6 +13,14 @@ export class FindOrganizationByIdUseCase {
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 
+  /**
+   * Find an active organization by ID.
+   * @param id - UUID of the organization
+   * @param tenantContext - Context of the tenant for access validation
+   * @returns Found Organization entity
+   * @throws OrganizationNotFoundError if the organization does not exist or is inactive
+   * @throws OrganizationForbiddenError if the tenant does not have access to the organization
+   */
   async execute(
     id: string,
     tenantContext?: TenantContextParams,

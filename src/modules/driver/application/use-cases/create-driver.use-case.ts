@@ -13,6 +13,14 @@ import {
 export class CreateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
+  /**
+   * Creates a new driver profile for the given user.
+   * @param userId - ID of the user to create the driver profile for
+   * @param input - Driver creation data (CNH, category, expiration)
+   * @returns DriverEntity created and persisted
+   * @throws DriverAlreadyExistsError if user already has a driver profile
+   * @throws DriverCreationFailedError if persistence fails
+   */
   async execute(userId: string, input: CreateDriverDto): Promise<DriverEntity> {
     // Check if user already has a driver profile
     const existing = await this.driverRepository.findByUserId(userId);

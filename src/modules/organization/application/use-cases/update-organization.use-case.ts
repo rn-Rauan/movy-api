@@ -18,13 +18,25 @@ export class UpdateOrganizationUseCase {
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 
+  /**
+   * Partially updates an existing organization's data.
+   * @param id - ID of the organization to update
+   * @param updateDto - Optional fields for update
+   * @param tenantContext - Context of the tenant for access validation
+   * @returns Updated Organization entity
+   * @throws OrganizationNotFoundError if the organization does not exist
+   * @throws OrganizationForbiddenError if the tenant does not have access to the organization
+   * @throws InactiveOrganizationError if the organization is already inactive
+   * @throws OrganizationAlreadyExistsError if the new CNPJ is already in use
+   * @throws OrganizationEmailAlreadyExistsError if the new email is already in use
+   * @throws OrganizationSlugAlreadyExistsError if the new slug is already in use
+   */
   async execute(
     id: string,
     updateDto: UpdateOrganizationDto,
     tenantContext?: TenantContextParams,
   ): Promise<Organization> {
     const organization = await this.organizationRepository.findById(id);
-
     if (!organization) {
       throw new OrganizationNotFoundError(id);
     }

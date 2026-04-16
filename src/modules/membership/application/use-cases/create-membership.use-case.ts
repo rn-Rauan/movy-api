@@ -21,6 +21,15 @@ export class CreateMembershipUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
+  /**
+   * Create a new membership for a user in a tenant organization
+   * @param dto The DTO containing userEmail and roleId (1: ADMIN, 2: DRIVER)
+   * @param tenantOrganizationId The ID of the tenant organization
+   * @throws UserNotFoundForMembershipError if the user with the given email does not exist
+   * @throws DriverNotFoundForMembershipError if the role is DRIVER and the user is not a driver
+   * @throws MembershipAlreadyExistsError if a membership with the same user, role, and organization already exists
+   * @returns The created membership entity
+   */
   async execute(
     dto: CreateMembershipDto,
     tenantOrganizationId: string,

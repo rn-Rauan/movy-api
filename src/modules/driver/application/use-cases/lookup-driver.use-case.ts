@@ -15,8 +15,13 @@ export class LookupDriverUseCase {
   ) {}
 
   /**
-   * Admin busca um perfil de motorista por email + CNH para vincular à sua org.
-   * Ambos devem coincidir — funciona como verificação de identidade.
+   * Looks up a driver profile by email + CNH for admin enrollment.
+   * Both must match — acts as identity verification.
+   * @param userEmail - Email of the user to look up
+   * @param cnh - CNH number for identity verification
+   * @returns DriverLookupResponseDto with driver and user info
+   * @throws DriverProfileNotFoundByEmailError if user with given email does not exist
+   * @throws DriverNotFoundError if no driver matches the CNH or user mismatch
    */
   async execute(
     userEmail: string,

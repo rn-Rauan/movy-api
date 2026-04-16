@@ -14,6 +14,12 @@ export class RefreshTokenUseCase {
     private readonly jwtPayloadService: JwtPayloadService,
   ) {}
 
+  /**
+   * Refreshes JWT tokens using a valid refresh token.
+   * @param refreshToken - Current refresh token string
+   * @returns TokenResponseDto with new access token, refresh token, and user info
+   * @throws UnauthorizedException if token is invalid, expired, or user is inactive
+   */
   async execute(refreshToken: string): Promise<TokenResponseDto> {
     this.logger.debug(`[Refresh Token] Attempting to refresh token`);
 

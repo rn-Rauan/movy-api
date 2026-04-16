@@ -8,6 +8,12 @@ import {
   MinLength,
 } from 'class-validator';
 
+/**
+ * DTO for creating a new driver profile.
+ * @param cnh - Driver license number (9-12 chars)
+ * @param cnhCategory - License category (A, B, C, D, E)
+ * @param cnhExpiresAt - License expiration date (ISO string)
+ */
 export class CreateDriverDto {
   @ApiProperty({
     example: '123456789',

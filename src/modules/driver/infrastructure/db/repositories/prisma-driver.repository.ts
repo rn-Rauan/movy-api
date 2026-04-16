@@ -14,17 +14,29 @@ export class PrismaDriverRepository implements DriverRepository {
 
   constructor(private readonly prismaService: PrismaService) {}
 
+  /**
+   * @param driver - DriverEntity to persist
+   * @returns DriverEntity created or null
+   */
   async save(driver: DriverEntity): Promise<DriverEntity | null> {
     const data = DriverMapper.toPersistence(driver);
     await this.prismaService.driver.create({ data });
     return driver;
   }
 
+  /**
+   * @param id - UUID of the driver
+   * @returns DriverEntity or null if not found
+   */
   async findById(id: string): Promise<DriverEntity | null> {
     const raw = await this.prismaService.driver.findUnique({ where: { id } });
     return raw ? DriverMapper.toDomain(raw) : null;
   }
 
+  /**
+   * @param userId - UUID of the user
+   * @returns DriverEntity or null if not found
+   */
   async findByUserId(userId: string): Promise<DriverEntity | null> {
     const raw = await this.prismaService.driver.findUnique({
       where: { userId },
@@ -32,6 +44,10 @@ export class PrismaDriverRepository implements DriverRepository {
     return raw ? DriverMapper.toDomain(raw) : null;
   }
 
+  /**
+   * @param cnh - Driver license number
+   * @returns DriverEntity or null if not found
+   */
   async findByCnh(cnh: string): Promise<DriverEntity | null> {
     const raw = await this.prismaService.driver.findUnique({
       where: { cnh },
@@ -39,6 +55,11 @@ export class PrismaDriverRepository implements DriverRepository {
     return raw ? DriverMapper.toDomain(raw) : null;
   }
 
+  /**
+   * @param organizationId - UUID of the organization
+   * @param options - Pagination options (page, limit)
+   * @returns Paginated response with drivers linked to the organization
+   */
   async findByOrganizationId(
     organizationId: string,
     options: PaginationOptions,
@@ -88,12 +109,19 @@ export class PrismaDriverRepository implements DriverRepository {
     };
   }
 
+  /**
+   * @param driver - DriverEntity with updated data
+   * @returns DriverEntity updated or null
+   */
   async update(driver: DriverEntity): Promise<DriverEntity | null> {
     const data = DriverMapper.toPersistence(driver);
     await this.prismaService.driver.update({ where: { id: driver.id }, data });
     return driver;
   }
 
+  /**
+   * @param id - UUID of the driver to delete
+   */
   async delete(id: string): Promise<void> {
     await this.prismaService.driver.delete({ where: { id } });
   }
