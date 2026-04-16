@@ -34,7 +34,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      DATABASE_URL: postgresql://docker:docker07@postgres:5432/movy?schema=public
+      DATABASE_URL: postgresql://docker:docker07@localhost:5432/movy?schema=public
       NODE_ENV: test
 
     # 3. STEPS — sequência de comandos dentro do job
