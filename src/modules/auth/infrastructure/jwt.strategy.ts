@@ -46,7 +46,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * - isDev (developer bypass)
    * - userStatus (conta ativa/inativa)
    */
-  async validate(payload: any): Promise<JwtPayload> {
+  validate(payload: JwtPayload): JwtPayload {
     // Trust the JWT payload to avoid DB query on every request.
     // The payload was enriched during login/refresh.
     return {

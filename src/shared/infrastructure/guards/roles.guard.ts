@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
+import { Request } from 'express';
 
 /**
  * Guard que valida permissões de role via @Roles() decorator.
@@ -31,7 +31,7 @@ import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.in
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     // Step 1: Obter roles requeridas da metadata @Roles()
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,
@@ -44,8 +44,8 @@ export class RolesGuard implements CanActivate {
     }
 
     // Step 3: Extrair contexto do request
-    const request = context.switchToHttp().getRequest();
-    const ctx = request.context as TenantContext;
+    const request = context.switchToHttp().getRequest<Request>();
+    const ctx = request.context;
 
     // Step 4: Validar que middleware injetou contexto
     if (!ctx) {

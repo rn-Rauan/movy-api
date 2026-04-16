@@ -27,7 +27,7 @@ export class CreateOrganizationUseCase {
     if (organizationExists) {
       throw new OrganizationAlreadyExistsError(organizationDto.cnpj);
     }
-    
+
     const slugExists = await this.organizationRepository.findBySlug(
       organizationDto.slug,
     );

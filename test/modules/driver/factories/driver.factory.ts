@@ -1,5 +1,8 @@
 import { DriverEntity } from 'src/modules/driver/domain/entities/driver.entity';
-import { Cnh, CnhCategory } from 'src/modules/driver/domain/entities/value-objects';
+import {
+  Cnh,
+  CnhCategory,
+} from 'src/modules/driver/domain/entities/value-objects';
 
 type DriverOverrides = Partial<{
   id: string;

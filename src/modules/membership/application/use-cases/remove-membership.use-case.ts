@@ -13,7 +13,7 @@ export class RemoveMembershipUseCase {
    * @param organizationId - UUID of the organization to remove the membership from
    * @throws MembershipNotFoundError if no membership is found with the given composite key
    * @returns void
-     */
+   */
   async execute(
     userId: string,
     roleId: number,

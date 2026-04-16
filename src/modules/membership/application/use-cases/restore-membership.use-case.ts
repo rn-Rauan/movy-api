@@ -13,7 +13,7 @@ export class RestoreMembershipUseCase {
    * @param organizationId - UUID of the organization to restore the membership from
    * @throws MembershipNotFoundError if no membership is found with the given composite key
    * @returns void
-      */
+   */
   async execute(
     userId: string,
     roleId: number,

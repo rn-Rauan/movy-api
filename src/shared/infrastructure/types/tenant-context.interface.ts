@@ -17,6 +17,7 @@ export interface TenantContext {
  * Declaração global única — NÃO duplicar em outros arquivos.
  */
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       context?: TenantContext;

@@ -5,8 +5,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
-import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
+import { Request } from 'express';
+import type { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
+import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 
 /**
  * Guard de autenticação JWT que também popula req.context (TenantContext).
@@ -31,7 +32,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (!result) return false;
 
     // Step 2: Extrair request e payload já validado
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const jwtPayload = request.user as JwtPayload;
 
     if (!jwtPayload) return true; // Rota pública (não deveria chegar aqui)

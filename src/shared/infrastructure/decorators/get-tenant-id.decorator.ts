@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   BadRequestException,
 } from '@nestjs/common';
+import { Request } from 'express';
 
 /**
  * Decorator para injetar apenas o tenantId do contexto
@@ -13,7 +14,7 @@ import {
  */
 export const GetTenantId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest();
+    const request = ctx.switchToHttp().getRequest<Request>();
 
     if (!request.context?.organizationId) {
       throw new BadRequestException(

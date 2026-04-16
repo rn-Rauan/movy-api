@@ -35,7 +35,12 @@ function makeMocks() {
     findById: jest.fn(),
   } as any as jest.Mocked<RoleRepository>;
 
-  return { membershipRepository, userRepository, driverRepository, roleRepository };
+  return {
+    membershipRepository,
+    userRepository,
+    driverRepository,
+    roleRepository,
+  };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
@@ -95,11 +100,9 @@ describe('CreateMembershipUseCase', () => {
       // Assert
       expect(mocks.userRepository.findByEmail).toHaveBeenCalledWith(user.email);
       expect(mocks.roleRepository.findById).toHaveBeenCalledWith(adminRole.id);
-      expect(mocks.membershipRepository.findByCompositeKey).toHaveBeenCalledWith(
-        user.id,
-        adminRole.id,
-        ORG_ID,
-      );
+      expect(
+        mocks.membershipRepository.findByCompositeKey,
+      ).toHaveBeenCalledWith(user.id, adminRole.id, ORG_ID);
     });
   });
 
@@ -140,7 +143,9 @@ describe('CreateMembershipUseCase', () => {
 
       mocks.userRepository.findByEmail.mockResolvedValue(user);
       mocks.roleRepository.findById.mockResolvedValue(makeRole());
-      mocks.membershipRepository.findByCompositeKey.mockResolvedValue(removedMembership);
+      mocks.membershipRepository.findByCompositeKey.mockResolvedValue(
+        removedMembership,
+      );
       mocks.membershipRepository.update.mockResolvedValue(removedMembership);
 
       const dto = { userEmail: user.email, roleId: 1 };
@@ -150,7 +155,9 @@ describe('CreateMembershipUseCase', () => {
 
       // Assert
       expect(result.removedAt).toBeNull();
-      expect(mocks.membershipRepository.update).toHaveBeenCalledWith(removedMembership);
+      expect(mocks.membershipRepository.update).toHaveBeenCalledWith(
+        removedMembership,
+      );
       expect(mocks.membershipRepository.save).not.toHaveBeenCalled();
     });
   });
@@ -165,7 +172,9 @@ describe('CreateMembershipUseCase', () => {
       await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
         UserNotFoundForMembershipError,
       );
-      expect(mocks.membershipRepository.findByCompositeKey).not.toHaveBeenCalled();
+      expect(
+        mocks.membershipRepository.findByCompositeKey,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -185,7 +194,9 @@ describe('CreateMembershipUseCase', () => {
       await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
         DriverNotFoundForMembershipError,
       );
-      expect(mocks.membershipRepository.findByCompositeKey).not.toHaveBeenCalled();
+      expect(
+        mocks.membershipRepository.findByCompositeKey,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -200,7 +211,9 @@ describe('CreateMembershipUseCase', () => {
 
       mocks.userRepository.findByEmail.mockResolvedValue(user);
       mocks.roleRepository.findById.mockResolvedValue(makeRole());
-      mocks.membershipRepository.findByCompositeKey.mockResolvedValue(activeMembership);
+      mocks.membershipRepository.findByCompositeKey.mockResolvedValue(
+        activeMembership,
+      );
 
       const dto = { userEmail: user.email, roleId: 1 };
 

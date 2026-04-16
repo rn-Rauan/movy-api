@@ -130,12 +130,16 @@ describe('SetupOrganizationForExistingUserUseCase', () => {
         address: dto.address,
         slug: dto.slug,
       });
-      expect(mocks.roleRepository.findByName).toHaveBeenCalledWith(RoleName.ADMIN);
+      expect(mocks.roleRepository.findByName).toHaveBeenCalledWith(
+        RoleName.ADMIN,
+      );
       expect(mocks.createMembershipUseCase.execute).toHaveBeenCalledWith(
         { userEmail: user.email, roleId: adminRole.id },
         organization.id,
       );
-      expect(mocks.jwtPayloadService.enrichPayload).toHaveBeenCalledWith(USER_ID);
+      expect(mocks.jwtPayloadService.enrichPayload).toHaveBeenCalledWith(
+        USER_ID,
+      );
       expect(mocks.jwtService.sign).toHaveBeenCalledTimes(2);
       expect(mocks.jwtService.sign).toHaveBeenNthCalledWith(
         2,
@@ -188,7 +192,9 @@ describe('SetupOrganizationForExistingUserUseCase', () => {
       const dto = makeSetupOrgDto();
 
       // Act & Assert
-      await expect(sut.execute(dto, USER_ID)).rejects.toThrow(RoleNotFoundError);
+      await expect(sut.execute(dto, USER_ID)).rejects.toThrow(
+        RoleNotFoundError,
+      );
       expect(mocks.jwtService.sign).not.toHaveBeenCalled();
     });
   });
@@ -210,7 +216,9 @@ describe('SetupOrganizationForExistingUserUseCase', () => {
       const dto = makeSetupOrgDto();
 
       // Act & Assert
-      await expect(sut.execute(dto, USER_ID)).rejects.toThrow('Membership boom');
+      await expect(sut.execute(dto, USER_ID)).rejects.toThrow(
+        'Membership boom',
+      );
       expect(mocks.jwtService.sign).not.toHaveBeenCalled();
     });
   });

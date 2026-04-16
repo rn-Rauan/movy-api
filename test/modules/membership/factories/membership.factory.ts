@@ -8,7 +8,9 @@ type MembershipOverrides = Partial<{
   removedAt: Date | null;
 }>;
 
-export function makeMembership(overrides: MembershipOverrides = {}): Membership {
+export function makeMembership(
+  overrides: MembershipOverrides = {},
+): Membership {
   if (overrides.assignedAt || overrides.removedAt !== undefined) {
     return Membership.restore({
       userId: overrides.userId ?? 'user-id-stub',

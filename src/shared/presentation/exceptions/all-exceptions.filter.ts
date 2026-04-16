@@ -27,10 +27,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const exceptionResponse = exception.getResponse();
 
       if (typeof exceptionResponse === 'object') {
-        message = (exceptionResponse as any).message || exception.message;
-        error = (exceptionResponse as any).error;
+        const resp = exceptionResponse as {
+          message?: string | string[];
+          error?: string;
+        };
+        const raw = resp.message;
+        message = (Array.isArray(raw) ? raw[0] : raw) ?? exception.message;
+        error = resp.error;
       } else {
-        message = exceptionResponse as string;
+        message = exceptionResponse;
       }
     } else if (exception instanceof DomainError) {
       message = exception.message;

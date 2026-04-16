@@ -110,7 +110,7 @@ export class RegisterOrganizationWithAdminUseCase {
   private async compensateUser(userId: string): Promise<void> {
     try {
       await this.userRepository.delete(userId);
-    } catch (deleteError) {
+    } catch {
       this.logger.error(
         `[RegisterOrg] Compensation failed: could not delete user ${userId}`,
       );

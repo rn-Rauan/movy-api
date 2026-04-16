@@ -7,7 +7,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 
 /**
  * Guard que valida que recursos pertencem ao tenant do usuário
@@ -22,9 +21,9 @@ import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.in
  */
 @Injectable()
 export class TenantFilterGuard implements CanActivate {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    const ctx = request.context as TenantContext;
+    const ctx = request.context;
     Logger.log(ctx, 'TenantFilterGuard - TenantContext');
 
     // Step 1: Validar que middleware injetou contexto

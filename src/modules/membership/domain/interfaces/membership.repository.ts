@@ -74,13 +74,13 @@ export abstract class MembershipRepository {
     userId: string,
     organizationId: string,
   ): Promise<Membership | null>;
- /**
-  * Delete a membership from the database.
-  * @param userId - UUID of the user associated with the membership
-  * @param roleId - ID of the role assigned to the user within the organization
-  * @param organizationId - UUID of the organization to which the membership belongs
-  * @returns void
-  */
+  /**
+   * Delete a membership from the database.
+   * @param userId - UUID of the user associated with the membership
+   * @param roleId - ID of the role assigned to the user within the organization
+   * @param organizationId - UUID of the organization to which the membership belongs
+   * @returns void
+   */
   abstract delete(
     userId: string,
     roleId: number,

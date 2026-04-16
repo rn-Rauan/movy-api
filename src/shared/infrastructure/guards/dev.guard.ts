@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { DEV_ONLY_KEY } from '../decorators/dev.decorator';
-import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
+import { Request } from 'express';
 
 /**
  * Guard que restringe acesso apenas a desenvolvedores (isDev=true).
@@ -28,7 +28,7 @@ import { TenantContext } from 'src/shared/infrastructure/types/tenant-context.in
 export class DevGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     // Step 1: Verificar se @Dev() está presente nesta rota
     const isDevOnly = this.reflector.getAllAndOverride<boolean>(DEV_ONLY_KEY, [
       context.getHandler(),
@@ -41,8 +41,8 @@ export class DevGuard implements CanActivate {
     }
 
     // Step 3: Extrair contexto do request
-    const request = context.switchToHttp().getRequest();
-    const ctx = request.context as TenantContext;
+    const request = context.switchToHttp().getRequest<Request>();
+    const ctx = request.context;
 
     // Step 4: Validar que middleware injetou contexto
     if (!ctx) {

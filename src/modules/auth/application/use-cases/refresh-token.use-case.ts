@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
 import { JwtPayloadService } from '../services/jwt-payload.service';
 import { TokenResponseDto } from '../dtos';
+import type { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
 
 @Injectable()
 export class RefreshTokenUseCase {
@@ -24,9 +25,9 @@ export class RefreshTokenUseCase {
     this.logger.debug(`[Refresh Token] Attempting to refresh token`);
 
     // Only JWT verification errors should become UnauthorizedException
-    let payload: any;
+    let payload: JwtPayload;
     try {
-      payload = this.jwtService.verify(refreshToken);
+      payload = this.jwtService.verify<JwtPayload>(refreshToken);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }

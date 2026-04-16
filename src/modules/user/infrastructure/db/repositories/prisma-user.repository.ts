@@ -58,7 +58,7 @@ export class PrismaUserRepository implements UserRepository {
 
   /**
    * @param user - User entity with updated data
-   * @returns Updated User entity or null if not found  
+   * @returns Updated User entity or null if not found
    */
   async update(user: User): Promise<User | null> {
     const userData = await this.prisma.user.update({

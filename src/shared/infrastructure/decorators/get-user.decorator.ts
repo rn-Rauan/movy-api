@@ -3,7 +3,8 @@ import {
   ExecutionContext,
   BadRequestException,
 } from '@nestjs/common';
-import { TenantContext } from '../types/tenant-context.interface';
+import { Request } from 'express';
+import type { TenantContext } from '../types/tenant-context.interface';
 
 /**
  * Decorator to get the current user context from the request.
@@ -13,7 +14,7 @@ import { TenantContext } from '../types/tenant-context.interface';
  */
 export const GetUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): TenantContext => {
-    const request = ctx.switchToHttp().getRequest();
+    const request = ctx.switchToHttp().getRequest<Request>();
 
     if (!request.context) {
       throw new BadRequestException(
