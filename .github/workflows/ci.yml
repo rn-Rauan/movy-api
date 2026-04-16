@@ -33,7 +33,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-          # GitHub Actions aguarda o healthcheck antes de rodar os steps
     env:
       DATABASE_URL: postgresql://docker:docker07@postgres:5432/movy?schema=public
       NODE_ENV: test
