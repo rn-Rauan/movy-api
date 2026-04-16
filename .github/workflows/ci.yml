@@ -8,9 +8,9 @@ name: CI
 # 1. GATILHO — quando esse workflow dispara
 on:
   push:
-    branches: [main]       # qualquer push direto na main
+    branches: [main, master]       # qualquer push direto na main
   pull_request:
-    branches: [main]       # qualquer PR apontando pra main
+    branches: [main, master]       # qualquer PR apontando pra main
 
 # 2. JOBS — cada job é uma "máquina virtual" isolada
 jobs:
