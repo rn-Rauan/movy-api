@@ -95,50 +95,85 @@ Request
 
 ## Setup
 
-### Pré-requisitos
+### Executando com Docker (recomendado)
+
+> Pré-requisito: apenas [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado.
+
+**1. Copie o arquivo de variáveis de ambiente:**
+
+```bash
+cp .env.example .env
+```
+
+> No Windows (cmd/PowerShell):
+> ```powershell
+> copy .env.example .env
+> ```
+
+**2. Suba a aplicação:**
+
+```bash
+# Primeira vez (ou após mudanças no código): usa --build para construir a imagem
+docker-compose up --build
+
+# Nas próximas vezes (imagem já construída):
+docker-compose up
+```
+
+Isso irá:
+- Subir o banco PostgreSQL 17
+- Construir e iniciar a API NestJS
+- Executar as migrations automaticamente (`prisma migrate deploy`)
+- Popular o banco com o seed inicial (roles `ADMIN` e `DRIVER`)
+
+A API estará disponível em **`http://localhost:3001`**.  
+Documentação Swagger em **`http://localhost:3001/api`**.
+
+---
+
+### Setup manual (desenvolvimento local)
+
+#### Pré-requisitos
 
 - Node.js v18+
 - Docker (para PostgreSQL)
 
-### Instalação
+#### Instalação
 
 ```bash
 npm install
 ```
 
-### Variáveis de ambiente
+#### Variáveis de ambiente
 
 ```env
-DATABASE_URL="postgresql://docker:docker07@localhost:5432/movy?schema=public"
-PORT=5700
+DATABASE_URL="postgresql://docker:docker07@localhost:5705/movy?schema=public"
+PORT=3001
 JWT_SECRET="your_jwt_secret_here"
 DEV_EMAILS="dev@example.com"   # emails com acesso a endpoints @Dev()
 ```
 
-### Banco de dados com Docker
+#### Banco de dados com Docker
 
 ```bash
-# Sobe o banco + executa seed automático (roles ADMIN e DRIVER)
-docker-compose up
-
-# Ou, se o container já existe:
-docker-compose up -d
+# Sobe apenas o banco PostgreSQL
+docker-compose up postgres
 ```
 
-### Migrations e seed manual
+#### Migrations e seed manual
 
 ```bash
 npx prisma migrate dev
 npm run db:seed
 ```
 
-### Servidor de desenvolvimento
+#### Servidor de desenvolvimento
 
 ```bash
 npm run start:dev
 ```
 
-A API estará disponível em `http://localhost:5700`. Documentação Swagger em `http://localhost:5700/api`.
+A API estará disponível em `http://localhost:3001`. Documentação Swagger em `http://localhost:3001/api`.
 
 ---
 
