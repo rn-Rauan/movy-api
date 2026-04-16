@@ -16,7 +16,7 @@ on:
 jobs:
   build-and-test:
     name: Build & Test
-    runs-on: ubuntu-latest   # máquina Linux gratuita do GitHub
+    runs-on: ubuntu-latest   
 
     # 2.1 Serviços — containers que rodam em paralelo com o job
     services:
@@ -27,7 +27,7 @@ jobs:
           POSTGRES_PASSWORD: docker07
           POSTGRES_DB: movy
         ports:
-          - 5432:5432         # expõe o container para localhost:5432 da VM
+          - 5432:5432
         options: >-
           --health-cmd="pg_isready -U docker -d movy"
           --health-interval=10s
@@ -49,7 +49,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24.14'
-          cache: 'npm'          # cacheia node_modules entre runs (mais rápido)
+          cache: 'npm'         
 
       # 3.3 Instala dependências
       # (não precisa de "Wait for Postgres" — o healthcheck acima já garante isso)
