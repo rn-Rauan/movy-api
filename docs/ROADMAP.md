@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 15 Abr 2026 
+**Última atualização:** 16 Abr 2026 
 
 ---
 
@@ -54,8 +54,10 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | RefreshTokenDto + validação de body | ✅ Pronto (14 Abr) |
 | ✅ | Remoção de dead code (6+ arquivos), @Global() do AuthModule, deps não usadas | ✅ Pronto (14-15 Abr) |
 | ✅ | tsconfig strict:true + ESLint fix | ✅ Pronto (14 Abr) |
+| ✅ | Infraestrutura de testes unitários (Jest config, factories, padrão AAA) | ✅ Pronto (16 Abr) |
+| ✅ | Testes: LoginUseCase, RegisterOrgWithAdmin, SetupOrg, CreateMembership, CreateDriver (27 testes) | ✅ Pronto (16 Abr) |
 | ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
-| ⏳ | Testes 80%+ coverage | 3-4 dias |
+| ⏳ | Testes 80%+ coverage (use cases restantes: Register, Refresh, CRUDs de User/Org) | 2-3 dias |
 
 **Saída:** API com 3 módulos CRUD, autenticação, roles, associações, seed automático, Docker pronto
 
@@ -142,6 +144,22 @@ MVP PRONTO: 15 de Junho 2026
   - `CreateDriverUseCase`: check de duplicata adicionado (`DriverAlreadyExistsError` → HTTP 409)
   - `GET /drivers/lookup`: validação de query params `email` e `cnh` (não podem ser vazios)
 - ✅ Compilação: ✅ sem erros (`npx tsc --noEmit`)
+
+**Progresso em 16 Abr 2026 (Infraestrutura de Testes Unitários):**
+- ✅ **Infraestrutura de testes criada:**
+  - `test/jest-unit.json` com rootDir, testRegex, moduleNameMapper para aliases `src/`
+  - Padrão AAA (Arrange-Act-Assert) com `makeMocks()` + `setupHappyPath()` + `sut`
+  - Factories por módulo: `makeUser`, `makeOrganization`, `makeRole`, `makeJwtPayload`, `makeMembership`, `makeDriver`
+  - Factories de DTO: `makeRegisterOrgDto`, `makeSetupOrgDto`, `makeCreateDriverDto`
+  - Injeção manual de dependências (sem mocks de framework)
+- ✅ **5 suites de teste, 27 testes passando:**
+  - `LoginUseCase`: 5 testes (happy path, user not found, inactive, wrong password)
+  - `RegisterOrganizationWithAdminUseCase`: 5 testes (happy path, orquestração, compensação org/membership/role)
+  - `SetupOrganizationForExistingUserUseCase`: 6 testes (happy path, user not found, inactive, role not found, membership fails)
+  - `CreateMembershipUseCase`: 7 testes (happy path ADMIN/DRIVER, restore soft-deleted, user not found, driver missing, already exists)
+  - `CreateDriverUseCase`: 4 testes (happy path, check duplicata, DriverAlreadyExistsError, DriverCreationFailedError)
+- ✅ Compilação: ✅ sem erros (`npx tsc --noEmit`)
+- ✅ Testes: ✅ 27/27 passando (`npx jest --config test/jest-unit.json`)
 
 ---
 

@@ -12,6 +12,12 @@
   Construída com <a href="https://nestjs.com/" target="_blank">NestJS</a> e <a href="https://www.prisma.io/" target="_blank">Prisma</a>, usando <a href="https://www.postgresql.org/" target="_blank">PostgreSQL</a> como banco de dados.
 </p>
 
+<p align="center">
+  <a href="https://github.com/rn-Rauan/movy-api/actions/workflows/ci.yml">
+    <img src="https://github.com/rn-Rauan/movy-api/actions/workflows/ci.yml/badge.svg" alt="CI" />
+  </a>
+</p>
+
 ---
 
 ## 📋 Descrição

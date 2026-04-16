@@ -1,0 +1,86 @@
+# ============================================================
+# CI — Movy API
+# Roda em todo push/PR para a branch main
+# ============================================================
+
+name: CI
+
+# 1. GATILHO — quando esse workflow dispara
+on:
+  push:
+    branches: [main]       # qualquer push direto na main
+  pull_request:
+    branches: [main]       # qualquer PR apontando pra main
+
+# 2. JOBS — cada job é uma "máquina virtual" isolada
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest   # máquina Linux gratuita do GitHub
+
+    # 2.1 Serviços — containers que rodam em paralelo com o job
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: docker07
+          POSTGRES_DB: movy
+        ports:
+          - 5432:5432         # expõe o container para localhost:5432 da VM
+        options: >-
+          --health-cmd="pg_isready -U docker -d movy"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          # GitHub Actions aguarda o healthcheck antes de rodar os steps
+    env:
+      DATABASE_URL: postgresql://docker:docker07@postgres:5432/movy?schema=public
+      NODE_ENV: test
+
+    # 3. STEPS — sequência de comandos dentro do job
+    steps:
+      # 3.1 Baixa o código do repositório para a máquina virtual
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 3.2 Instala o Node.js na versão que você usa localmente
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.14'
+          cache: 'npm'          # cacheia node_modules entre runs (mais rápido)
+
+      # 3.3 Instala dependências
+      # (não precisa de "Wait for Postgres" — o healthcheck acima já garante isso)
+      # npm ci é mais rápido que npm install no CI pois usa o package-lock.json direto
+      - name: Install dependencies
+        run: npm ci
+
+      # 3.4 Gera o Prisma Client
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # 3.5 Roda as migrações para criar as tabelas no banco de dados do serviço Postgres
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      # 3.6 Verifica se o TypeScript compila sem erros
+      # Se tiver qualquer erro de tipagem, o CI falha aqui
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # 3.7 Roda o linter
+      # Garante que ninguém commita código fora do padrão
+      - name: Lint
+        run: npm run lint
+
+      # 3.8 Gera o build de produção (transpila TypeScript para JavaScript)
+      - name: Build
+        run: npm run build
+
+      # 3.9 Roda todos os testes unitários
+      # Se um teste falhar, o CI falha aqui e você recebe email
+      - name: Run tests
+        run: npm test -- --passWithNoTests --forceExit
+        # --forceExit: mata o processo se o Jest travar com conexões abertas

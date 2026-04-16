@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 15 Abr 2026
+**Última atualização:** 16 Abr 2026
 
 ---
 
@@ -78,7 +78,7 @@ src/shared/
 - ✅ **[14 Abr]** Ordem de validação corrigida: Driver validado ANTES do check de soft-delete (previne bypass)
 - ✅ **[15 Abr]** `DriverNotAssociatedWithOrganizationError` removido (não mais necessário após redesign do Driver)
 - ✅ **[15 Abr]** Validação de prerequisito Driver simplificada: verifica apenas existência de perfil Driver (sem check de org)
-- [ ] Testes unitários (0% - pendente)
+- ✅ **[16 Abr]** Testes unitários do `CreateMembershipUseCase` — 7 testes (happy path ADMIN, happy path DRIVER, restore soft-deleted, user not found, driver profile missing, membership already exists)
 
 **Arquivos criados:**
 ```
@@ -94,9 +94,13 @@ src/modules/membership/
 ├── presentation/controllers/ ✅
 ├── presentation/mappers/ ✅
 └── README.md ✅
+
+test/modules/membership/
+├── factories/membership.factory.ts ✅ (makeMembership com suporte a removedAt)
+└── application/use-cases/create-membership.use-case.spec.ts ✅ (7 testes)
 ```
 
-**Status:** Funcional e integrado, pronto para RBAC. Testes pendentes.
+**Status:** Funcional, integrado e testado. ✅
 
 ---
 
@@ -128,7 +132,7 @@ src/modules/membership/
 - ✅ **[15 Abr]** `findByCnh()` adicionado ao `DriverRepository`
 - ✅ **[15 Abr]** `DriverAlreadyExistsError` — previne criação duplicada de perfil driver (HTTP 409)
 - ✅ **[15 Abr]** `DriverModule` importa `UserModule` (para `UserRepository` no LookupDriverUseCase)
-- ❌ Testes unitários (0% - pendente)
+- ✅ **[16 Abr]** Testes unitários do `CreateDriverUseCase` — 4 testes (happy path criação, check antes de save, DriverAlreadyExistsError, DriverCreationFailedError)
 
 **Arquivos implementados:**
 ```
@@ -176,19 +180,27 @@ src/modules/driver/
 - Migration `remove_org_from_driver` aplicada com sucesso
 - Verificada prevenção de duplicatas: `@@id([userId, roleId, organizationId])` na `OrganizationMembership` + check no `CreateMembershipUseCase`
 
-**Status:** Funcional, redesenhado e compilando. Compilação ✅
+**Testes (16 Abr 2026):**
+```
+test/modules/driver/
+├── factories/driver.factory.ts ✅ (makeDriver com value objects Cnh/CnhCategory)
+├── factories/create-driver.dto.factory.ts ✅ (makeCreateDriverDto)
+└── application/use-cases/create-driver.use-case.spec.ts ✅ (4 testes)
+```
+
+**Status:** Funcional, redesenhado, compilando e testado. ✅
 
 ---
 
 ### User Module ✅ COMPLETO (CRUD + Infraestrutura)
 - ✅ CRUD completo (Create, Read, Update, Delete)
 - ✅ Soft-delete (status INACTIVE)
-- ❌ Testes unitários (0% - pendente implementação)
+- ⏳ Testes unitários (pendente — use cases CRUD ainda sem spec)
 - ✅ Exception handling
 - ✅ DTOs com validação
 - ✅ Repositório pattern
 
-**Status:** Funcional, mas testes pendentes
+**Status:** Funcional. Testes de CRUD pendentes.
 
 ---
 
@@ -204,7 +216,7 @@ src/modules/driver/
 - [x] CRUD Use Cases (6 total) ✅
 - [x] Value Objects com validações ✅
 - [x] Exception Handling específico ✅
-- [ ] Testes unitários (0% - pendente)
+- [ ] Testes unitários (pendente — use cases CRUD sem spec)
 - [ ] Swagger docs integrado (já está com @ApiTags e decorators)
 
 **Use Cases Implementados (6 total):**
@@ -300,15 +312,16 @@ src/modules/organization/
 - [x] `@Global()` removido do AuthModule ✅ (15 Abr)
 - [x] Rate limiting global (`@nestjs/throttler`, 60 req/min) ✅ (15 Abr)
 - [x] Swagger docs ✅ (05 Abr 2026)
-- [ ] Testes unitários (80%+)
+- [x] Testes unitários — 3 use cases testados (16 testes) ✅ (16 Abr)
+- [ ] Testes unitários — RegisterUseCase e RefreshTokenUseCase (pendentes)
 - [ ] Logout (invalidação de tokens)
 
 **Use Cases Implementados:**
-1. `LoginUseCase` - Valida credenciais, gera tokens JWT
+1. `LoginUseCase` - Valida credenciais, gera tokens JWT — ✅ **5 testes** *(16 Abr)*
 2. `RegisterUseCase` - Cria usuário com validação e hash de senha
 3. `RefreshTokenUseCase` - Valida refresh token e gera novo par
-4. `RegisterOrganizationWithAdminUseCase` - Orquestra User → Org → Membership com compensação em 2 estágios *(atualizado 14 Abr: agora orquestrador completo, sem deps no CreateOrganizationUseCase)*
-5. `SetupOrganizationForExistingUserUseCase` - Usuário já logado cria org, obtém membership ADMIN e recebe JWT atualizado *(novo 14 Abr)*
+4. `RegisterOrganizationWithAdminUseCase` - Orquestra User → Org → Membership com compensação em 2 estágios *(atualizado 14 Abr)* — ✅ **5 testes** *(16 Abr)*
+5. `SetupOrganizationForExistingUserUseCase` - Usuário já logado cria org, obtém membership ADMIN e recebe JWT atualizado *(novo 14 Abr)* — ✅ **6 testes** *(16 Abr)*
 
 **Novo Use Case - SetupOrganizationForExistingUserUseCase (14 Abr 2026):**
 - Para usuários já autenticados que ainda não possuem organização
@@ -355,7 +368,35 @@ src/shared/guards/
 └── jwt.guard.ts ✅
 ```
 
-**Status:** ✅ COMPLETO e hardened em 15 Abr 2026
+**Testes Unitários (16 Abr 2026):**
+```
+test/modules/auth/
+├── factories/
+│   ├── jwt-payload.factory.ts ✅ (makeJwtPayload)
+│   ├── register-org.dto.factory.ts ✅ (makeRegisterOrgDto)
+│   └── setup-org.dto.factory.ts ✅ (makeSetupOrgDto)
+└── application/use-cases/
+    ├── login.use-case.spec.ts ✅ (5 testes)
+    ├── register-organization-with-admin.use-case.spec.ts ✅ (5 testes)
+    └── setup-organization.use-case.spec.ts ✅ (6 testes)
+
+test/modules/user/factories/
+└── user.factory.ts ✅ (makeUser)
+
+test/modules/organization/factories/
+└── organization.factory.ts ✅ (makeOrganization)
+
+test/shared/factories/
+└── role.factory.ts ✅ (makeRole)
+```
+
+**Padrão de Testes Adotado:**
+- AAA (Arrange-Act-Assert) com `makeMocks()` + `setupHappyPath()` + `sut`
+- Factories por módulo para criação de entidades de teste
+- Injeção manual de dependências (sem mocks de framework)
+- Config dedicada: `test/jest-unit.json` (rootDir, moduleNameMapper para aliases `src/`)
+
+**Status:** ✅ COMPLETO, hardened e testado (16 Abr 2026)
 
 ---
 

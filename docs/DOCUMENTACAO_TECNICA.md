@@ -25,6 +25,7 @@ A stack tecnológica foi selecionada visando alta performance e produtividade:
 | **Docker**           | Conteinerização           | Padronização do ambiente de desenvolvimento e produção.      |
 | **JWT / NestJS**     | Autenticação             | Implementação customizada de autenticação JWT com NestJS e Bcrypt. |
 | **Bcrypt**           | Segurança                 | Hash seguro de senhas para proteção de dados sensíveis.      |
+| **Jest (v30)**       | Testes Unitários          | Framework de testes com ts-jest para execução de testes TypeScript. |
 
 ---
 
@@ -73,6 +74,7 @@ A organização do projeto reflete a modularidade e a separação de camadas:
   - `presentation/`: Controladores e rotas.
 - `src/shared/`: Recursos compartilhados (filtros de exceção, interceptadores, provedores globais).
 - `prisma/`: Esquema do banco de dados e arquivos de migração.
+- `test/`: Testes unitários organizados por módulo, com factories e configuração Jest dedicada.
 
 ---
 
@@ -260,6 +262,63 @@ O model `Driver` possuía uma coluna `organizationId` com relação direta para 
 - ✅ RBAC: @Roles(RoleName.ADMIN), RolesGuard, TenantFilterGuard
 - ✅ Schema: DriverStatus enum (ACTIVE, INACTIVE, SUSPENDED)
 - ✅ Redesign: Driver desacoplado de Organization (15 Abr)
+
+### 4.10 Infraestrutura de Testes Unitários ✅ IMPLEMENTADO (16 Abr 2026)
+
+Foi implementada uma infraestrutura completa de testes unitários utilizando Jest 30 com ts-jest, cobrindo os use cases críticos do sistema. Os testes seguem o padrão AAA (Arrange-Act-Assert) com injeção manual de dependências, sem mocks de framework.
+
+**Configuração:**
+- `test/jest-unit.json`: Configuração dedicada com `rootDir`, `testRegex` para arquivos em `test/`, e `moduleNameMapper` para resolver aliases `src/`.
+- Comando de execução: `npx jest --config test/jest-unit.json`
+
+**Padrão de Testes Adotado:**
+- **`makeMocks()`**: Função que cria todos os mocks necessários para o use case com `jest.fn()` e tipagem via `as any as jest.Mocked<T>`.
+- **`setupHappyPath()`**: Configura os mocks para o cenário de sucesso padrão, retornando as entidades criadas.
+- **`sut`** (System Under Test): Instância real do use case com dependências injetadas manualmente.
+- **Factories por módulo**: Funções `make*()` que criam entidades de domínio com valores padrão e suporte a overrides.
+
+**Suites de Teste (5 suites, 27 testes):**
+
+| Use Case | Testes | Cenários Cobertos |
+|----------|--------|--------------------|
+| `LoginUseCase` | 5 | Happy path (tokens + user info), orquestração de chamadas, user not found, user inactive, senha incorreta |
+| `RegisterOrganizationWithAdminUseCase` | 5 | Happy path, orquestração User→Org→Membership, compensação (org fail), compensação (membership fail), role not found |
+| `SetupOrganizationForExistingUserUseCase` | 6 | Happy path, orquestração completa, user not found, user inactive, ADMIN role not found, membership fails |
+| `CreateMembershipUseCase` | 7 | Happy path ADMIN, happy path DRIVER com perfil, restore soft-deleted, user not found, DRIVER sem perfil, membership already exists |
+| `CreateDriverUseCase` | 4 | Happy path criação, verificação de duplicata, DriverAlreadyExistsError, DriverCreationFailedError |
+
+**Factories Implementadas (9 total):**
+
+| Factory | Localização | Entidade/DTO |
+|---------|------------|-------------|
+| `makeUser()` | `test/modules/user/factories/` | User entity com value objects |
+| `makeOrganization()` | `test/modules/organization/factories/` | Organization entity com value objects |
+| `makeRole()` | `test/shared/factories/` | Role entity (ADMIN/DRIVER) |
+| `makeJwtPayload()` | `test/modules/auth/factories/` | JwtPayload object |
+| `makeMembership()` | `test/modules/membership/factories/` | Membership entity (suporte a removedAt) |
+| `makeDriver()` | `test/modules/driver/factories/` | DriverEntity com Cnh/CnhCategory |
+| `makeRegisterOrgDto()` | `test/modules/auth/factories/` | RegisterOrganizationWithAdminDto |
+| `makeSetupOrgDto()` | `test/modules/auth/factories/` | SetupOrganizationDto |
+| `makeCreateDriverDto()` | `test/modules/driver/factories/` | CreateDriverDto |
+
+**Estrutura de Pastas dos Testes:**
+```
+test/
+├── jest-unit.json
+├── modules/
+│   ├── auth/
+│   │   ├── factories/ (jwt-payload, register-org.dto, setup-org.dto)
+│   │   └── application/use-cases/ (login, register-org, setup-org specs)
+│   ├── membership/
+│   │   ├── factories/ (membership)
+│   │   └── application/use-cases/ (create-membership spec)
+│   ├── driver/
+│   │   ├── factories/ (driver, create-driver.dto)
+│   │   └── application/use-cases/ (create-driver spec)
+│   ├── user/factories/ (user)
+│   └── organization/factories/ (organization)
+└── shared/factories/ (role)
+```
 
 ### 4.8 RBAC (Role-Based Access Control) Architecture ✅ COMPLETO (11 Abr 2026)
 
@@ -543,20 +602,21 @@ O script de seed foi configurado para:
 
 ## 7. Próximos Passos
 
-1. **Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).
-2. **Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.
-3. **Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).
-4. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
-5. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
-6. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
+1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
+2. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization.
+3. **Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.
+4. **Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).
+5. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
+6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
+7. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 14 de abril de 2026, a **Fase 1 foi concluída com sucesso (100%)**:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 16 de abril de 2026, a **Fase 1 foi concluída com sucesso (100%)** e a infraestrutura de testes unitários foi implementada:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy, soft delete e decoupling total do módulo de Membership *(refatorado 14 Abr)*.
-- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, 100% alinhado com User Module *(refatorado 13 Abr)*.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, 100% alinhado com User Module *(redesenhado 15 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant e validação de prerequisito Driver *(security hardening 14 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
@@ -568,10 +628,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 14 de abril 
 - ✅ **JWT Strategy otimizada**: Sem query ao banco por request autenticado *(adicionado 13 Abr)*.
 - ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
 - ✅ **Segurança aprimorada**: Todas as operações multi-tenant validadas via JWT; `ForbiddenException` do NestJS removido da camada de domínio *(14 Abr)*.
+- ✅ **Testes Unitários**: 5 suites, 27 testes passando com padrão AAA, factories por módulo e injeção manual *(16 Abr)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fase 1 100% COMPLETA** (✅). Iniciando Fase 2 (Core Business Logic: Vehicles, Trips, Bookings).
+**Progresso atual:** **Fase 1 100% COMPLETA** (✅). Infraestrutura de testes implementada (27 testes, 5 suites). Iniciando Fase 2 (Core Business Logic: Vehicles, Trips, Bookings).
 
 ---
 
@@ -585,6 +646,8 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
+- `npx jest --config test/jest-unit.json`: Executa testes unitários (27 testes, 5 suites)
+- `npx jest --config test/jest-unit.json --no-coverage`: Testes sem relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
 ```env
