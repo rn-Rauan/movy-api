@@ -126,8 +126,8 @@ Isso irá:
 - Executar as migrations automaticamente (`prisma migrate deploy`)
 - Popular o banco com o seed inicial (roles `ADMIN` e `DRIVER`)
 
-A API estará disponível em **`http://localhost:3001`**.  
-Documentação Swagger em **`http://localhost:3001/api`**.
+A API estará disponível em **`http://localhost:5700`**.  
+Documentação Swagger em **`http://localhost:5700/api`**.
 
 ---
 
