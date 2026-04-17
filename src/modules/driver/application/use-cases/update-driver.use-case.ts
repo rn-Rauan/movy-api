@@ -4,6 +4,7 @@ import { DriverEntity } from '../../domain/entities/driver.entity';
 import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
 import { UpdateDriverDto } from '../dtos';
 import {
+  DriverAccessForbiddenError,
   DriverNotFoundError,
   DriverUpdateFailedError,
   PartialCnhUpdateError,
@@ -14,19 +15,34 @@ export class UpdateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}
 
   /**
-   * Partially updates a driver profile.
+   * Partially updates a driver profile, scoped to the requesting organization.
    * @param id - UUID of the driver to update
    * @param input - Optional fields for update (CNH fields must be sent together)
+   * @param organizationId - UUID of the organization from JWT context
    * @returns DriverEntity with updated data
    * @throws DriverNotFoundError if driver does not exist
+   * @throws DriverAccessForbiddenError if driver does not belong to the organization
    * @throws PartialCnhUpdateError if only some CNH fields are provided
    * @throws DriverUpdateFailedError if persistence fails
    */
-  async execute(id: string, input: UpdateDriverDto): Promise<DriverEntity> {
+  async execute(
+    id: string,
+    input: UpdateDriverDto,
+    organizationId: string,
+  ): Promise<DriverEntity> {
     const driver = await this.driverRepository.findById(id);
 
     if (!driver) {
       throw new DriverNotFoundError(id);
+    }
+
+    const belongs = await this.driverRepository.belongsToOrganization(
+      id,
+      organizationId,
+    );
+
+    if (!belongs) {
+      throw new DriverAccessForbiddenError(id);
     }
 
     const hasCnhFields = input.cnh || input.cnhCategory || input.cnhExpiresAt;

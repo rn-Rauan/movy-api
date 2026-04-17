@@ -140,3 +140,12 @@ export class PartialCnhUpdateError extends DriverValidationError {
     );
   }
 }
+
+/** Thrown when the requester does not own the driver profile */
+export class DriverAccessForbiddenError extends DomainError {
+  code = 'DRIVER_ACCESS_FORBIDDEN';
+
+  constructor(id: string) {
+    super(`Access to driver "${id}" is forbidden`);
+  }
+}

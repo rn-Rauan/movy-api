@@ -55,4 +55,8 @@ export class VehicleResponseDto {
     description: 'Last update timestamp',
   })
   updatedAt: Date;
+
+  constructor(props: Partial<VehicleResponseDto>) {
+    Object.assign(this, props);
+  }
 }

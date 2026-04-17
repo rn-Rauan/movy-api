@@ -26,6 +26,15 @@ export class VehicleNotFoundError extends DomainError {
   }
 }
 
+/** Thrown when the requester does not own the vehicle */
+export class VehicleAccessForbiddenError extends DomainError {
+  code = 'VEHICLE_ACCESS_FORBIDDEN';
+
+  constructor(id: string) {
+    super(`Access to vehicle "${id}" is forbidden`);
+  }
+}
+
 /** Thrown when trying to register a plate that is already in use */
 export class PlateAlreadyInUseError extends DomainError {
   code = 'PLATE_ALREADY_IN_USE';
@@ -59,5 +68,14 @@ export class VehicleUpdateFailedError extends DomainError {
 
   constructor(id: string) {
     super(`Failed to update vehicle with id "${id}"`);
+  }
+}
+
+/** Thrown when trying to update a vehicle that has been soft-deleted */
+export class VehicleInactiveError extends DomainError {
+  code = 'VEHICLE_INACTIVE';
+
+  constructor(id: string) {
+    super(`Vehicle "${id}" is inactive and cannot be updated`);
   }
 }

@@ -163,8 +163,14 @@ export class DriverController {
     description: 'Return the driver.',
     type: DriverResponseDto,
   })
-  async findById(@Param('id') id: string): Promise<DriverResponseDto> {
-    const driver = await this.findDriverByIdUseCase.execute(id);
+  async findById(
+    @Param('id') id: string,
+    @GetUser() context: TenantContext,
+  ): Promise<DriverResponseDto> {
+    const driver = await this.findDriverByIdUseCase.execute(
+      id,
+      context.organizationId!,
+    );
     return DriverPresenter.toHTTP(driver);
   }
 
@@ -181,8 +187,13 @@ export class DriverController {
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateDriverDto,
+    @GetUser() context: TenantContext,
   ): Promise<DriverResponseDto> {
-    const driver = await this.updateDriverUseCase.execute(id, updateDto);
+    const driver = await this.updateDriverUseCase.execute(
+      id,
+      updateDto,
+      context.organizationId!,
+    );
     return DriverPresenter.toHTTP(driver);
   }
 
@@ -195,8 +206,11 @@ export class DriverController {
     status: 200,
     description: 'The driver has been successfully deleted.',
   })
-  async remove(@Param('id') id: string): Promise<boolean> {
-    await this.removeDriverUseCase.execute(id);
+  async remove(
+    @Param('id') id: string,
+    @GetUser() context: TenantContext,
+  ): Promise<boolean> {
+    await this.removeDriverUseCase.execute(id, context.organizationId!);
     return true;
   }
 }

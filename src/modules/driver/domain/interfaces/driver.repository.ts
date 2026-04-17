@@ -52,6 +52,17 @@ export abstract class DriverRepository {
   abstract update(driver: DriverEntity): Promise<DriverEntity | null>;
 
   /**
+   * Checks if a driver belongs to the given organization via active membership.
+   * @param driverId - UUID of the driver
+   * @param organizationId - UUID of the organization
+   * @returns true if the driver is an active member of the organization
+   */
+  abstract belongsToOrganization(
+    driverId: string,
+    organizationId: string,
+  ): Promise<boolean>;
+
+  /**
    * Permanently deletes a driver.
    * @param id - UUID of the driver to remove
    */

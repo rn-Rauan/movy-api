@@ -128,4 +128,29 @@ export class PrismaDriverRepository implements DriverRepository {
   async delete(id: string): Promise<void> {
     await this.prisma.driver.delete({ where: { id } });
   }
+
+  /**
+   * @param driverId - UUID of the driver
+   * @param organizationId - UUID of the organization
+   * @returns true if driver has an active membership in the organization
+   */
+  async belongsToOrganization(
+    driverId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const count = await this.prisma.driver.count({
+      where: {
+        id: driverId,
+        user: {
+          userRoles: {
+            some: {
+              organizationId,
+              removedAt: null,
+            },
+          },
+        },
+      },
+    });
+    return count > 0;
+  }
 }
