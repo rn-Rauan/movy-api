@@ -1,4 +1,7 @@
-import { PaginatedResponse, PaginationOptions } from 'src/shared/domain/interfaces';
+import {
+  PaginatedResponse,
+  PaginationOptions,
+} from 'src/shared/domain/interfaces';
 import { VehicleEntity } from '../entities/vehicle.entity';
 
 export abstract class VehicleRepository {

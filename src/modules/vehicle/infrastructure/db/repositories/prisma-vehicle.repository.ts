@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { VehicleEntity } from 'src/modules/vehicle/domain/entities';
 import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
-import { PaginatedResponse, PaginationOptions } from 'src/shared/domain/interfaces';
+import {
+  PaginatedResponse,
+  PaginationOptions,
+} from 'src/shared/domain/interfaces';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { VehicleMapper } from '../mappers/vehicle.mapper';
 
@@ -35,7 +38,9 @@ export class PrismaVehicleRepository implements VehicleRepository {
    * @returns VehicleEntity or null if not found
    */
   async findByPlate(plate: string): Promise<VehicleEntity | null> {
-    const vehicleData = await this.prisma.vehicle.findUnique({ where: { plate } });
+    const vehicleData = await this.prisma.vehicle.findUnique({
+      where: { plate },
+    });
     if (!vehicleData) return null;
     return VehicleMapper.toDomain(vehicleData);
   }

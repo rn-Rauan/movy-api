@@ -1,4 +1,3 @@
-
 import { VehicleStatus } from '../interfaces/enums/vehicle-status.enum';
 import { VehicleType } from '../interfaces/enums/vehicle-type.enum';
 import { InvalidMaxCapacityError } from './errors/vehicle.errors';
@@ -132,6 +131,18 @@ export class VehicleEntity {
       throw new InvalidMaxCapacityError(capacity);
     }
     this.props.maxCapacity = capacity;
+    this.props.updatedAt = new Date();
+  }
+
+  /** Update the vehicle model description. */
+  updateModel(model: string): void {
+    this.props.model = model;
+    this.props.updatedAt = new Date();
+  }
+
+  /** Update the vehicle type. */
+  updateType(type: VehicleType): void {
+    this.props.type = type;
     this.props.updatedAt = new Date();
   }
 }

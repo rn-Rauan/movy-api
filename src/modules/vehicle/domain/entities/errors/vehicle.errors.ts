@@ -43,3 +43,21 @@ export class InvalidMaxCapacityError extends DomainError {
     super(`maxCapacity must be a positive integer, got "${value}"`);
   }
 }
+
+/** Thrown when persistence fails on vehicle creation */
+export class VehicleCreationFailedError extends DomainError {
+  code = 'VEHICLE_CREATION_FAILED';
+
+  constructor() {
+    super('Failed to create vehicle');
+  }
+}
+
+/** Thrown when persistence fails on vehicle update */
+export class VehicleUpdateFailedError extends DomainError {
+  code = 'VEHICLE_UPDATE_FAILED';
+
+  constructor(id: string) {
+    super(`Failed to update vehicle with id "${id}"`);
+  }
+}

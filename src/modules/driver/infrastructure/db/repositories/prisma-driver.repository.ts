@@ -74,7 +74,11 @@ export class PrismaDriverRepository implements DriverRepository {
         where: {
           user: {
             userRoles: {
-              some: { organizationId, removedAt: null, role: { name: 'DRIVER' } },
+              some: {
+                organizationId,
+                removedAt: null,
+                role: { name: 'DRIVER' },
+              },
             },
           },
         },
@@ -86,7 +90,11 @@ export class PrismaDriverRepository implements DriverRepository {
         where: {
           user: {
             userRoles: {
-              some: { organizationId, removedAt: null, role: { name: 'DRIVER' } },
+              some: {
+                organizationId,
+                removedAt: null,
+                role: { name: 'DRIVER' },
+              },
             },
           },
         },
