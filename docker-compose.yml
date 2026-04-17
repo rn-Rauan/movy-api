@@ -12,22 +12,24 @@ services:
       POSTGRES_PASSWORD: docker07
       POSTGRES_DB: movy
     volumes:
-      - ./movy_db_data:/var/lib/postgresql/data
+      - movy_db_data:/var/lib/postgresql/data
   api:
     image: movy-api:latest
     build: .
     container_name: movy_api
     restart: always
     ports:
-      - "5700:5700"
+      - "5700:3001"
     environment:
-      PORT: "5700"
+      PORT: "3001"
       DATABASE_URL: "postgresql://docker:docker07@postgres:5432/movy?schema=public"
-    env_file:
-      - .env
+      JWT_SECRET: "change_me_in_production"
+      JWT_EXPIRATION: "3600"
+      JWT_REFRESH_EXPIRATION: "604800"
+      DEV_EMAILS: "email@example.com,email2@example.com"
     depends_on:
       - postgres
     command: sh -c "echo 'Running migrations...' && npx prisma migrate deploy && echo 'Running seed...' && npm run db:seed && echo 'Starting app...' && npm start"
     
 volumes:
- movy_db_data:
+  movy_db_data:

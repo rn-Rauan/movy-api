@@ -1,5 +1,8 @@
 node_modules
 dist
+docs
+generated
+coverage
 npm-debug.log
 .env
 .git
