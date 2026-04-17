@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 16 Abr 2026 
+**Última atualização:** 17 Abr 2026 
 
 ---
 
@@ -160,6 +160,27 @@ MVP PRONTO: 15 de Junho 2026
   - `CreateDriverUseCase`: 4 testes (happy path, check duplicata, DriverAlreadyExistsError, DriverCreationFailedError)
 - ✅ Compilação: ✅ sem erros (`npx tsc --noEmit`)
 - ✅ Testes: ✅ 27/27 passando (`npx jest --config test/jest-unit.json`)
+**Progresso em 17 Abr 2026 (Vehicle Module + IDOR Security Fixes):**
+- ✅ **Vehicle Module: CRUD completo implementado**
+  - Entity `VehicleEntity` com `Plate` value object, enums `VehicleType`/`VehicleStatus`
+  - 8 domain errors (inclusive `VehicleAccessForbiddenError`, `VehicleInactiveError`)
+  - Repository interface + `PrismaVehicleRepository` + `VehicleMapper`
+  - 5 use cases: Create, FindById, FindAllByOrganization, Update, Remove
+  - DTOs com class-validator + Swagger, Presenter, Controller com 5 endpoints
+  - `VehicleModule` wired no `AppModule`
+- ✅ **Vehicle IDOR fix (OWASP A01 — Broken Access Control)**
+  - `FindVehicleByIdUseCase`, `UpdateVehicleUseCase`, `RemoveVehicleUseCase` verificam `organizationId` do JWT
+  - Controller passa `context.organizationId!` nos endpoints `GET /:id`, `PUT /:id`, `DELETE /:id`
+- ✅ **Vehicle Inactive protection**
+  - `UpdateVehicleUseCase` rejeita atualização se `status === INACTIVE` (`VehicleInactiveError`)
+- ✅ **Driver IDOR fix (OWASP A01)**
+  - `DriverAccessForbiddenError` adicionado aos domain errors
+  - `belongsToOrganization(driverId, organizationId)` adicionado na interface e implementação Prisma
+  - `FindDriverByIdUseCase`, `UpdateDriverUseCase`, `RemoveDriverUseCase` agora verificam ownership via membership
+  - Controller passa `context.organizationId!` nos 3 endpoints afetados
+- ✅ **Membership audit**: confirmado protegido — `organizationId` no route param já é validado pelo `TenantFilterGuard`
+- ✅ **Vehicle README.md** criado com documentação completa
+- ✅ Compilação: ✅ sem erros
 
 ---
 
@@ -170,8 +191,9 @@ MVP PRONTO: 15 de Junho 2026
 ### Semana 1-2: Frotas (Abr 14-25)
 | Status | O Quê | Duração |
 |:------:|-------|---------|
-| ⏳ | Vehicles CRUD | 3-4 dias |
-| ⏳ | Drivers CRUD + LinkVehicles | 3-4 dias |
+| ✅ | Vehicles CRUD | ✅ Pronto (17 Abr) |
+| ✅ | Vehicle IDOR fix + VehicleInactiveError | ✅ Pronto (17 Abr) |
+| ✅ | Driver IDOR fix (belongsToOrganization) | ✅ Pronto (17 Abr) |
 | ⏳ | Testes dos 2 módulos | 1-2 dias |
 
 **Saída:** Gestão de frotas pronta
@@ -223,7 +245,7 @@ MVP PRONTO: 15 de Junho 2026
 
 ```
 ✅ 04 Abr  → User + Org modules, Auth básica
-✅ 18 Abr  → Vehicles + Drivers prontos
+✅ 18 Abr  → Vehicles + Drivers prontos (Vehicle 17 Abr, Driver 11+17 Abr)
 ✅ 01 Mai  → Trips + Bookings funcionando
 ✅ 15 Mai  → Pagamentos integrados
 ✅ 15 Jun  → MVP deployado + TCC documentado
@@ -247,7 +269,7 @@ shared/        ✅ COMPLETO
 
 ### Fase 2 ⏳
 ```
-vehicle/       ⏳ PRÓXIMO (semana 1-2)
+vehicle/       ✅ COMPLETO (17 Abr)
 trip/          ⏳ PRÓXIMO (semana 2-3, COMPLEXO)
 booking/       ⏳ PRÓXIMO (semana 3-4)
 ```
@@ -283,8 +305,8 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 - [x] Organization CRUD ✅
 - [ ] Organization members 🔄
 - [x] Auth JWT ✅
-- [ ] Vehicles- CRUD ⏳
-- [ ] Drivers CRUD ⏳
+- [x] Vehicles- CRUD ✅ (17 Abr)
+- [x] Drivers CRUD ✅ (11 Abr, IDOR fix 17 Abr)
 - [ ] Trip Templates ⏳
 - [ ] Trip Instances ⏳
 - [ ] Bookings ⏳

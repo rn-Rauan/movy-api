@@ -2,15 +2,15 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 16 Abr 2026
+**Última atualização:** 17 Abr 2026
 
 ---
 
 ## 📈 Resumo Geral
 
 ```
-Total Módulos: 7
-Completo: 7 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth (registro com org)
+Total Módulos: 8
+Completo: 8 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth, Vehicle
 Em Progresso: 0
 Pendente: 0
 ```
@@ -133,6 +133,10 @@ test/modules/membership/
 - ✅ **[15 Abr]** `DriverAlreadyExistsError` — previne criação duplicada de perfil driver (HTTP 409)
 - ✅ **[15 Abr]** `DriverModule` importa `UserModule` (para `UserRepository` no LookupDriverUseCase)
 - ✅ **[16 Abr]** Testes unitários do `CreateDriverUseCase` — 4 testes (happy path criação, check antes de save, DriverAlreadyExistsError, DriverCreationFailedError)
+- ✅ **[17 Abr]** IDOR fix: `DriverAccessForbiddenError` adicionado (`code = 'DRIVER_ACCESS_FORBIDDEN'`)
+- ✅ **[17 Abr]** `belongsToOrganization(driverId, organizationId)` adicionado na interface e no `PrismaDriverRepository` (query via `user.userRoles.some`)
+- ✅ **[17 Abr]** `FindDriverByIdUseCase`, `UpdateDriverUseCase`, `RemoveDriverUseCase` agora recebem `organizationId` e verificam ownership via `belongsToOrganization`
+- ✅ **[17 Abr]** Controller `GET /:id`, `PUT /:id`, `DELETE /:id` passam `context.organizationId` do JWT para os use cases
 
 **Arquivos implementados:**
 ```
@@ -188,7 +192,7 @@ test/modules/driver/
 └── application/use-cases/create-driver.use-case.spec.ts ✅ (4 testes)
 ```
 
-**Status:** Funcional, redesenhado, compilando e testado. ✅
+**Status:** Funcional, redesenhado, compilando e testado. IDOR corrigido. ✅
 
 ---
 
@@ -466,84 +470,68 @@ src/modules/organization/presentation/controllers/
 
 ---
 
-### Vehicles Module 📋 PRÓXIMO (~4-5 dias)
+### Vehicles Module ✅ COMPLETO (17 Abr 2026)
 
-**CRUD de Veículos:**
-- [ ] POST `/organizations/:id/vehicles` - Registrar novo veículo
-  - Campos: placa, marca, modelo, ano, capacidade, status
-- [ ] GET `/organizations/:id/vehicles` - Listar veículos da org
-- [ ] GET `/vehicles/:id` - Detalhes veículo
-- [ ] PUT `/vehicles/:id` - Editar veículo
-- [ ] DELETE `/vehicles/:id` - Soft-delete veículo
-- [ ] Validar que vehicle pertence à org (multi-tenant)
+**CRUD de Veículos — Implementação Completa:**
+- ✅ Entity `VehicleEntity` com `VehicleProps`, `create()`, `restore()`, getters, `activate()`, `deactivate()`, `isActive()`, `updatePlate()`, `updateMaxCapacity()`, `updateModel()`, `updateType()`
+- ✅ Value Object `Plate` — validação de placa brasileira (formato antigo `ABC1234` + Mercosul `ABC1D23`), `create()`, `restore()`, `equals()`, `toString()`
+- ✅ Enums: `VehicleType { VAN, BUS, MINIBUS, CAR }`, `VehicleStatus { ACTIVE, INACTIVE }`
+- ✅ Domain Errors: `InvalidPlateError`, `PlateAlreadyInUseError`, `VehicleNotFoundError`, `VehicleAccessForbiddenError`, `VehicleInactiveError`, `InvalidMaxCapacityError`, `VehicleCreationFailedError`, `VehicleUpdateFailedError` (8 tipos)
+- ✅ Repository interface: `save`, `findById`, `findByPlate`, `findByOrganizationId`, `update`, `delete`
+- ✅ `PrismaVehicleRepository` implementação completa
+- ✅ `VehicleMapper` com `toDomain()` (hidrata `Plate.restore`, casts de enum) e `toPersistence()`
+- ✅ DTOs: `CreateVehicleDto`, `UpdateVehicleDto`, `VehicleResponseDto` com class-validator + Swagger
+- ✅ Use Cases (5 total): `CreateVehicle`, `FindVehicleById`, `FindAllVehiclesByOrganization`, `UpdateVehicle`, `RemoveVehicle`
+- ✅ `VehiclePresenter` com `toHTTP()` e `toHTTPList()`
+- ✅ `VehicleController` com 5 endpoints REST, `JwtAuthGuard`, `RolesGuard`, `TenantFilterGuard`, `@Roles(ADMIN)`
+- ✅ `VehicleModule` wired no `AppModule`
+- ✅ **IDOR fix**: `FindVehicleByIdUseCase`, `UpdateVehicleUseCase`, `RemoveVehicleUseCase` verificam `vehicle.organizationId !== organizationId` e lançam `VehicleAccessForbiddenError`
+- ✅ **Proteção de inativo**: `UpdateVehicleUseCase` rejeita atualização se `status === INACTIVE` (`VehicleInactiveError`)
+- ✅ README.md criado com documentação completa
 
-**Status do Veículo:**
-- [ ] Status enum: ATIVO, EM_MANUTENCAO, INATIVO
-- [ ] PUT `/vehicles/:id/status` - Mudar status
-- [ ] Histórico de mudanças de status
+**Endpoints REST:**
+- `POST /vehicles/organization/:organizationId` — Registrar novo veículo
+- `GET /vehicles/organization/:organizationId` — Listar veículos da organização (paginado)
+- `GET /vehicles/:id` — Buscar veículo por ID
+- `PUT /vehicles/:id` — Atualizar veículo
+- `DELETE /vehicles/:id` — Desativar veículo (soft delete)
 
-**Manutenção (básico):**
-- [ ] POST `/vehicles/:id/maintenance` - Registrar manutenção
-- [ ] GET `/vehicles/:id/maintenance` - Histórico
-- [ ] Campo: data, tipo, custo (opcional)
+**Regras de Negócio:**
+- Placa única no sistema (`PlateAlreadyInUseError`)
+- `maxCapacity` deve ser inteiro positivo (`InvalidMaxCapacityError`)
+- Soft delete via `status = INACTIVE` (registro não é excluído)
+- Veículos inativos não podem ser atualizados (`VehicleInactiveError`)
+- Isolamento de tenant: operações por ID verificam `organizationId` do JWT (`VehicleAccessForbiddenError`)
 
-**Arquivos:**
+**Arquivos implementados:**
 ```
 src/modules/vehicle/
-├── application/dtos/
-│   ├── create-vehicle.dto.ts
-│   ├── update-vehicle.dto.ts
-│   └── maintenance.dto.ts
+├── vehicle.module.ts ✅
+├── application/
+│   ├── dtos/ ✅ (create-vehicle, update-vehicle, vehicle-response, index)
+│   └── use-cases/ ✅ (5 use cases + index)
 ├── domain/
-│   ├── entities/vehicle.entity.ts
-│   ├── errors/vehicle.errors.ts
-│   └── interfaces/vehicle.repository.ts
-├── infrastructure/repositories/
-│   └── prisma-vehicle.repository.ts
-├── presentation/controllers/
-│   └── vehicle.controller.ts
-└── vehicle.module.ts
+│   ├── entities/vehicle.entity.ts ✅
+│   ├── entities/errors/vehicle.errors.ts ✅ (8 error types)
+│   ├── entities/value-objects/plate.value-object.ts ✅
+│   └── interfaces/vehicle.repository.ts ✅ (+ enums)
+├── infrastructure/
+│   ├── db/mappers/vehicle.mapper.ts ✅
+│   └── db/repositories/prisma-vehicle.repository.ts ✅
+├── presentation/
+│   ├── controllers/vehicle.controller.ts ✅
+│   └── mappers/vehicle.presenter.ts ✅
+└── README.md ✅
 ```
+
+**Status:** ✅ COMPLETO — CRUD funcional, IDOR protegido, soft delete seguro (17 Abr 2026)
 
 ---
 
-### Drivers Module 📋 (~3-4 dias)
+### Drivers Module — ✅ JÁ IMPLEMENTADO (ver Driver Module acima)
 
-**CRUD de Motoristas:**
-- [ ] POST `/drivers` - Registrar novo driver
-  - Campos: nome, email, phone, CNH, status, user_id (link com User)
-- [ ] GET `/drivers` - Listar drivers
-- [ ] GET `/drivers/:id` - Detalhes motorista
-- [ ] PUT `/drivers/:id` - Editar dados motorista
-- [ ] DELETE `/drivers/:id` - Soft-delete motorista
-- [ ] Filtrar por organização (multi-tenant)
-
-**Associação Vehicle + Driver:**
-- [ ] Tabela junction: `driver_vehicle` (um driver pode ter múltiplos veículos)
-- [ ] PUT `/drivers/:id/vehicles` - Atualizar veículos do driver
-- [ ] GET `/drivers/:id/vehicles` - Listar veículos do driver
-
-**Status:**
-- [ ] Enum: ATIVO, EM_FOLGA, INDISPONIVEL
-- [ ] Histórico de status changes
-
-**Arquivos:**
-```
-src/modules/driver/
-├── application/dtos/
-│   ├── create-driver.dto.ts
-│   ├── update-driver.dto.ts
-│   └── assign-vehicle.dto.ts
-├── domain/
-│   ├── entities/driver.entity.ts
-│   ├── errors/driver.errors.ts
-│   └── interfaces/driver.repository.ts
-├── infrastructure/repositories/
-│   └── prisma-driver.repository.ts
-├── presentation/controllers/
-│   └── driver.controller.ts
-└── driver.module.ts
-```
+> O módulo Driver foi implementado na Fase 1 (11 Abr) e redesenhado (15 Abr).
+> IDOR corrigido em 17 Abr com `DriverAccessForbiddenError` + `belongsToOrganization()`.
 
 ---
 

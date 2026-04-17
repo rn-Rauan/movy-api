@@ -582,6 +582,63 @@ Após análise completa de 41 arquivos do projeto:
 
 ---
 
+## 6.5 Implementações (17 Abr 2026)
+
+### Vehicle Module — CRUD Completo
+Implementação completa do módulo de veículos seguindo Clean Architecture + DDD:
+
+**Domain Layer:**
+- `VehicleEntity` com props tipadas, `create()` (factory com validação), `restore()` (hidratação do banco), getters, `activate()`, `deactivate()`, `isActive()`, `updatePlate()`, `updateMaxCapacity()`, `updateModel()`, `updateType()`
+- Value Object `Plate` — validação de placa brasileira (formatos `ABC1234` e Mercosul `ABC1D23`) com `create()`, `restore()`, `equals()`, `toString()`
+- Enums: `VehicleType { VAN, BUS, MINIBUS, CAR }`, `VehicleStatus { ACTIVE, INACTIVE }`
+- 8 domain errors: `InvalidPlateError`, `PlateAlreadyInUseError`, `VehicleNotFoundError`, `VehicleAccessForbiddenError`, `VehicleInactiveError`, `InvalidMaxCapacityError`, `VehicleCreationFailedError`, `VehicleUpdateFailedError`
+- Repository interface: `save`, `findById`, `findByPlate`, `findByOrganizationId`, `update`, `delete`
+
+**Infrastructure Layer:**
+- `PrismaVehicleRepository` implementando a interface completa
+- `VehicleMapper` com `toDomain()` (hidrata `Plate.restore()`, casts de enum) e `toPersistence()`
+
+**Application Layer:**
+- 5 use cases: `CreateVehicleUseCase`, `FindVehicleByIdUseCase`, `FindAllVehiclesByOrganizationUseCase`, `UpdateVehicleUseCase`, `RemoveVehicleUseCase`
+- DTOs: `CreateVehicleDto`, `UpdateVehicleDto`, `VehicleResponseDto` com class-validator + decorators Swagger
+
+**Presentation Layer:**
+- `VehicleController` com 5 endpoints REST, guards `JwtAuthGuard` + `RolesGuard` + `TenantFilterGuard`, `@Roles(ADMIN)`
+- `VehiclePresenter` com `toHTTP()` e `toHTTPList()`
+
+**Endpoints:**
+| Método | Rota | Descrição |
+|--------|------|----------|
+| POST | `/vehicles/organization/:organizationId` | Registrar veículo |
+| GET | `/vehicles/organization/:organizationId` | Listar veículos da org |
+| GET | `/vehicles/:id` | Buscar veículo por ID |
+| PUT | `/vehicles/:id` | Atualizar veículo |
+| DELETE | `/vehicles/:id` | Soft delete (status → INACTIVE) |
+
+### IDOR Security Hardening — Vehicle & Driver (OWASP A01)
+Auditoria de segurança identificou que endpoints com parâmetro `/:id` (sem `:organizationId` na rota) não validavam se o recurso pertencia à organização do caller. Correção aplicada em dois módulos:
+
+**Vehicle Module:**
+- `VehicleAccessForbiddenError` (`code = 'VEHICLE_ACCESS_FORBIDDEN'`) → HTTP 403
+- `FindVehicleByIdUseCase`, `UpdateVehicleUseCase`, `RemoveVehicleUseCase` agora recebem `organizationId` e comparam diretamente com `vehicle.organizationId`
+- Controller extrai `context.organizationId!` do JWT via `@GetUser()` e passa para os use cases
+
+**Driver Module:**
+- `DriverAccessForbiddenError` (`code = 'DRIVER_ACCESS_FORBIDDEN'`) → HTTP 403
+- Novo método `belongsToOrganization(driverId, organizationId)` na interface e `PrismaDriverRepository`
+  - Query: `driver.count({ where: { id, user: { userRoles: { some: { organizationId, removedAt: null } } } } })`
+  - Necessário porque `Driver` não tem `organizationId` direto — vínculo é via `OrganizationMembership`
+- `FindDriverByIdUseCase`, `UpdateDriverUseCase`, `RemoveDriverUseCase` verificam ownership via `belongsToOrganization`
+
+**Membership Module:** Confirmado seguro — todas as rotas já incluem `:organizationId` no path, validado pelo `TenantFilterGuard`.
+
+### VehicleInactiveError — Proteção de Soft Delete
+`UpdateVehicleUseCase` agora verifica `vehicle.isActive()` antes de aplicar qualquer atualização. Se o veículo estiver com `status === INACTIVE` (soft-deleted), lança `VehicleInactiveError` (`code = 'VEHICLE_INACTIVE_GONE'`) → HTTP 410 Gone.
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
+
+---
+
 ## 6.1 Implementações Anteriores (05 Abr 2026)
 
 ### Role Management & Database Seeding
@@ -604,35 +661,37 @@ O script de seed foi configurado para:
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
 2. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization.
-3. **Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.
+3. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
 4. **Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).
 5. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
 6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
 7. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
+8. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 16 de abril de 2026, a **Fase 1 foi concluída com sucesso (100%)** e a infraestrutura de testes unitários foi implementada:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 17 de abril de 2026, a **Fase 1 está 100% completa** e a **Fase 2 foi iniciada com o Vehicle Module**:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy, soft delete e decoupling total do módulo de Membership *(refatorado 14 Abr)*.
-- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, 100% alinhado com User Module *(redesenhado 15 Abr)*.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()` *(redesenhado 15 Abr, IDOR fix 17 Abr)*.
+- ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError` *(17 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant e validação de prerequisito Driver *(security hardening 14 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
-- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory).
+- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory, Plate).
 - ✅ **Validation Errors** para tratamento de erros específicos do domínio.
 - ✅ **Global Exception Handling** com AllExceptionsFilter refatorado (mapeamento por padrão de código) *(atualizado 13 Abr)*.
 - ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard, DevGuard implementados e aplicados.
 - ✅ **JWT Strategy otimizada**: Sem query ao banco por request autenticado *(adicionado 13 Abr)*.
 - ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
-- ✅ **Segurança aprimorada**: Todas as operações multi-tenant validadas via JWT; `ForbiddenException` do NestJS removido da camada de domínio *(14 Abr)*.
+- ✅ **Segurança IDOR**: Vehicle e Driver validam ownership em operações por ID; Membership protegido via TenantFilterGuard *(17 Abr)*.
 - ✅ **Testes Unitários**: 5 suites, 27 testes passando com padrão AAA, factories por módulo e injeção manual *(16 Abr)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fase 1 100% COMPLETA** (✅). Infraestrutura de testes implementada (27 testes, 5 suites). Iniciando Fase 2 (Core Business Logic: Vehicles, Trips, Bookings).
+**Progresso atual:** **Fase 1 100% COMPLETA** (✅). **Fase 2 em andamento** — Vehicle Module completo (17 Abr). Próximo: Trips Module.
 
 ---
 
