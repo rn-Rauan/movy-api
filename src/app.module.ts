@@ -9,6 +9,7 @@ import { MembershipModule } from './modules/membership/membership.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DriverModule } from './modules/driver/driver.module';
 import { SharedModule } from './shared';
+import { VehicleModule } from './vehicle/vehicle.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SharedModule } from './shared';
     AuthModule,
     DriverModule,
     SharedModule,
+    VehicleModule,
   ],
   controllers: [AppController],
   providers: [

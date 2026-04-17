@@ -56,7 +56,7 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | tsconfig strict:true + ESLint fix | ✅ Pronto (14 Abr) |
 | ✅ | Infraestrutura de testes unitários (Jest config, factories, padrão AAA) | ✅ Pronto (16 Abr) |
 | ✅ | Testes: LoginUseCase, RegisterOrgWithAdmin, SetupOrg, CreateMembership, CreateDriver (27 testes) | ✅ Pronto (16 Abr) |
-| ⏳ | CI/CD básico (GitHub Actions) | 1 dia |
+| ✅ | CI/CD básico (GitHub Actions) | ✅ Pronto (16 Abr) |
 | ⏳ | Testes 80%+ coverage (use cases restantes: Register, Refresh, CRUDs de User/Org) | 2-3 dias |
 
 **Saída:** API com 3 módulos CRUD, autenticação, roles, associações, seed automático, Docker pronto
