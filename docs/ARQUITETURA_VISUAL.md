@@ -1,5 +1,7 @@
 # 🗺️ ARQUITETURA VISUAL - Multi-Tenant RBAC
 
+> Atualizado em 17 Abr 2026 — reflete a implementação real do código.
+
 ---
 
 ## 1. FLUXO DE REQUISIÇÃO (Request Flow)
@@ -7,67 +9,71 @@
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │                        CLIENT                                  │
-│  (e.g., curl -H "Authorization: Bearer <JWT>" /vehicles)      │
+│  (e.g., curl -H "Authorization: Bearer <JWT>" /vehicles/:id)   │
 └─────────────────────────┬──────────────────────────────────────┘
-                          │ HTTP GET + Bearer Token
+                          │ HTTP + Bearer Token
                           ▼
         ┌─────────────────────────────────────┐
         │     (1) JwtAuthGuard                 │
         │  ├─ Valida assinatura JWT           │
         │  ├─ Valida expiração                │
-        │  └─ req.user agora contém JWT payload
+        │  ├─ Extrai payload enriquecido      │
+        │  └─ Popula req.context = {          │
+        │       userId, email,                │
+        │       organizationId, role, isDev    │
+        │     } (TenantContext)                │
         └─────────────┬───────────────────────┘
                       │
                       ▼
         ┌─────────────────────────────────────┐
-        │ (2) TenantContextMiddleware          │
-        │  ├─ Extrai organizationId do JWT    │
-        │  ├─ Extrai role do JWT              │
-        │  ├─ Injeta req.context = {...}      │
-        │  └─ Valida coerência                │
-        └─────────────┬───────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────────────────┐
-        │ (3) RolesGuard (se @Roles())         │
+        │ (2) RolesGuard (se @Roles())         │
         │  ├─ Lê @Roles() metadata            │
-        │  ├─ Compara com req.context.role    │
-        │  └─ Bloqueia se sem permissão       │
+        │  ├─ isDev=true? → bypass           │
+        │  └─ role ∈ requiredRoles? → allow  │
         └─────────────┬───────────────────────┘
                       │
                       ▼
         ┌─────────────────────────────────────┐
-        │ (4) TenantFilterGuard (se params)    │
-        │  ├─ Extrai :organizationId param    │
-        │  ├─ Valida == req.context.orgId    │
-        │  └─ Bloqueia IDOR                   │
+        │ (3) TenantFilterGuard               │
+        │  ├─ isDev=true? → bypass           │
+        │  ├─ B2C user (sem org)? → 403     │
+        │  ├─ Se :organizationId no path:    │
+        │  │    compara param vs JWT orgId   │
+        │  └─ Se só :id no path:             │
+        │       passa (use case valida)       │
         └─────────────┬───────────────────────┘
                       │
                       ▼ ✅ AUTHORIZED
         ┌─────────────────────────────────────┐
         │     Controller Handler               │
-        │  ├─ Recebe @GetTenantContext()      │
-        │  ├─ Recebe @GetTenantId()           │
-        │  └─ Context já validado!             │
+        │  ├─ Recebe @GetUser() → context   │
+        │  └─ Passa organizationId ao UC     │
         └─────────────┬───────────────────────┘
+                      │
+         ────────────┼───────────────
+        │                            │
+        ▼ PATH A                     ▼ PATH B
+  Rota com :orgId            Rota só com :id
+  (ex: POST/GET              (ex: GET/PUT/DELETE
+   /vehicles/org/:orgId)      /vehicles/:id)
+        │                            │
+        ▼                            ▼
+  TenantFilterGuard          Use Case valida
+  JÁ validou orgId           ownership:
+  → query direta             │
+        │                     ├─ Vehicle: compara
+        │                     │  vehicle.organizationId
+        │                     │  !== jwt.organizationId
+        │                     │  → VehicleAccessForbiddenError
+        │                     │
+        │                     └─ Driver: chama
+        │                        belongsToOrganization()
+        │                        via membership JOIN
+        │                        → DriverAccessForbiddenError
+        │                            │
+        └────────────┼───────────────
                       │
                       ▼
-        ┌─────────────────────────────────────┐
-        │     Service / Use Case               │
-        │  ├─ Valida business logic           │
-        │  └─ Chama Repository                 │
-        └─────────────┬───────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────────────────┐
-        │ TenantAwareRepository                │
-        │  ├─ repository.findByIdAndTenant()  │
-        │  │   WHERE id = :id                  │
-        │  │   AND organizationId = :tenantId │
-        │  └─ NotFoundException se não achar  │
-        └─────────────┬───────────────────────┘
-                      │
-                      ▼ SELECT + WHERE tenant_id
         ┌─────────────────────────────────────┐
         │     Prisma / Database                │
         │  ├─ Executa query segura             │
@@ -76,15 +82,20 @@
                       │
                       ▼
         ┌─────────────────────────────────────┐
-        │     Response Presenter               │
-        │  └─ Serializa para HTTP              │
+        │     Presenter                        │
+        │  └─ toHTTP() → serializa resposta  │
         └─────────────┬───────────────────────┘
                       │
                       ▼ HTTP 200 + Data
 ┌────────────────────────────────────────────────────────────────┐
 │                        CLIENT                                  │
-│  { id, name, organizationId, ... }                             │
+│  { id, plate, model, organizationId, ... }                      │
 └────────────────────────────────────────────────────────────────┘
+
+NOTA: Não existe TenantContextMiddleware. O TenantContext é populado
+diretamente pelo JwtAuthGuard ao validar o JWT. O payload já contém
+todos os dados necessários (userId, organizationId, role, isDev),
+sem query ao banco por request.
 ```
 
 ---
@@ -241,33 +252,65 @@ ORGANIZAÇÃO (Root Entity)
 │ status: Status       │
 └──────┬───────────────┘
        │ FK References (organizationId)
-       ├─────────► user_role (N:1)
-       ├─────────► vehicle (N:1)
-       ├─────────► driver (N:1)           ← NOVO
-       ├─────────► trip_template (N:1)
-       ├─────────► trip_instance (N:1)    ← NOVO Redundancy
-       ├─────────► enrollment (N:1)
-       ├─────────► payment (N:1)
-       ├─────────► audit_log (N:1)
-       └─────────► subscription (N:1)
+       ├─────────► user_role (N:1)          ← OrganizationMembership
+       ├─────────► vehicle (N:1)            ← FK direta ✅
+       ├─────────► trip_template (N:1)     ← Futuro
+       ├─────────► trip_instance (N:1)     ← Futuro
+       ├─────────► enrollment (N:1)       ← Futuro
+       ├─────────► payment (N:1)          ← Futuro
+       └─────────► subscription (N:1)     ← Futuro
+
+⚠️  DRIVER NÃO TEM FK DIRETA PARA ORGANIZATION!
+    Driver → User → OrganizationMembership → Organization
+    Vínculo é via tabela pivot user_role (permite driver multi-org)
+
+VEHICLE (FK direta)           DRIVER (sem FK, via membership)
+┌─────────────────────┐     ┌─────────────────────┐
+│ vehicle              │     │ driver               │
+├─────────────────────┤     ├─────────────────────┤
+│ id: UUID (PK)        │     │ id: UUID (PK)        │
+│ plate: String @unique│     │ userId: String @unique│
+│ model: String        │     │ cnh: String @unique  │
+│ type: VehicleType    │     │ cnhCategory: String  │
+│ maxCapacity: Int     │     │ cnhExpiresAt: Date   │
+│ status: Status       │     │ driverStatus: Status │
+│ organizationId: FK ✅ │     │ (sem organizationId!)│
+└─────────────────────┘     └─────────────────────┘
+
+Vehicle: verificado         Driver: verificado via
+diretamente via             belongsToOrganization()
+vehicle.organizationId      query: user.userRoles.some(
+!== jwt.organizationId        { organizationId, removedAt: null }
+→ VehicleAccessForbidden    )
+                            → DriverAccessForbidden
 
 EXEMPLO DE ISOLAMENTO:
 
 ORG 1 (id: org-111)          ORG 2 (id: org-222)
 ├─ Vehicle 1 (v-111)         ├─ Vehicle 1 (v-222)
-├─ Driver 1 (d-111)          ├─ Driver 1 (d-222)
-├─ Trip 1 (t-111)            ├─ Trip 1 (t-222)
-└─ User 1 (related)          └─ User 1 (related)
+├─ Driver 1 (via membership) ├─ Driver 2 (via membership)
+└─ Admin (via membership)    └─ Admin (via membership)
 
-Query Admin ORG1:
-SELECT * FROM vehicle 
+Driver 1 pode pertencer a ORG 1 E ORG 2 simultaneamente!
+(vínculo via OrganizationMembership, não FK direta)
+
+Query Admin ORG1 (vehicles):
+SELECT * FROM vehicle
 WHERE organizationId = 'org-111'
 ╔═══════════════════════════════╗
 ║  v-111 ✅ (pertence ORG 1)    ║
 ║  v-222 ❌ (filtered out)      ║
 ╚═══════════════════════════════╝
 
-Impossível ver dados de org-222!
+Query Admin ORG1 (drivers):
+SELECT * FROM driver
+WHERE user.userRoles.some(
+  { organizationId: 'org-111', removedAt: null, role: 'DRIVER' }
+)
+╔═══════════════════════════════╗
+║  d-111 ✅ (membership ORG 1)  ║
+║  d-222 ❌ (filtered out)      ║
+╚═══════════════════════════════╝
 ```
 
 ---
@@ -350,48 +393,66 @@ EXEMPLOS DE ROTAS:
 ┌─────────────────────────────────────────────────────────┐
 │              ❌ ANTES (Vulnerável)                       │
 ├─────────────────────────────────────────────────────────┤
-│ GET /users/123 (qualquer um autenticado)               │
-│ ├─ Controller: Sem validação                            │
-│ └─ DB: SELECT * FROM user WHERE id = '123'            │
-│    (retorna dados de qualquer usuário!)                │
-│                                                         │
-│ GET /vehicles/abc (sem @Roles)                         │
-│ ├─ Controller: Sem guard de tenant                     │
+│ GET /vehicles/abc (sem validação de ownership)         │
+│ ├─ Controller: Busca por ID sem checar org             │
 │ └─ DB: SELECT * FROM vehicle WHERE id = 'abc'         │
-│    (Admin A consegue ver Admin B)                      │
+│    (Admin A consegue ver veículo de Admin B!)          │
 │                                                         │
-│ Query de Driver:                                       │
-│ SELECT * FROM trip WHERE vehicleId = 'v-123'          │
-│ (3-4 queries: resolve org → valida → retorna)         │
-│ (N+1 problem)                                          │
+│ GET /drivers/xyz (mesmo problema)                       │
+│ ├─ Controller: Busca por ID sem checar org             │
+│ └─ DB: SELECT * FROM driver WHERE id = 'xyz'          │
+│    (Qualquer admin vê qualquer driver!)                │
 │                                                         │
-│ ⚠️ RESULTADO: IDOR + Dados expostos + Performance ruim │
+│ PUT /vehicles/abc (atualiza veículo inativo)            │
+│ ├─ Controller: Sem check de status                     │
+│ └─ Permite alterar veículo soft-deleted!                │
+│                                                         │
+│ ⚠️ RESULTADO: IDOR + Dados expostos + Soft delete bypass │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│              ✅ DEPOIS (Seguro)                          │
+│              ✅ DEPOIS (Seguro — 17 Abr 2026)            │
 ├─────────────────────────────────────────────────────────┤
-│ GET /users/me (rota segura)                            │
-│ ├─ JwtAuthGuard: Valida JWT                            │
-│ ├─ GetTenantContext: Extrai userId                     │
-│ └─ DB: SELECT * FROM user WHERE id = req.context.userId
-│    (impossível acessar outro usuário)                  │
 │                                                         │
-│ GET /org/abc/vehicles/v-123 (com Guards)               │
-│ ├─ JwtAuthGuard: Valida token                          │
-│ ├─ TenantFilterGuard: Valida org=abc vs JWT org        │
-│ ├─ RolesGuard: Valida role=ADMIN                       │
-│ └─ DB: SELECT * FROM vehicle WHERE id='v-123'         │
-│       AND organizationId='abc'                         │
-│    (Double validation, impossible IDOR)               │
+│ ═══ VEHICLE (FK direta) ═══                            │
 │                                                         │
-│ Query de Driver:                                       │
-│ SELECT * FROM trip WHERE driverId='driver-xyz'        │
-│       AND organizationId='org-tenant'                  │
-│ (1-2 queries, direto no JWT)                          │
-│ (Performance otimizada)                                │
+│ GET /vehicles/organization/:orgId (listagem)            │
+│ ├─ TenantFilterGuard: orgId param == JWT orgId ✅       │
+│ ├─ RolesGuard: @Roles(ADMIN) ✅                        │
+│ └─ DB: WHERE organizationId = :orgId                   │
 │                                                         │
-│ ✅ RESULTADO: Zero IDOR + Isolamento perfeito + Rápido │
+│ GET /vehicles/:id (busca por ID)                        │
+│ ├─ RolesGuard: @Roles(ADMIN) ✅                        │
+│ ├─ Controller: passa context.organizationId ao UC      │
+│ ├─ UseCase: vehicle.organizationId !== jwt.orgId?      │
+│ │  → VehicleAccessForbiddenError (403)                 │
+│ └─ Impossível acessar veículo de outra org              │
+│                                                         │
+│ PUT /vehicles/:id (atualização)                         │
+│ ├─ UseCase: ownership check (como acima)               │
+│ ├─ UseCase: vehicle.isActive()?                        │
+│ │  → VehicleInactiveError (410 Gone) se INACTIVE       │
+│ └─ Soft-deleted não pode ser atualizado ✅              │
+│                                                         │
+│ ═══ DRIVER (sem FK, via membership JOIN) ═══            │
+│                                                         │
+│ GET /drivers/:id (busca por ID)                         │
+│ ├─ RolesGuard: @Roles(ADMIN) ✅                        │
+│ ├─ Controller: passa context.organizationId ao UC      │
+│ ├─ UseCase: belongsToOrganization(driverId, orgId)     │
+│ │  query: driver.user.userRoles.some({                  │
+│ │    organizationId, removedAt: null                     │
+│ │  })                                                   │
+│ │  false → DriverAccessForbiddenError (403)             │
+│ └─ Impossível acessar driver de outra org               │
+│                                                         │
+│ ═══ MEMBERSHIP (protegido via route param) ═══          │
+│                                                         │
+│ Todas as rotas incluem :organizationId no path          │
+│ → TenantFilterGuard valida automaticamente              │
+│ → Sem necessidade de check no use case                  │
+│                                                         │
+│ ✅ RESULTADO: Zero IDOR + Isolamento perfeito + Seguro   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -401,74 +462,198 @@ EXEMPLOS DE ROTAS:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│               CENÁRIO: Ataque IDOR                        │
+│     CENÁRIO 1: IDOR via route com :organizationId        │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
-│ Attacker: Admin A de Org_1                             │
-│ Target: GET /org/org_2/vehicles/v_2_123                │
+│ Attacker: Admin A de Org_1                              │
+│ Target: GET /vehicles/organization/org_2                 │
 │                                                          │
 │ ┌─────────────────────────────────────┐                │
 │ │ (1) JwtAuthGuard                    │                │
 │ │ ├─ JWT válido? ✅ Sim               │                │
-│ │ └─ Continua...                      │                │
+│ │ └─ Popula req.context              │                │
 │ └──────────────┬──────────────────────┘                │
 │                │                                        │
 │ ┌──────────────▼──────────────────────┐                │
 │ │ (2) TenantFilterGuard                │                │
-│ │ ├─ organizationId == 'org_2'?        │                │
-│ │ ├─ JWT contém organizationId='org_1' │                │
+│ │ ├─ param.organizationId = 'org_2'   │                │
+│ │ ├─ JWT organizationId = 'org_1'     │                │
 │ │ ├─ org_2 !== org_1                  │                │
 │ │ └─ 🚫 BLOQUEADO!                     │                │
 │ └──────────────┬──────────────────────┘                │
 │                │                                        │
 │ ┌──────────────▼──────────────────────┐                │
 │ │ HTTP 403 Forbidden                   │                │
-│ │ {                                    │                │
-│ │   \"error\": \"Insufficient access\",│                │
-│ │   \"message\": \"Resource not found\"│                │
-│ │ }                                    │                │
 │ └──────────────────────────────────────┘                │
 │                                                          │
-│ ✅ Ataque bloqueado antes do BD!                        │
-│ ✅ Admin A nunca descobre que org_2 existe              │
-│ ✅ Log de tentativa gerado (auditoria)                  │
+│ ✅ Ataque bloqueado ANTES de chegar ao BD!               │
+│ ✅ Admin A nunca descobre que org_2 existe               │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────┐
-│            CENÁRIO: Privilege Escalation                 │
+│     CENÁRIO 2: IDOR via route só com :id (Vehicle)       │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
-│ Attacker: User comum de Org_1                          │
-│ Objetivo: Acessar admin route                          │
-│ Target: GET /org/org_1/vehicles (ADMIN only)           │
+│ Attacker: Admin A de Org_1                              │
+│ Target: GET /vehicles/v_org2_123                         │
+│ (veículo que pertence a Org_2)                           │
 │                                                          │
 │ ┌─────────────────────────────────────┐                │
-│ │ (1) JwtAuthGuard                    │                │
-│ │ ├─ JWT válido? ✅ Sim               │                │
-│ │ └─ Continua...                      │                │
+│ │ (1) JwtAuthGuard         ✅        │                │
+│ │ (2) RolesGuard (ADMIN)   ✅        │                │
+│ │ (3) TenantFilterGuard    ✅        │                │
+│ │     (sem :orgId no path, passa)   │                │
 │ └──────────────┬──────────────────────┘                │
 │                │                                        │
 │ ┌──────────────▼──────────────────────┐                │
-│ │ (2) RolesGuard                       │                │
-│ │ ├─ @Roles('ADMIN') obrigatório      │                │
-│ │ ├─ JWT contém role=null (B2C user)  │                │
-│ │ ├─ null !== 'ADMIN'                 │                │
-│ │ └─ 🚫 BLOQUEADO!                     │                │
+│ │ (4) FindVehicleByIdUseCase          │                │
+│ │ ├─ Busca vehicle no BD              │                │
+│ │ ├─ vehicle.organizationId = org_2   │                │
+│ │ ├─ jwt.organizationId = org_1       │                │
+│ │ ├─ org_2 !== org_1                  │                │
+│ │ └─ throw VehicleAccessForbiddenError│                │
+│ └──────────────┬──────────────────────┘                │
+│                │                                        │
+│ ┌──────────────▼──────────────────────┐                │
+│ │ AllExceptionsFilter                  │                │
+│ │ code: 'VEHICLE_ACCESS_FORBIDDEN'     │                │
+│ │ sufixo _FORBIDDEN → HTTP 403        │                │
+│ └──────────────────────────────────────┘                │
+│                                                          │
+│ ✅ Ataque bloqueado na camada de USE CASE                │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│     CENÁRIO 3: IDOR via route só com :id (Driver)        │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│ Attacker: Admin A de Org_1                              │
+│ Target: GET /drivers/d_org2_456                          │
+│ (driver vinculado apenas a Org_2 via membership)         │
+│                                                          │
+│ ┌─────────────────────────────────────┐                │
+│ │ Guards passam (sem :orgId no path)  │                │
+│ └──────────────┬──────────────────────┘                │
+│                │                                        │
+│ ┌──────────────▼──────────────────────┐                │
+│ │ FindDriverByIdUseCase                │                │
+│ │ ├─ Busca driver no BD               │                │
+│ │ ├─ belongsToOrganization(           │                │
+│ │ │    driverId, jwt.organizationId)   │                │
+│ │ ├─ Query: driver.user.userRoles      │                │
+│ │ │  .some({ orgId, removedAt: null }) │                │
+│ │ ├─ Resultado: false (não pertence)  │                │
+│ │ └─ throw DriverAccessForbiddenError │                │
+│ └──────────────┬──────────────────────┘                │
+│                │                                        │
+│ ┌──────────────▼──────────────────────┐                │
+│ │ AllExceptionsFilter                  │                │
+│ │ code: 'DRIVER_ACCESS_FORBIDDEN'      │                │
+│ │ sufixo _FORBIDDEN → HTTP 403        │                │
+│ └──────────────────────────────────────┘                │
+│                                                          │
+│ ✅ Ownership verificado via OrganizationMembership JOIN  │
+│ ✅ Sem FK direta, então check é no use case              │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│     CENÁRIO 4: Update de veículo soft-deleted            │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│ Admin tenta: PUT /vehicles/v_123                         │
+│ Body: { plate: 'ABC1234' }                               │
+│ (veículo já foi removido via DELETE, status=INACTIVE)    │
+│                                                          │
+│ ┌─────────────────────────────────────┐                │
+│ │ UpdateVehicleUseCase                 │                │
+│ │ ├─ Busca vehicle ✅                  │                │
+│ │ ├─ Ownership check ✅               │                │
+│ │ ├─ vehicle.isActive()? ❌ INACTIVE  │                │
+│ │ └─ throw VehicleInactiveError       │                │
+│ └──────────────┬──────────────────────┘                │
+│                │                                        │
+│ ┌──────────────▼──────────────────────┐                │
+│ │ AllExceptionsFilter                  │                │
+│ │ code: 'VEHICLE_INACTIVE_GONE'       │                │
+│ │ match genérico → HTTP 500*          │                │
+│ └──────────────────────────────────────┘                │
+│                                                          │
+│ * sufixo _GONE não está mapeado no filter atual.        │
+│   Considerar adicionar mapeamento → HTTP 410.           │
+│                                                          │
+│ ✅ Veículos desativados não podem ser alterados          │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│     CENÁRIO 5: Privilege Escalation                      │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│ Attacker: User B2C (sem org, sem role)                  │
+│ Target: GET /vehicles/organization/org_1                 │
+│                                                          │
+│ ┌─────────────────────────────────────┐                │
+│ │ (1) JwtAuthGuard         ✅        │                │
+│ │ (2) RolesGuard                      │                │
+│ │     @Roles(ADMIN) required         │                │
+│ │     JWT role = null (B2C)          │                │
+│ │     null !== 'ADMIN'               │                │
+│ │     🚫 BLOQUEADO!                    │                │
 │ └──────────────┬──────────────────────┘                │
 │                │                                        │
 │ ┌──────────────▼──────────────────────┐                │
 │ │ HTTP 403 Forbidden                   │                │
-│ │ {                                    │                │
-│ │   \"error\": \"Insufficient perms\", │                │
-│ │   \"required_roles\": [\"ADMIN\"]    │                │
-│ │ }                                    │                │
 │ └──────────────────────────────────────┘                │
 │                                                          │
-│ ✅ Escalation impedido                                  │
-│ ✅ B2C users NUNCA conseguem admin access               │
+│ ✅ B2C users NUNCA acessam rotas admin                   │
+│ ✅ Bloqueio no RolesGuard antes do TenantFilterGuard     │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7.1 AllExceptionsFilter — Mapeamento DomainError → HTTP
+
+```
+┌───────────────────────────────────────────────────────────┐
+│  TABELA DE MAPEAMENTO (sufixo do code → HTTP status)     │
+├───────────────────────────────────────────────────────────┤
+│                                                           │
+│  *_NOT_FOUND              → 404 Not Found                 │
+│  *_ALREADY_EXISTS         → 409 Conflict                  │
+│  INVALID_* | *_BAD_REQUEST → 400 Bad Request              │
+│  *_FORBIDDEN              → 403 Forbidden                 │
+│  *_UNAUTHORIZED           → 401 Unauthorized              │
+│  (qualquer outro)         → 500 Internal Server Error     │
+│                                                           │
+├───────────────────────────────────────────────────────────┤
+│  EXEMPLOS REAIS:                                          │
+│                                                           │
+│  VEHICLE_ACCESS_FORBIDDEN      → 403                      │
+│  DRIVER_ACCESS_FORBIDDEN       → 403                      │
+│  ORGANIZATION_ACCESS_FORBIDDEN → 403                      │
+│  VEHICLE_NOT_FOUND             → 404                      │
+│  DRIVER_NOT_FOUND              → 404                      │
+│  PLATE_ALREADY_IN_USE          → 409                      │
+│  DRIVER_ALREADY_EXISTS         → 409                      │
+│  INVALID_PLATE                 → 400                      │
+│  INVALID_MAX_CAPACITY          → 400                      │
+│  VEHICLE_INACTIVE_GONE         → 500 (sem match _GONE)   │
+│                                                           │
+├───────────────────────────────────────────────────────────┤
+│  RESPONSE BODY:                                           │
+│  {                                                        │
+│    "statusCode": 403,                                     │
+│    "timestamp": "2026-04-17T...",                          │
+│    "path": "/vehicles/abc-123",                            │
+│    "message": "Access denied to this vehicle",             │
+│    "error": "VEHICLE_ACCESS_FORBIDDEN"                     │
+│  }                                                        │
+└───────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -477,137 +662,217 @@ EXEMPLOS DE ROTAS:
 
 ```
 ┌───────────────────────────────────────────────────┐
-│  ÍNDICES CRÍTICOS CRIADOS                        │
+│  ÍNDICES EXISTENTES NO SCHEMA (17 Abr 2026)      │
 ├───────────────────────────────────────────────────┤
 
-idx_driver_organization_id
-  └─ driver (organization_id)
-     Queries: SELECT * FROM driver WHERE org_id = X
+vehicle @@index([organizationId])
+  └─ Queries: WHERE organizationId = :orgId
+     Usado por: FindAllVehiclesByOrganization
 
-idx_driver_user_org (UNIQUE)
-  └─ driver (user_id, organization_id)
-     Ensures: 1 User can be driver of multiple Orgs
-     Prevents: Duplicate driver entries per org
+vehicle @@index([status])
+  └─ Queries: filtros por status ACTIVE/INACTIVE
 
-idx_trip_instance_organization_id
-  └─ trip_instance (organization_id)
-     Queries: SELECT * FROM trip WHERE org_id = X
+driver @unique(userId)
+  └─ Garante 1 perfil driver por user
+     Index implícito via @unique
 
-idx_trip_instance_driver_org (COMPOSITE)
-  └─ trip_instance (driver_id, organization_id)
-     Queries: SELECT * FROM trip WHERE driver=Y AND org=Z
+driver @unique(cnh)
+  └─ Garante unicidade de CNH no sistema
+     Index implícito via @unique
 
-idx_vehicle_org_id (COMPOSITE)
-  └─ vehicle (organization_id, id)
-     Pattern: Commonly filtered by org
+vehicle @unique(plate)
+  └─ Garante unicidade de placa no sistema
+     Index implícito via @unique
 
-idx_trip_template_org_public
-  └─ trip_template (organization_id, is_public)
-     Use: Find public trips of org X
-
+user_role @@id([userId, roleId, organizationId])
+  └─ Chave composta da membership
+     Previne membership duplicada
 
 ┌───────────────────────────────────────────────────┐
-│  PERFORMANCE METRICS (BEFORE vs AFTER)            │
+│  NOTA: Driver NÃO tem index de organizationId     │
+│  (removido em 15 Abr — redesign arquitetural)    │
+│  Queries de driver por org usam JOIN via          │
+│  user.userRoles.some({ organizationId })          │
+└───────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────┐
+│  PERFORMANCE: JWT Strategy otimizada              │
 ├───────────────────────────────────────────────────┤
 
-Query: Get user trips
-BEFORE: SELECT * FROM trip_instance
-        JOIN driver ON ...
-        JOIN vehicle ON ...
-        WHERE user_id = :id
-        → 3-4 DB queries, 150ms avg
+ANTES (até 13 Abr):
+  Cada request autenticado:
+  → JWT validate → userRepository.findById()
+  → 1 query extra por request = latência
 
-AFTER:  SELECT * FROM trip_instance
-        WHERE driver_id = :id
-        AND organization_id = :org_id
-        → 1 query, 30ms avg
-        → 80% faster!
-
-Query: List vehicles for org
-BEFORE: Query all, filter in app
-        → 5000+ rows, app filter
-        
-AFTER:  SELECT * FROM vehicle
-        WHERE organization_id = :org_id
-        → 50 rows indexed, instant
+DEPOIS:
+  Cada request autenticado:
+  → JWT validate → retorna payload direto
+  → 0 queries ao BD por request
+  → Payload enriquecido no login com
+    userId, organizationId, role, isDev
 ```
 
 ---
 
-## 9. FLUXO DE INTEGRAÇÃO DO CÓDIGO
+## 9. ESTRUTURA REAL DO CÓDIGO (17 Abr 2026)
 
 ```
-novos/modificados files:
-
 src/
+├── main.ts
+├── app.module.ts
+├── app.controller.ts
+│
 ├── shared/
-│   ├── middleware/
-│   │   └── tenant-context.middleware.ts (✅ NOVO)
-│   ├── guards/
-│   │   ├── jwt.guard.ts (LENDO)
-│   │   ├── roles.guard.ts (REFATOR)
-│   │   └── tenant-filter.guard.ts (✅ NOVO)
+│   ├── shared.module.ts
+│   ├── index.ts                            # barrel export
+│   │
+│   ├── domain/
+│   │   ├── entities/
+│   │   │   ├── role.entity.ts
+│   │   │   └── value-objects/
+│   │   │       ├── email.value-object.ts
+│   │   │       └── telephone.value-object.ts
+│   │   ├── errors/
+│   │   │   ├── domain.error.ts             # abstract DomainError base
+│   │   │   ├── roles.error.ts
+│   │   │   └── validation.error.ts
+│   │   ├── interfaces/
+│   │   │   ├── paginated.response.ts
+│   │   │   ├── pagination.options.ts
+│   │   │   └── role.repository.ts
+│   │   └── types/
+│   │       ├── role-name.enum.ts           # ADMIN, DRIVER
+│   │       └── status.type.ts              # ACTIVE | INACTIVE
+│   │
 │   ├── infrastructure/
+│   │   ├── database/
+│   │   │   ├── prisma.module.ts
+│   │   │   ├── prisma.service.ts
+│   │   │   ├── mappers/role.mapper.ts
+│   │   │   └── repositories/prisma-role.repository.ts
 │   │   ├── decorators/
-│   │   │   ├── roles.decorator.ts (LENDO)
-│   │   │   ├── get-tenant-context.decorator.ts (✅ NOVO)
-│   │   │   └── get-tenant-id.decorator.ts (✅ NOVO)
-│   │   └── repositories/
-│   │       └── membership.repository.ts (✅ NOVO)
-│   └── domain/
-│       └── interfaces/
-│           └── tenant-aware.repository.ts (✅ NOVO)
+│   │   │   ├── get-user.decorator.ts       # @GetUser() → TenantContext
+│   │   │   ├── get-tenant-id.decorator.ts  # @GetTenantId() → string
+│   │   │   ├── roles.decorator.ts          # @Roles(...)
+│   │   │   └── dev.decorator.ts            # @Dev()
+│   │   ├── guards/
+│   │   │   ├── jwt.guard.ts                # JwtAuthGuard (popula req.context!)
+│   │   │   ├── roles.guard.ts              # RolesGuard (isDev bypass)
+│   │   │   ├── tenant-filter.guard.ts      # TenantFilterGuard
+│   │   │   └── dev.guard.ts                # DevGuard
+│   │   └── types/
+│   │       ├── jwt-payload.interface.ts     # JwtPayload
+│   │       └── tenant-context.interface.ts  # TenantContext
+│   │
+│   ├── presentation/
+│   │   ├── dtos/paginated.dto.ts
+│   │   ├── exceptions/
+│   │   │   └── all-exceptions.filter.ts    # DomainError → HTTP mapping
+│   │   └── interceptors/
+│   │       ├── logging.interceptor.ts
+│   │       └── tenant-context.interceptor.ts  # ⚠️ DEPRECATED
+│   │
+│   └── providers/
+│       └── hash/bcrypt-hash.provider.ts
 │
 ├── modules/
-│   ├── auth/
+│   ├── auth/          ✅ COMPLETO
+│   │   ├── application/use-cases/
+│   │   │   ├── login.use-case.ts
+│   │   │   ├── register.use-case.ts
+│   │   │   ├── refresh-token.use-case.ts
+│   │   │   ├── register-organization-with-admin.use-case.ts
+│   │   │   └── setup-organization-for-existing-user.use-case.ts
+│   │   ├── infrastructure/jwt.strategy.ts
+│   │   ├── presentation/controllers/auth.controller.ts
+│   │   └── auth.module.ts
+│   │
+│   ├── user/          ✅ COMPLETO
+│   │   ├── application/ (dtos + use-cases)
+│   │   ├── domain/ (entity + errors + interfaces)
+│   │   ├── infrastructure/ (mapper + repository)
+│   │   ├── presentation/ (controller + presenter)
+│   │   └── user.module.ts
+│   │
+│   ├── organization/  ✅ COMPLETO
+│   │   ├── application/ (dtos + use-cases)
+│   │   ├── domain/ (entity + errors + value-objects + interfaces)
+│   │   ├── infrastructure/ (mapper + repository)
+│   │   ├── presentation/ (controller + presenter)
+│   │   └── organization.module.ts
+│   │
+│   ├── membership/    ✅ COMPLETO
+│   │   ├── application/ (dtos + use-cases)
+│   │   ├── domain/ (entity + errors + interfaces)
+│   │   ├── infrastructure/ (mapper + repository)
+│   │   ├── presentation/ (controller + presenter)
+│   │   └── membership.module.ts
+│   │
+│   ├── driver/        ✅ COMPLETO (IDOR fix 17 Abr)
+│   │   ├── application/
+│   │   │   ├── dtos/ (create, update, response, lookup-response)
+│   │   │   └── use-cases/ (7: create, update, findById,
+│   │   │       findByUserId, findByOrg, remove, lookup)
+│   │   ├── domain/
+│   │   │   ├── entities/driver.entity.ts
+│   │   │   ├── entities/errors/driver.errors.ts  # 11+ tipos
+│   │   │   ├── value-objects/ (cnh, cnh-category)
+│   │   │   └── interfaces/driver.repository.ts
+│   │   │       # inclui belongsToOrganization() ← NOVO 17 Abr
 │   │   ├── infrastructure/
-│   │   │   └── jwt.strategy.ts (REFATOR +JWT context)
-│   │   └── auth.module.ts (REFATOR +services)
+│   │   │   ├── db/mappers/driver.mapper.ts
+│   │   │   └── db/repositories/prisma-driver.repository.ts
+│   │   ├── presentation/
+│   │   │   ├── controllers/driver.controller.ts
+│   │   │   └── mappers/driver.presenter.ts
+│   │   ├── driver.module.ts
+│   │   └── README.md
 │   │
-│   ├── user/
-│   │   ├── presentation/controllers/
-│   │   │   └── user.controller.ts (REFATOR: /me routes)
-│   │   └── repository (LENDO)
-│   │
-│   ├── vehicle/
-│   │   ├── presentation/controllers/
-│   │   │   └── vehicle.controller.ts (✅ NOVO)
-│   │   ├── application/services/ (✅ NOVO)
-│   │   └── infrastructure/repositories/
-│   │       └── prisma-vehicle.repository.ts (✅ NOVO)
-│   │
-│   ├── trip/
-│   │   ├── presentation/controllers/
-│   │   │   └── trip.controller.ts (✅ NOVO)
-│   │   ├── application/services/ (✅ NOVO)
-│   │   └── infrastructure/repositories/ (✅ NOVO)
-│   │
-│   ├── organization/
-│   │   └── presentation/controllers/
-│   │       └── organization.controller.ts (REFATOR +guards)
-│   │
-│   └── membership/
-│       └── presentation/controllers/
-│           └── membership.controller.ts (REFATOR +filters)
+│   └── vehicle/       ✅ COMPLETO (17 Abr)
+│       ├── application/
+│       │   ├── dtos/ (create, update, response)
+│       │   └── use-cases/ (5: create, findById,
+│       │       findAllByOrg, update, remove)
+│       ├── domain/
+│       │   ├── entities/vehicle.entity.ts
+│       │   ├── entities/errors/vehicle.errors.ts  # 8 tipos
+│       │   ├── entities/value-objects/plate.value-object.ts
+│       │   └── interfaces/vehicle.repository.ts
+│       │       # inclui enums VehicleType, VehicleStatus
+│       ├── infrastructure/
+│       │   ├── db/mappers/vehicle.mapper.ts
+│       │   └── db/repositories/prisma-vehicle.repository.ts
+│       ├── presentation/
+│       │   ├── controllers/vehicle.controller.ts
+│       │   └── mappers/vehicle.presenter.ts
+│       ├── vehicle.module.ts
+│       └── README.md
 │
-├── app.module.ts (REFATOR: +TenantContext middleware)
-│
-└── main.ts (LENDO)
-
+├── test/
+│   ├── jest-unit.json
+│   └── modules/
+│       ├── auth/       (3 suites: login, registerOrg, setupOrg)
+│       ├── membership/ (1 suite: createMembership)
+│       └── driver/     (1 suite: createDriver)
 
 prisma/
-├── schema.prisma (REFATOR: +Driver.org, TripInstance.org rel)
+├── schema.prisma       # Driver SEM organizationId
+├── seed.ts             # Role seeding (ADMIN, DRIVER)
 └── migrations/
-    ├── [existing migrations]/
-    └── [timestamp]_add_tenant_id_critical/
-        └── migration.sql (✅ NOVO SQL migrations)
 ```
+
+**NOTA: Não existem no projeto (apesar de docs anteriores citarem):**
+- ❌ `tenant-context.middleware.ts` — TenantContext é pelo JwtAuthGuard
+- ❌ `tenant-aware.repository.ts` — filtro de tenant é manual nos use cases
+- ❌ `get-tenant-context.decorator.ts` — consolidado no `@GetUser()`
+- ❌ `membership.repository.ts` em shared — está no módulo membership
 
 ---
 
-**Fim da Arquitetura Visual**
+**Fim da Arquitetura Visual** (atualizado 17 Abr 2026)
 
-Para implementação prática: veja `GUIA_PRATICO_CODIGO_READY_USE.md`  
-Para timeline: veja `PLANO_ACAO_EXECUTIVO.md`  
-Para análise profunda: veja `ANALISE_TECNICA_SAAS_MULTITENANT_RBAC.md`
+Para docs de módulo: veja `src/modules/<module>/README.md`
+Para documentação técnica: veja `DOCUMENTACAO_TECNICA.md`
+Para timeline: veja `ROADMAP.md`
+Para progresso: veja `PROGRESS.md`
 

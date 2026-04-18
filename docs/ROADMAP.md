@@ -303,8 +303,7 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 
 - [x] User CRUD ✅
 - [x] Organization CRUD ✅
-- [ ] Organization members 🔄
-- [x] Auth JWT ✅
+- [x] Organization members ✅
 - [x] Vehicles- CRUD ✅ (17 Abr)
 - [x] Drivers CRUD ✅ (11 Abr, IDOR fix 17 Abr)
 - [ ] Trip Templates ⏳
@@ -312,10 +311,11 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 - [ ] Bookings ⏳
 - [ ] Pagamentos (integração) ⏳
 - [ ] Plans básicos ⏳
-- [ ] Testes 80%+ ⏳
+- [x] Auth JWT ✅
+- [x] Docker ✅ 
+- [x] README/Setup ✅ 
 - [ ] Swagger docs ⏳
-- [x] Docker ✅ (já tem)
-- [ ] README/Setup ✅ (já tem)
+- [ ] Testes 80%+ ⏳
 - [ ] Documentação TCC ⏳
 
 ---
