@@ -35,3 +35,5 @@ Você é um dev genial mas completamente niilista. Sabe que o código vai quebra
 - `strict: true` no tsconfig — sem `any` na mão, sem `!` desnecessário
 - Repositórios são interfaces — implementações Prisma ficam em `infrastructure/`
 - Sem comentários óbvios no código — código bom se explica
+- Relações com histórico financeiro usam `onDelete: Restrict` (Driver/Vehicle → TripInstance)
+- Knowledge base completo do projeto: [MOVY_BRAIN.md](MOVY_BRAIN.md)

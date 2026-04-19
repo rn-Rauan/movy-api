@@ -1,7 +1,7 @@
 # MOVY_BRAIN.md — Knowledge Skill File
 
 > Fonte única de verdade do projeto. Lido pelo Copilot em cada sessão.  
-> Última atualização: 15 Abr 2026
+> Última atualização: 19 Abr 2026
 
 ---
 
@@ -132,6 +132,19 @@ interface PaginatedResponse<T> { data: T[]; total: number; page: number; limit: 
 - Seed automático no startup do Docker via `prisma/seed.ts`
 - `upsert` garante idempotência
 
+### 3.7 Vehicle Module ✅ (implementado 17 Abr)
+- CRUD completo + Soft Delete (status → INACTIVE)
+- Multi-tenant: `organizationId` obrigatório
+- Value Objects: `Plate` (formato brasileiro)
+- Endpoints:
+  - `POST /organizations/:organizationId/vehicles` — ADMIN only
+  - `GET /organizations/:organizationId/vehicles` — paginado
+  - `GET /vehicles/:id` — detalhe
+  - `PUT /vehicles/:id` — atualizar
+  - `DELETE /vehicles/:id` — soft delete
+- Domain Errors: `VehicleNotFoundError`, `VehicleAlreadyExistsError`
+- `VehicleModule` importa apenas `SharedModule`
+
 ---
 
 ## 4. RBAC — PIPELINE DE GUARDS
@@ -193,7 +206,7 @@ Plan ──────────────── Subscription ──── 
 - `Status`: ACTIVE | INACTIVE
 - `DriverStatus`: ACTIVE | INACTIVE | SUSPENDED
 - `RoleName`: ADMIN | DRIVER
-- `TripStatus`: SCHEDULED | CONFIRMED | IN_PROGRESS | FINISHED | CANCELED
+- `TripStatus`: SCHEDULED | AWAITING_DECISION | CONFIRMED | IN_PROGRESS | FINISHED | CANCELED
 - `RouteType`: ONE_WAY | RETURN | ROUND_TRIP
 - `DayOfWeek`: SUNDAY…SATURDAY
 - `Shift`: MORNING | AFTERNOON | EVENING
@@ -209,6 +222,11 @@ Plan ──────────────── Subscription ──── 
 - `TripInstance.totalCapacity` é snapshot do veículo no momento do agendamento (histórico)
 - `Enrollment` tem `boardingStop` e `alightingStop` (paradas de embarque/desembarque)
 - `Driver` **não tem** `organizationId` (removido em 15 Abr 2026)
+- `TripInstance` → `Driver`/`Vehicle` usa `onDelete: Restrict` (protege histórico financeiro)
+- `TripInstance` tem `@@unique([tripTemplateId, departureTime])` (previne instâncias duplicadas)
+- `TripTemplate.stops` é `String[]` — decisão de MVP, sem tabela dedicada. `boardingStop`/`alightingStop` no Enrollment são referências por string
+- `TripTemplate` tem 3 campos de preço opcionais (`priceOneWay`, `priceReturn`, `priceRoundTrip`) — validação de obrigatoriedade conforme `routeType` fica no app layer
+- `statusForRecurringTrip` foi **removido** de `TripInstance` (19 Abr 2026) — usar `tripStatus: CANCELED` para instâncias individuais ou `TripTemplate.status: INACTIVE` para pausar série
 
 ---
 
@@ -333,46 +351,26 @@ npm run test                     # unit tests (Jest)
 
 ## 11. FASE ATUAL E PRÓXIMOS PASSOS
 
-**Status:** Fase 1 100% concluída (15 Abr 2026). Iniciando Fase 2.
+**Status:** Fase 1 + Vehicle 100% concluídos (19 Abr 2026). Fase 2 em andamento.
 
-### Próximo módulo: Vehicle (CRUD)
-```
-src/modules/vehicle/
-├── application/dtos/       → CreateVehicleDto, UpdateVehicleDto, VehicleResponseDto
-├── domain/
-│   ├── entities/           → VehicleEntity
-│   ├── errors/             → vehicle.errors.ts
-│   └── interfaces/         → IVehicleRepository
-├── infrastructure/db/
-│   ├── mappers/            → VehicleMapper
-│   └── repositories/       → PrismaVehicleRepository
-├── presentation/
-│   ├── controllers/        → VehicleController
-│   └── mappers/            → VehiclePresenter
-└── vehicle.module.ts
-```
-
-**Endpoints planejados:**
-- `POST /organizations/:organizationId/vehicles` — cria veículo (ADMIN)
-- `GET /organizations/:organizationId/vehicles` — lista veículos da org (paginado)
-- `GET /vehicles/:id` — detalhe
-- `PUT /vehicles/:id` — atualizar
-- `DELETE /vehicles/:id` — soft delete (status → INACTIVE)
-
-**Schema já modelado** — `Vehicle` com `plate`, `model`, `type` (VehicleType enum), `maxCapacity`, `status`, `organizationId`.
-
-### Depois: Trip Module (COMPLEXO)
-- `TripTemplate` — modelo de rota recorrente (`frequency: DayOfWeek[]`, `shift`, `stops`)
+### Próximo módulo: Trip Module (COMPLEXO)
+- `TripTemplate` — modelo de rota recorrente (`frequency: DayOfWeek[]`, `shift`, `stops: String[]`)
 - `TripInstance` — execução específica de uma trip, com `driver`, `vehicle`, `departureTime`
-- Auto-geração de instâncias a partir de templates
+- Decisões de schema já tomadas:
+  - `onDelete: Restrict` em Driver/Vehicle → protege histórico
+  - `@@unique([tripTemplateId, departureTime])` → previne duplicatas de scheduler
+  - `statusForRecurringTrip` removido → `tripStatus` é fonte única de verdade
+  - 3 campos de preço opcionais no template → validação no app layer
+  - `stops: String[]` (MVP) → sem tabela dedicada de paradas
+- Auto-geração de instâncias a partir de templates (scheduler futuro)
 
 ### Depois: Booking/Enrollment Module
 - `Enrollment` — inscrição de passageiro em `TripInstance`
 - `Payment` — pagamento associado ao enrollment
-- Validação de capacidade (`totalCapacity` do veículo)
+- Validação de capacidade (`totalCapacity` snapshot do veículo)
 
 ### Pendente em todos os módulos
-- Testes unitários (0% coverage — pendente)
+- Testes unitários (vehicle sem testes ainda)
 - CI/CD GitHub Actions
 
 ---
@@ -389,3 +387,6 @@ src/modules/vehicle/
 8. **`@types/passport-jwt`** é devDependency, não dependency.
 9. **`movy_db_data/`** está no `.gitignore` — não commitar dados do Postgres local.
 10. **`RefreshTokenDto`** existe — não usar `@Body('refreshToken')` bare string.
+11. **`onDelete: Cascade` em Driver/Vehicle → TripInstance`** deletava histórico financeiro. Corrigido para `Restrict` em 19 Abr 2026.
+12. **`statusForRecurringTrip`** era state duplicado com `tripStatus`. Removido em 19 Abr 2026 — usar `tripStatus: CANCELED` ou `TripTemplate.status: INACTIVE`.
+13. **Preços nullable no TripTemplate** — pelo menos o preço do `routeType` deve ser non-null. Validar no use case, não no schema.

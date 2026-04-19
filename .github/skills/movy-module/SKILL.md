@@ -362,6 +362,8 @@ Checklist antes de considerar o módulo pronto:
 - [ ] Rotas de listagem global têm `@Dev()`
 - [ ] Module adicionado ao `AppModule`
 - [ ] Soft delete implementado (se aplicável) — status `INACTIVE` ou campo `removedAt`
+- [ ] Relações com histórico financeiro usam `onDelete: Restrict` (ex: Driver/Vehicle → TripInstance)
+- [ ] `@@unique` constraints para prevenir duplicatas em entidades geradas por schedulers
 
 ---
 

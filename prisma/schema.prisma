@@ -30,7 +30,7 @@ enum RoleName {
   DRIVER
 }
 
-enum RouteType {
+enum EnrollmentType {
   ONE_WAY
   RETURN
   ROUND_TRIP
@@ -154,6 +154,7 @@ model Subscription {
 
   @@index([organizationId])
   @@index([status])
+  @@index([expiresAt])
   @@map("subscriptions")
 }
 
@@ -244,19 +245,27 @@ model Vehicle {
 
 model TripTemplate {
   id             String      @id @default(uuid())
+  organizationId String
+
   departurePoint String      @db.VarChar(255)
   destination    String      @db.VarChar(255)
-  routeType      RouteType
+  frequency      DayOfWeek[]
+  stops          String[] 
+  
   priceOneWay    Decimal?    @db.Decimal(10, 2)
   priceReturn    Decimal?    @db.Decimal(10, 2)
   priceRoundTrip Decimal?    @db.Decimal(10, 2)
-  isRecurring    Boolean
-  frequency      DayOfWeek[]
-  shift          Shift
-  stops          String[] 
+
+  isPublic           Boolean   @default(false)
+  isRecurring        Boolean   @default(false)
+  autoCancelEnabled  Boolean   @default(false)
+  minRevenue         Decimal?  @db.Decimal(10, 2)
+  autoCancelOffset   Int?      // Minutes before departureTime to evaluate auto-cancel
+  
   status         Status      @default(ACTIVE)
-  organizationId String
-  isPublic       Boolean     @default(false)
+  shift          Shift
+
+  // Metadata
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -276,26 +285,34 @@ model TripInstance {
   vehicleId              String
   tripTemplateId         String
   organizationId         String
+
   tripStatus             TripStatus @default(SCHEDULED)
-  statusForRecurringTrip Status? // Only for recurring trips
-  totalCapacity          Int        // Snapshot of vehicle capacity at scheduling time (historical)
+  
+  minRevenue             Decimal?   @db.Decimal(10, 2)  // Snapshot from template (null if autoCancelEnabled=false)
+  autoCancelAt           DateTime?  // departureTime - autoCancelOffset (null if autoCancelEnabled=false)
+  forceConfirm           Boolean    @default(false)
+
+  totalCapacity          Int        // Snapshot of vehicle capacity at scheduling time
   departureTime          DateTime
   arrivalEstimate        DateTime
+  
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
   // Relations
-  driver       Driver               @relation("TripDriver", fields: [driverId], references: [id], onDelete: Cascade)
-  vehicle      Vehicle              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver       Driver               @relation("TripDriver", fields: [driverId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Restrict)
   tripTemplate TripTemplate         @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id], onDelete: Cascade)
   enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
   organization Organization          @relation("TripInstanceOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([tripTemplateId, departureTime])
+  @@index([tripTemplateId, organizationId])
   @@index([driverId, organizationId])
   @@index([vehicleId, organizationId])
-  @@index([tripTemplateId, organizationId])
   @@index([tripStatus])
   @@index([departureTime])
+  @@index([autoCancelAt])
   @@index([organizationId])
   @@map("trip_instance")
 }
@@ -305,7 +322,7 @@ model Enrollment {
   enrollmentDate    DateTime   @default(now())
   status            Status     @default(ACTIVE)
   presenceConfirmed Boolean    @default(false)
-  routeType         RouteType
+  EnrollmentType         EnrollmentType
   recordedPrice     Decimal    @db.Decimal(10, 2)
   userId            String
   tripInstanceId    String
@@ -357,7 +374,7 @@ model AuditLog {
 
   // Relations
   organization Organization @relation("AuditLogOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User         @relation("AuditLogUser", fields: [userId], references: [id], onDelete: Cascade)
+  user         User         @relation("AuditLogUser", fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([organizationId])
   @@index([userId])
