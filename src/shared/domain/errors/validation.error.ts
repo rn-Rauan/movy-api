@@ -72,3 +72,11 @@ export class InvalidTelephoneError extends ValidationError {
     super(`Telephone "${telephone}" is invalid`, 'telephone');
   }
 }
+
+export class InvalidMoneyError extends ValidationError {
+  code = 'INVALID_MONEY';
+
+  constructor(money: number) {
+    super(`Money "${money}" is invalid`, 'money');
+  }
+}

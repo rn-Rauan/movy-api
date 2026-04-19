@@ -1,7 +1,14 @@
 import { OrganizationRepository } from '../../domain/interfaces/organization.repository';
 import { Injectable } from '@nestjs/common';
 import { CreateOrganizationDto } from '../dtos';
-import { OrganizationName, Cnpj, Slug, Address, Organization, OrganizationAlreadyExistsError,} from '../../domain/entities';
+import {
+  OrganizationName,
+  Cnpj,
+  Slug,
+  Address,
+  Organization,
+  OrganizationAlreadyExistsError,
+} from '../../domain/entities';
 import { Telephone, Email } from 'src/shared/domain/entities/value-objects';
 
 @Injectable()

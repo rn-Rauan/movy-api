@@ -5,4 +5,5 @@ export {
   RequiredFieldError,
   StringLengthError,
   InvalidTelephoneError,
+  InvalidMoneyError,
 } from './validation.error';
