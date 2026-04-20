@@ -61,7 +61,9 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
     ]);
 
     return {
-      data: tripTemplates.map((template) => TripTemplateMapper.toDomain(template)),
+      data: tripTemplates.map((template) =>
+        TripTemplateMapper.toDomain(template),
+      ),
       total,
       page,
       limit,
@@ -100,7 +102,9 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
     ]);
 
     return {
-      data: tripTemplates.map((template) => TripTemplateMapper.toDomain(template)),
+      data: tripTemplates.map((template) =>
+        TripTemplateMapper.toDomain(template),
+      ),
       total,
       page,
       limit,

@@ -28,7 +28,9 @@ export class TripTemplateMapper {
       priceOneWay: raw.priceOneWay
         ? Money.restore(Number(raw.priceOneWay))
         : null,
-      priceReturn: raw.priceReturn ? Money.restore(Number(raw.priceReturn)) : null,
+      priceReturn: raw.priceReturn
+        ? Money.restore(Number(raw.priceReturn))
+        : null,
       priceRoundTrip: raw.priceRoundTrip
         ? Money.restore(Number(raw.priceRoundTrip))
         : null,

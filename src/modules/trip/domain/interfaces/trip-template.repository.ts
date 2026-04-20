@@ -29,7 +29,7 @@ export abstract class TripTemplateRepository {
     organizationId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<TripTemplate>>;
-  
+
   /**
    * Lists active trip templates belonging to an organization.
    * @param organizationId - UUID of the organization

@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DriverModule } from './modules/driver/driver.module';
 import { SharedModule } from './shared';
 import { VehicleModule } from './modules/vehicle/vehicle.module';
+import { TripModule } from './modules/trip/trip.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { VehicleModule } from './modules/vehicle/vehicle.module';
     DriverModule,
     SharedModule,
     VehicleModule,
+    TripModule,
   ],
   controllers: [AppController],
   providers: [
