@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Money } from 'src/shared';
+import { Money } from 'src/shared/domain/entities/value-objects';
 import { TripTemplate } from '../../domain/entities';
 import {
   TripTemplateAccessForbiddenError,

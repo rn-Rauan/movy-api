@@ -1,4 +1,6 @@
-import { Money, RequiredFieldError, type Status } from 'src/shared';
+import { Money } from 'src/shared/domain/entities/value-objects';
+import { RequiredFieldError } from 'src/shared/domain/errors';
+import type { Status } from 'src/shared/domain/types';
 import { DayOfWeek, Shift } from '../interfaces';
 import {
   InvalidTripAutoCancelConfigurationError,

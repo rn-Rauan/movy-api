@@ -1,4 +1,4 @@
-import { DomainError } from 'src/shared';
+import { DomainError } from 'src/shared/domain/errors/domain.error';
 
 /** Base for all TripTemplate validation errors */
 export abstract class TripTemplateValidationError extends DomainError {

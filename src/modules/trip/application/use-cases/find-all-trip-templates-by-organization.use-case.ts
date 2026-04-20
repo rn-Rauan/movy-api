@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { TripTemplate } from '../../domain/entities';
 import { TripTemplateRepository } from '../../domain/interfaces';
-import { PaginatedResponse, PaginationOptions } from 'src/shared';
+import {
+  PaginatedResponse,
+  PaginationOptions,
+} from 'src/shared/domain/interfaces';
 
 @Injectable()
 export class FindAllTripTemplatesByOrganizationUseCase {

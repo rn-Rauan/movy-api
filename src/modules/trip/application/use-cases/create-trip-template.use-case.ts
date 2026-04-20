@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { Money } from 'src/shared';
+import { Money } from 'src/shared/domain/entities/value-objects';
 import { TripTemplate } from '../../domain/entities';
 import { TripTemplateCreationFailedError } from '../../domain/entities/errors/trip-template.errors';
 import { TripTemplateRepository } from '../../domain/interfaces';
