@@ -68,3 +68,12 @@ export class TripInstanceAccessForbiddenError extends DomainError {
     super(`Access to trip instance "${id}" is forbidden`);
   }
 }
+
+/** Thrown when persistence fails during trip instance creation */
+export class TripInstanceCreationFailedError extends DomainError {
+  code = 'TRIP_INSTANCE_CREATION_FAILED_BAD_REQUEST';
+
+  constructor() {
+    super('Trip instance could not be persisted');
+  }
+}
