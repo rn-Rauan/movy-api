@@ -5,11 +5,14 @@ import {
   TripInstanceNotFoundError,
 } from '../../domain/entities/errors/trip-instance.errors';
 import { TripInstanceRepository } from '../../domain/interfaces';
+import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
+import { VehicleNotFoundError } from 'src/modules/vehicle/domain/entities/errors/vehicle.errors';
 
 @Injectable()
 export class AssignVehicleToTripInstanceUseCase {
   constructor(
     private readonly tripInstanceRepository: TripInstanceRepository,
+    private readonly vehicleRepository: VehicleRepository,
   ) {}
 
   /**
@@ -35,6 +38,13 @@ export class AssignVehicleToTripInstanceUseCase {
 
     if (instance.organizationId !== organizationId) {
       throw new TripInstanceAccessForbiddenError(id);
+    }
+
+    if (vehicleId !== null) {
+      const vehicle = await this.vehicleRepository.findById(vehicleId);
+      if (!vehicle) {
+        throw new VehicleNotFoundError(vehicleId);
+      }
     }
 
     instance.assignVehicle(vehicleId);

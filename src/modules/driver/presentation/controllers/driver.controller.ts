@@ -95,7 +95,7 @@ export class DriverController {
   @Roles(RoleName.ADMIN)
   @ApiOperation({
     summary:
-      'Buscar perfil de motorista por e-mail + CNH (Admin, antes de vincular à org)',
+      'Lookup driver profile by email and CNH (Admin only)',
   })
   @ApiQuery({ name: 'email', required: true, example: 'joao@email.com' })
   @ApiQuery({ name: 'cnh', required: true, example: '123456789' })
@@ -108,12 +108,12 @@ export class DriverController {
     @Query('email') email: string,
     @Query('cnh') cnh: string,
   ): Promise<DriverLookupResponseDto> {
-    if (!email || !email.trim()) {
+    if (!email?.trim()) {
       throw new BadRequestException(
         'Query parameter "email" is required and cannot be empty',
       );
     }
-    if (!cnh || !cnh.trim()) {
+    if (!cnh?.trim()) {
       throw new BadRequestException(
         'Query parameter "cnh" is required and cannot be empty',
       );

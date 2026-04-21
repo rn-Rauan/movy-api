@@ -5,6 +5,7 @@ import {
   FindOrganizationByIdUseCase,
   FindAllOrganizationsUseCase,
   FindAllActiveOrganizationsUseCase,
+  FindOrganizationByUserUseCase,
   UpdateOrganizationUseCase,
   DisableOrganizationUseCase,
 } from './application/use-cases';
@@ -21,6 +22,7 @@ import { SharedModule } from 'src/shared';
     FindOrganizationByIdUseCase,
     FindAllOrganizationsUseCase,
     FindAllActiveOrganizationsUseCase,
+    FindOrganizationByUserUseCase,
     UpdateOrganizationUseCase,
     DisableOrganizationUseCase,
     {
@@ -34,6 +36,7 @@ import { SharedModule } from 'src/shared';
     FindOrganizationByIdUseCase,
     FindAllOrganizationsUseCase,
     FindAllActiveOrganizationsUseCase,
+    FindOrganizationByUserUseCase,
     UpdateOrganizationUseCase,
     DisableOrganizationUseCase,
     OrganizationRepository,

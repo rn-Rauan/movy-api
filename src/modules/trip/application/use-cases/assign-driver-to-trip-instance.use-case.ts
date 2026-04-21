@@ -5,11 +5,14 @@ import {
   TripInstanceNotFoundError,
 } from '../../domain/entities/errors/trip-instance.errors';
 import { TripInstanceRepository } from '../../domain/interfaces';
+import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
+import { DriverNotFoundError } from 'src/modules/driver/domain/entities/errors/driver.errors';
 
 @Injectable()
 export class AssignDriverToTripInstanceUseCase {
   constructor(
     private readonly tripInstanceRepository: TripInstanceRepository,
+    private readonly driverRepository: DriverRepository,
   ) {}
 
   /**
@@ -35,6 +38,13 @@ export class AssignDriverToTripInstanceUseCase {
 
     if (instance.organizationId !== organizationId) {
       throw new TripInstanceAccessForbiddenError(id);
+    }
+
+    if (driverId !== null) {
+      const driver = await this.driverRepository.findById(driverId);
+      if (!driver) {
+        throw new DriverNotFoundError(driverId);
+      }
     }
 
     instance.assignDriver(driverId);

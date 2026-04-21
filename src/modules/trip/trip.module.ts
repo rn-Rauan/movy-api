@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SharedModule } from 'src/shared';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
+import { DriverModule } from 'src/modules/driver/driver.module';
+import { VehicleModule } from 'src/modules/vehicle/vehicle.module';
 import {
   CreateTripTemplateUseCase,
   UpdateTripTemplateUseCase,
@@ -21,11 +23,12 @@ import {
 } from './domain/interfaces';
 import { PrismaTripInstanceRepository } from './infrastructure/db/repositories/prisma-trip-instance.repository';
 import { PrismaTripTemplateRepository } from './infrastructure/db/repositories/prisma-trip-template.repository';
+import { TripInstanceController } from './presentation/controllers/trip-instance.controller';
 import { TripTemplateController } from './presentation/controllers/trip-template.controller';
 
 @Module({
-  imports: [PrismaModule, SharedModule],
-  controllers: [TripTemplateController],
+  imports: [PrismaModule, SharedModule, DriverModule, VehicleModule],
+  controllers: [TripTemplateController, TripInstanceController],
   providers: [
     // TripTemplate
     CreateTripTemplateUseCase,

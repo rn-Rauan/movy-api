@@ -19,6 +19,13 @@ export abstract class OrganizationRepository {
   abstract findById(id: string): Promise<Organization | null>;
 
   /**
+   * Finds an organization by user ID in the database.
+   * @param userId - UUID of the user
+   * @returns Paginated response with Organization entities or null if not found
+   */
+  abstract findOrganizationByUserId(userId: string, options: PaginationOptions): Promise<PaginatedResponse<Organization>>;
+
+  /**
    * Finds an organization by CNPJ in the database.
    * @param cnpj - CNPJ of the organization
    * @returns Organization entity or null if not found

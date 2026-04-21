@@ -29,6 +29,7 @@ import {
 import {
   CreateMembershipDto,
   MembershipResponseDto,
+  RoleResponseDto,
 } from '../../application/dtos';
 import { MembershipPresenter } from '../mappers/membership.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
@@ -40,6 +41,7 @@ import {
   RemoveMembershipUseCase,
   RestoreMembershipUseCase,
 } from '../../application/use-cases';
+import { FindRoleByUserIdAndOrganizationIdUseCase } from '../../application/use-cases/find-role-by-user-and-organization.use-case';
 
 @ApiTags('memberships')
 @Controller('memberships')
@@ -52,8 +54,33 @@ export class MembershipController {
     private readonly findMembershipsByOrganizationUseCase: FindMembershipsByOrganizationUseCase,
     private readonly removeMembershipUseCase: RemoveMembershipUseCase,
     private readonly restoreMembershipUseCase: RestoreMembershipUseCase,
+    private readonly findRoleByUserIdAndOrganizationIdUseCase: FindRoleByUserIdAndOrganizationIdUseCase,
     private readonly membershipPresenter: MembershipPresenter,
   ) {}
+
+  @Get('me/role/:organizationId')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
+  @ApiOperation({ summary: 'Get the role of the authenticated user within an organization' })
+  @ApiParam({
+    name: 'organizationId',
+    description: 'The ID of the organization',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Return the role of the current user in the organization.',
+    type: RoleResponseDto,
+  })
+  async getMyRole(
+    @Param('organizationId') organizationId: string,
+    @GetUser() user: TenantContext,
+  ): Promise<RoleResponseDto> {
+    const role = await this.findRoleByUserIdAndOrganizationIdUseCase.execute({
+      userId: user.userId,
+      organizationId,
+    });
+    return new RoleResponseDto({ id: role.id, name: role.name });
+  }
 
   @Post()
   @UseGuards(RolesGuard, TenantFilterGuard)

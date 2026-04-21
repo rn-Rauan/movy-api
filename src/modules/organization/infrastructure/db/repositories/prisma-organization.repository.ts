@@ -39,6 +39,42 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
     return OrganizationMapper.toDomain(organizationData);
   }
 
+  async findOrganizationByUserId(
+    userId: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<Organization>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      memberships: {
+        some: {
+          userId: userId,
+        },
+      },
+    };
+
+    const [organizationsData, total] = await this.prisma.$transaction([
+      this.prisma.organization.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: skip,
+        take: limit,
+      }),
+      this.prisma.organization.count({ where }),
+    ]);
+
+    return {
+      data: organizationsData.map((org) => OrganizationMapper.toDomain(org)),
+      total: total,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   /**
    * Finds an Organization entity by its CNPJ.
    * @param cnpj - CNPJ of the organization to find

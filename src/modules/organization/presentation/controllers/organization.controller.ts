@@ -37,6 +37,7 @@ import {
   FindOrganizationByIdUseCase,
   FindAllOrganizationsUseCase,
   FindAllActiveOrganizationsUseCase,
+  FindOrganizationByUserUseCase,
   UpdateOrganizationUseCase,
   DisableOrganizationUseCase,
 } from '../../application/use-cases';
@@ -50,6 +51,7 @@ export class OrganizationController {
     private readonly findOrganizationByIdUseCase: FindOrganizationByIdUseCase,
     private readonly findAllOrganizationsUseCase: FindAllOrganizationsUseCase,
     private readonly findAllActiveOrganizationsUseCase: FindAllActiveOrganizationsUseCase,
+    private readonly findOrganizationByUserUseCase: FindOrganizationByUserUseCase,
     private readonly updateOrganizationUseCase: UpdateOrganizationUseCase,
     private readonly deleteOrganizationUseCase: DisableOrganizationUseCase,
     private readonly organizationPresenter: OrganizationPresenter,
@@ -70,6 +72,39 @@ export class OrganizationController {
     const organization =
       await this.createOrganizationUseCase.execute(createDto);
     return this.organizationPresenter.toHTTP(organization);
+  }
+
+  @Get('me')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
+  @ApiOperation({ summary: 'Find all organizations the authenticated user belongs to' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'Return all organizations associated with the current user.',
+    type: PaginatedDto<OrganizationResponseDto>,
+  })
+  async findByUser(
+    @GetUser() user: TenantContext,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<PaginatedDto<OrganizationResponseDto>> {
+    const paginatedResult = await this.findOrganizationByUserUseCase.execute(
+      user.userId,
+      { page, limit },
+    );
+
+    const data = paginatedResult.data.map((org) =>
+      this.organizationPresenter.toHTTP(org),
+    );
+
+    return new PaginatedDto(
+      data,
+      paginatedResult.total,
+      paginatedResult.page,
+      paginatedResult.limit,
+    );
   }
 
   @Get('active')
@@ -175,9 +210,9 @@ export class OrganizationController {
   }
 
   @Get()
-  @UseGuards(DevGuard)
-  @Dev()
-  @ApiOperation({ summary: 'Find all organizations (for dev only)' })
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Find all organizations of a tenant (for ADMIN)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({
@@ -186,6 +221,7 @@ export class OrganizationController {
     type: PaginatedDto<OrganizationResponseDto>,
   })
   async findAll(
+    @GetUser() user: TenantContext,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<OrganizationResponseDto>> {

@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 17 Abr 2026 
+**Última atualização:** 21 Abr 2026 
 
 ---
 
@@ -10,7 +10,7 @@
 
 ```
 FASE 1: Mar 31 - Abr 13    (2 semanas)  ✅ 100% COMPLETO (11 Abr 2026)
-FASE 2: Abr 14 - Mai 15    (4 semanas)  ⏳ PRÓXIMO
+FASE 2: Abr 14 - Mai 15    (4 semanas)  ⏳ EM ANDAMENTO
 FASE 3: Mai 18 - Jun 01    (2 semanas)  ⏳ FUTURO
 FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
 
@@ -182,6 +182,26 @@ MVP PRONTO: 15 de Junho 2026
 - ✅ **Vehicle README.md** criado com documentação completa
 - ✅ Compilação: ✅ sem erros
 
+**Progresso em 21 Abr 2026 (Trip Module + Organization/Membership updates):**
+- ✅ **Trip Module: implementado completo**
+  - `TripTemplate` e `TripInstance` — entidades, repositórios, use cases, DTOs, controllers
+  - 12 endpoints REST (5 template + 7 instância)
+  - Status machine: SCHEDULED → IN_PROGRESS → COMPLETED / CANCELLED
+  - `AssignDriverToTripInstance` e `AssignVehicleToTripInstance` com suporte a null (desatribuir)
+- ✅ **Bug fix: FK violations no Trip module**
+  - `AssignDriverToTripInstanceUseCase`: valida existência do driver antes do `update()` — HTTP 400 em vez de 500
+  - `AssignVehicleToTripInstanceUseCase`: valida existência do veículo antes do `update()` — HTTP 400 em vez de 500
+  - `VehicleModule` agora exporta `VehicleRepository` (bug: estava faltando)
+  - `TripModule` importa `DriverModule` e `VehicleModule`
+- ✅ **Organization Module — `GET /organizations/me`**
+  - `FindOrganizationByUserUseCase` criado, registrado e exportado
+  - Endpoint acessível por ADMIN e DRIVER — retorna orgs do usuário logado (paginado)
+- ✅ **Membership Module — `GET /memberships/me/role/:organizationId`**
+  - `FindRoleByUserIdAndOrganizationIdUseCase` exposto via HTTP
+  - `RoleResponseDto` criado (`{ id, name: RoleName }`) com Swagger
+  - Acessível por ADMIN e DRIVER — sem `TenantFilterGuard` (isolamento implícito pelo `userId` do token)
+- ✅ Compilação: ✅ sem erros
+
 ---
 
 ## 🚗 Fase 2: Core Business Logic (Abr 14 - Mai 15)
@@ -201,8 +221,11 @@ MVP PRONTO: 15 de Junho 2026
 ### Semana 3-4: Viagens (Abr 28 - Mai 15)
 | Status | O Quê | Duração |
 |:------:|-------|---------|
-| ⏳ | Trip Templates | 3-4 dias |
-| ⏳ | Trip Instances + Auto-generate | 4-5 dias (COMPLEXO) |
+| ✅ | Trip Templates | ✅ Pronto (21 Abr) |
+| ✅ | Trip Instances + Assign Driver/Vehicle | ✅ Pronto (21 Abr) |
+| ✅ | FK violation fix (Driver/Vehicle validação) | ✅ Pronto (21 Abr) |
+| ✅ | Organization `GET /me` + `FindOrganizationByUserUseCase` | ✅ Pronto (21 Abr) |
+| ✅ | Membership `GET /me/role/:orgId` + `RoleResponseDto` | ✅ Pronto (21 Abr) |
 | ⏳ | Bookings (Inscrições) | 3-4 dias |
 | ⏳ | Testes E2E trip flow | 2-3 dias |
 
@@ -270,8 +293,8 @@ shared/        ✅ COMPLETO
 ### Fase 2 ⏳
 ```
 vehicle/       ✅ COMPLETO (17 Abr)
-trip/          ⏳ PRÓXIMO (semana 2-3, COMPLEXO)
-booking/       ⏳ PRÓXIMO (semana 3-4)
+trip/          ✅ COMPLETO (21 Abr) — TripTemplate + TripInstance + FK fixes
+booking/       ⏳ PRÓXIMO
 ```
 
 ### Fase 3 ⏳
@@ -306,8 +329,8 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 - [x] Organization members ✅
 - [x] Vehicles- CRUD ✅ (17 Abr)
 - [x] Drivers CRUD ✅ (11 Abr, IDOR fix 17 Abr)
-- [ ] Trip Templates ⏳
-- [ ] Trip Instances ⏳
+- [x] Trip Templates ✅ (21 Abr)
+- [x] Trip Instances ✅ (21 Abr)
 - [ ] Bookings ⏳
 - [ ] Pagamentos (integração) ⏳
 - [ ] Plans básicos ⏳

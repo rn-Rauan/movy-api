@@ -2,15 +2,15 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 17 Abr 2026
+**Última atualização:** 21 Abr 2026
 
 ---
 
 ## 📈 Resumo Geral
 
 ```
-Total Módulos: 8
-Completo: 8 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth, Vehicle
+Total Módulos: 9
+Completo: 9 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth, Vehicle, Trip
 Em Progresso: 0
 Pendente: 0
 ```
@@ -79,19 +79,22 @@ src/shared/
 - ✅ **[15 Abr]** `DriverNotAssociatedWithOrganizationError` removido (não mais necessário após redesign do Driver)
 - ✅ **[15 Abr]** Validação de prerequisito Driver simplificada: verifica apenas existência de perfil Driver (sem check de org)
 - ✅ **[16 Abr]** Testes unitários do `CreateMembershipUseCase` — 7 testes (happy path ADMIN, happy path DRIVER, restore soft-deleted, user not found, driver profile missing, membership already exists)
+- ✅ **[21 Abr]** `GET /memberships/me/role/:organizationId` — endpoint para ADMIN e DRIVER consultarem sua própria role dentro de uma organização (`FindRoleByUserIdAndOrganizationIdUseCase` exposto via HTTP)
+- ✅ **[21 Abr]** `RoleResponseDto` criado (`{ id, name: RoleName }`) com Swagger
+- ✅ **[21 Abr]** `FindRoleByUserIdAndOrganizationIdUseCase` injetado no `MembershipController` (sem `TenantFilterGuard` — isolamento implícito pelo `userId` do token)
 
 **Arquivos criados:**
 ```
 src/modules/membership/
 ├── membership.module.ts ✅
-├── application/dtos/ ✅
+├── application/dtos/ ✅ (+ role-response.dto.ts — 21 Abr)
 ├── application/use-cases/ ✅
 ├── domain/entities/ ✅
 ├── domain/errors/ ✅
 ├── domain/interfaces/ ✅
 ├── infrastructure/db/mappers/ ✅
 ├── infrastructure/db/repositories/ ✅
-├── presentation/controllers/ ✅
+├── presentation/controllers/ ✅ (+ GET /me/role/:organizationId — 21 Abr)
 ├── presentation/mappers/ ✅
 └── README.md ✅
 
@@ -214,6 +217,7 @@ test/modules/driver/
 - [x] POST `/organizations` - Criar org (DTO + Service + Repository) ✅
 - [x] GET `/organizations` - Listar todas orgs (paginado) ✅
 - [x] GET `/organizations/active` - Listar apenas ativas (paginado) ✅
+- [x] GET `/organizations/me` - Listar organizações associadas ao usuário autenticado (ADMIN e DRIVER) ✅ *(21 Abr)*
 - [x] GET `/organizations/:id` - Detalhes da org ✅
 - [x] PUT `/organizations/:id` - Atualizar dados ✅
 - [x] DELETE `/organizations/:id` - Soft-delete (marcar como INACTIVE) ✅
@@ -230,6 +234,7 @@ test/modules/driver/
 - ✅ FindOrganizationByIdUseCase - Busca com tratamento 404 *(atualizado 14 Abr: usa `OrganizationForbiddenError` em vez de `ForbiddenException`)*
 - ✅ UpdateOrganizationUseCase - Atualização com re-validação *(atualizado 14 Abr: usa `OrganizationForbiddenError`)*
 - ✅ DisableOrganizationUseCase - Soft delete com timestamp *(atualizado 14 Abr: usa `OrganizationForbiddenError`)*
+- ✅ **[21 Abr]** `FindOrganizationByUserUseCase` — retorna orgs associadas ao `userId` (paginado), delega para `findOrganizationByUserId` no repositório
 
 **Domain Errors:**
 - ✅ `OrganizationNotFoundError`, `OrganizationAlreadyExistsError`
@@ -248,14 +253,16 @@ test/modules/driver/
 - ✅ Address - Endereço da organização
 - ✅ Email, Telephone - Compartilhados do SharedModule
 
-**Organization Members (multi-tenant com Roles) - PRÓXIMO:**
-- [ ] Integrar Membership Module com Organization Module
-- [ ] Guards customizados baseados em Role (RBAC)
-- [ ] POST `/organizations/:id/members` - Adicionar membro com role
-- [ ] GET `/organizations/:id/members` - Listar membros
-- [ ] PUT `/organizations/:id/members/:userId` - Atualizar role
-- [ ] DELETE `/organizations/:id/members/:userId` - Remover membro
-- [ ] Validar permissões (apenas admin gerencia membros)
+**Organization — Novos Endpoints (21 Abr 2026):**
+- ✅ `GET /organizations/me` — lista orgs do usuário autenticado (ADMIN e DRIVER, paginado)
+- ✅ `FindOrganizationByUserUseCase` criado, registrado e exportado no `OrganizationModule`
+
+**Organization Members (multi-tenant com Roles) - GERENCIADO VIA MEMBERSHIP MODULE:**
+- ✅ Integração feita via `POST /memberships` (Membership Module)
+- ✅ Listagem de membros via `GET /memberships/organization/:organizationId`
+- ✅ Consulta de role do usuário na org via `GET /memberships/me/role/:organizationId` *(21 Abr)*
+- ✅ Guards RBAC já implementados (RolesGuard, TenantFilterGuard)
+- ✅ Gestão de membros é responsabilidade do Membership Module (arquitetura SRP)
 
 **Arquivos criados:**
 ```
@@ -535,55 +542,57 @@ src/modules/vehicle/
 
 ---
 
-### Trips Module 📋 (~8-10 dias - COMPLEXO)
+### Trips Module ✅ COMPLETO (21 Abr 2026)
 
-**Templates de Viagem (recorrência):**
-- [ ] POST `/trips/templates` - Criar template
-  - Campos: nome, rota, horário saída, horário chegada, dias_semana, capacidade
-- [ ] GET `/trips/templates` - Listar templates
-- [ ] PUT `/trips/templates/:id` - Editar template
-- [ ] DELETE `/trips/templates/:id` - Deletar template
+**TripTemplate — Gerenciamento de Templates de Viagem:**
+- ✅ Entity `TripTemplate` com campos: `departurePoint`, `destination`, `frequency` (DayOfWeek[]), `stops`, preços (`priceOneWay`, `priceReturn`, `priceRoundTrip`), `isPublic`, `isRecurring`, `autoCancelEnabled`, `minRevenue`, `autoCancelOffset`, `status`, `shift`
+- ✅ Domain Errors: `TripTemplateNotFoundError`, `TripTemplateAccessForbiddenError`, `TripTemplateInactiveError`
+- ✅ Repository interface + `PrismaTripTemplateRepository` + `TripTemplateMapper`
+- ✅ Use Cases (5): `CreateTripTemplate`, `FindTripTemplateById`, `FindAllTripTemplatesByOrganization`, `UpdateTripTemplate`, `DeactivateTripTemplate`
+- ✅ DTOs com class-validator + Swagger, Presenter, Controller
 
-**Viagens Instâncias (execuções específicas):**
-- [ ] GET `/trips/instances` - Listar viagens futuras
-- [ ] GET `/trips/instances/:id` - Detalhes viagem específica
-- [ ] PUT `/trips/instances/:id/status` - Mudar status (agendada, em_andamento, finalizada, cancelada)
+**TripInstance — Instâncias de Viagem:**
+- ✅ Entity `TripInstance` com `driverId?`, `vehicleId?`, `tripTemplateId`, `organizationId`, `tripStatus` (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED), `totalCapacity`, `departureTime`, `arrivalEstimate`, `autoCancelAt?`, `forceConfirm`, `minRevenue?`
+- ✅ Métodos de domínio: `assignDriver(driverId | null)`, `assignVehicle(vehicleId | null)`, `transitionStatus(newStatus)`, `forceConfirmTrip()`
+- ✅ Domain Errors: `TripInstanceNotFoundError`, `TripInstanceAccessForbiddenError`, `InvalidTripStatusTransitionError`
+- ✅ Repository interface + `PrismaTripInstanceRepository` + `TripInstanceMapper`
+- ✅ Use Cases (7): `CreateTripInstance`, `FindTripInstanceById`, `FindAllTripInstancesByOrganization`, `FindTripInstancesByTemplate`, `TransitionTripInstanceStatus`, `AssignDriverToTripInstance`, `AssignVehicleToTripInstance`
+- ✅ DTOs com class-validator + Swagger, Presenter, Controller
 
-**Auto-geração (CRON Job):**
-- [ ] Criar job que gera automaticamente viagens quando necessário
-  - Ex: Todo dia 23:00 gerar próximas viagens dos próximos 7 dias
-- [ ] Implementar com `@nestjs/schedule`
+**Endpoints REST:**
+- `POST /trip-templates` — Criar template
+- `GET /trip-templates/organization/:organizationId` — Listar templates da org (paginado)
+- `GET /trip-templates/:id` — Buscar template por ID
+- `PUT /trip-templates/:id` — Atualizar template
+- `DELETE /trip-templates/:id` — Desativar template (soft)
+- `POST /trip-instances` — Criar instância a partir de template
+- `GET /trip-instances/organization/:organizationId` — Listar instâncias da org (paginado)
+- `GET /trip-instances/template/:templateId` — Listar instâncias de um template (paginado)
+- `GET /trip-instances/:id` — Buscar instância por ID
+- `PUT /trip-instances/:id/status` — Transitar status da viagem
+- `PUT /trip-instances/:id/driver` — Atribuir/desatribuir motorista
+- `PUT /trip-instances/:id/vehicle` — Atribuir/desatribuir veículo
 
-**Cancelamento/Mudanças:**
-- [ ] PUT `/trips/instances/:id/cancel` - Cancelar viagem
-- [ ] Notificar passageiros inscritos
+**Segurança e Validações (21 Abr 2026):**
+- ✅ FK violation corrigido em `AssignDriverToTripInstanceUseCase`: valida existência do driver via `DriverRepository.findById()` antes de persistir — lança `DriverNotFoundError` (HTTP 400) em vez de 500
+- ✅ FK violation corrigido em `AssignVehicleToTripInstanceUseCase`: valida existência do veículo via `VehicleRepository.findById()` antes de persistir — lança `VehicleNotFoundError` (HTTP 400) em vez de 500
+- ✅ `TripModule` importa `DriverModule` e `VehicleModule` para DI dos repositórios de validação
+- ✅ `VehicleModule` exporta `VehicleRepository` (estava faltando)
 
-**Arquivos:**
+**Arquivos implementados:**
 ```
 src/modules/trip/
-├── application/dtos/
-│   ├── create-trip-template.dto.ts
-│   ├── update-trip-template.dto.ts
-│   └── trip-instance.dto.ts
-├── domain/
-│   ├── entities/
-│   │   ├── trip-template.entity.ts
-│   │   └── trip-instance.entity.ts
-│   ├── errors/trip.errors.ts
-│   └── interfaces/
-│       ├── trip-template.repository.ts
-│       └── trip-instance.repository.ts
-├── infrastructure/
-│   ├── repositories/
-│   │   ├── prisma-trip-template.repository.ts
-│   │   └── prisma-trip-instance.repository.ts
-│   └── jobs/
-│       └── generate-trips.job.ts
-├── presentation/controllers/
-│   ├── trip-template.controller.ts
-│   └── trip-instance.controller.ts
-└── trip.module.ts
+├── trip.module.ts ✅ (importa DriverModule + VehicleModule — 21 Abr)
+├── application/use-cases/ ✅ (7 use cases)
+├── domain/entities/ ✅ (TripTemplate, TripInstance)
+├── domain/entities/errors/ ✅
+├── domain/interfaces/ ✅ (TripTemplateRepository, TripInstanceRepository)
+├── infrastructure/db/mappers/ ✅
+├── infrastructure/db/repositories/ ✅
+└── presentation/controllers/ ✅ (TripTemplateController, TripInstanceController)
 ```
+
+**Status:** ✅ COMPLETO — CRUD funcional, FK violations corrigidas, isolamento de tenant aplicado (21 Abr 2026)
 
 ---
 

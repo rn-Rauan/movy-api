@@ -26,5 +26,6 @@ import { PrismaVehicleRepository } from './infrastructure/db/repositories/prisma
       useClass: PrismaVehicleRepository,
     },
   ],
+  exports: [VehicleRepository],
 })
 export class VehicleModule {}
