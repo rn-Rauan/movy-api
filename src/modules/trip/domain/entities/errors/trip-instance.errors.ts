@@ -7,7 +7,9 @@ import { TripStatus } from '../../interfaces';
 export class InvalidTripInstanceCapacityError extends DomainError {
   readonly code = 'TRIP_INSTANCE_CAPACITY_BAD_REQUEST';
   constructor(capacity: number) {
-    super(`Trip instance total capacity must be non-negative, received: ${capacity}`);
+    super(
+      `Trip instance total capacity must be non-negative, received: ${capacity}`,
+    );
   }
 }
 
@@ -47,7 +49,9 @@ export class InvalidTripStatusTransitionError extends DomainError {
 export class TripInstanceRequiredFieldError extends DomainError {
   readonly code = 'TRIP_INSTANCE_REQUIRED_FIELD_BAD_REQUEST';
   constructor(field: string, status: TripStatus) {
-    super(`Field "${field}" is required when trip instance is in status: ${status}`);
+    super(
+      `Field "${field}" is required when trip instance is in status: ${status}`,
+    );
   }
 }
 

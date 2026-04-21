@@ -22,6 +22,9 @@ export class FindAllTripInstancesByOrganizationUseCase {
     organizationId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<TripInstance>> {
-    return this.tripInstanceRepository.findByOrganizationId(organizationId, options);
+    return this.tripInstanceRepository.findByOrganizationId(
+      organizationId,
+      options,
+    );
   }
 }

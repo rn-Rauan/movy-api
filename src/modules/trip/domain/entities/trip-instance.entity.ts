@@ -88,13 +88,19 @@ export class TripInstance {
    * @throws InvalidTripInstanceAutoCancelTimeError if autoCancelAt is after departureTime
    */
   static create(
-    props: Omit<TripInstanceProps, 'createdAt' | 'updatedAt' | 'tripStatus' | 'forceConfirm'>,
+    props: Omit<
+      TripInstanceProps,
+      'createdAt' | 'updatedAt' | 'tripStatus' | 'forceConfirm'
+    >,
   ): TripInstance {
     TripInstance.validateCapacity(props.totalCapacity);
     TripInstance.validateTimes(props.departureTime, props.arrivalEstimate);
-    
+
     if (props.autoCancelAt) {
-      TripInstance.validateAutoCancel(new Date(props.autoCancelAt), props.departureTime);
+      TripInstance.validateAutoCancel(
+        new Date(props.autoCancelAt),
+        props.departureTime,
+      );
     }
 
     return new TripInstance({
@@ -133,20 +139,48 @@ export class TripInstance {
   }
 
   // Getters
-  get id(): string { return this.props.id; }
-  get organizationId(): string { return this.props.organizationId; }
-  get tripTemplateId(): string { return this.props.tripTemplateId; }
-  get driverId(): string | null { return this.props.driverId; }
-  get vehicleId(): string | null { return this.props.vehicleId; }
-  get tripStatus(): TripStatus { return this.props.tripStatus; }
-  get minRevenue(): Money | null { return this.props.minRevenue; }
-  get autoCancelAt(): Date | null { return this.props.autoCancelAt; }
-  get forceConfirm(): boolean { return this.props.forceConfirm; }
-  get totalCapacity(): number { return this.props.totalCapacity; }
-  get departureTime(): Date { return this.props.departureTime; }
-  get arrivalEstimate(): Date { return this.props.arrivalEstimate; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get organizationId(): string {
+    return this.props.organizationId;
+  }
+  get tripTemplateId(): string {
+    return this.props.tripTemplateId;
+  }
+  get driverId(): string | null {
+    return this.props.driverId;
+  }
+  get vehicleId(): string | null {
+    return this.props.vehicleId;
+  }
+  get tripStatus(): TripStatus {
+    return this.props.tripStatus;
+  }
+  get minRevenue(): Money | null {
+    return this.props.minRevenue;
+  }
+  get autoCancelAt(): Date | null {
+    return this.props.autoCancelAt;
+  }
+  get forceConfirm(): boolean {
+    return this.props.forceConfirm;
+  }
+  get totalCapacity(): number {
+    return this.props.totalCapacity;
+  }
+  get departureTime(): Date {
+    return this.props.departureTime;
+  }
+  get arrivalEstimate(): Date {
+    return this.props.arrivalEstimate;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
 
   /**
    * Transitions the trip instance to a new status, checking for valid state machine transitions.
@@ -179,13 +213,19 @@ export class TripInstance {
       case TripStatus.CONFIRMED:
         if (newStatus === TripStatus.IN_PROGRESS) {
           this.validateSchedulingPrerequisites();
-        } else if (newStatus !== TripStatus.CANCELED && newStatus !== TripStatus.SCHEDULED) {
+        } else if (
+          newStatus !== TripStatus.CANCELED &&
+          newStatus !== TripStatus.SCHEDULED
+        ) {
           throw new InvalidTripStatusTransitionError(current, newStatus);
         }
         break;
 
       case TripStatus.IN_PROGRESS:
-        if (newStatus !== TripStatus.FINISHED && newStatus !== TripStatus.CANCELED) {
+        if (
+          newStatus !== TripStatus.FINISHED &&
+          newStatus !== TripStatus.CANCELED
+        ) {
           throw new InvalidTripStatusTransitionError(current, newStatus);
         }
         break;
@@ -205,10 +245,16 @@ export class TripInstance {
   /** Ensures that a driver and vehicle are assigned before scheduling, confirming or starting the trip */
   private validateSchedulingPrerequisites(): void {
     if (!this.props.driverId) {
-      throw new TripInstanceRequiredFieldError('driverId', TripStatus.SCHEDULED);
+      throw new TripInstanceRequiredFieldError(
+        'driverId',
+        TripStatus.SCHEDULED,
+      );
     }
     if (!this.props.vehicleId) {
-      throw new TripInstanceRequiredFieldError('vehicleId', TripStatus.SCHEDULED);
+      throw new TripInstanceRequiredFieldError(
+        'vehicleId',
+        TripStatus.SCHEDULED,
+      );
     }
   }
 

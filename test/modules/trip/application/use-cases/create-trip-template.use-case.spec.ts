@@ -73,7 +73,7 @@ describe('CreateTripTemplateUseCase', () => {
       await sut.execute(dto, ORG_ID);
 
       // Assert
-      const savedEntity = mocks.tripTemplateRepository.save.mock.calls[0]![0]!;
+      const savedEntity = mocks.tripTemplateRepository.save.mock.calls[0][0];
       expect(savedEntity.organizationId).toBe(ORG_ID);
       expect(savedEntity.shift).toBe(dto.shift);
       expect(savedEntity.status).toBe('ACTIVE');

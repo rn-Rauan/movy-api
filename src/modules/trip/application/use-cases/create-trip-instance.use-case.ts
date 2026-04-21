@@ -2,15 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Money } from 'src/shared/domain/entities/value-objects';
 import { TripInstance } from '../../domain/entities';
-import {
-  TripInstanceCreationFailedError,
-} from '../../domain/entities/errors/trip-instance.errors';
+import { TripInstanceCreationFailedError } from '../../domain/entities/errors/trip-instance.errors';
 import {
   TripTemplateAccessForbiddenError,
   TripTemplateInactiveError,
   TripTemplateNotFoundError,
 } from '../../domain/entities/errors/trip-template.errors';
-import { TripInstanceRepository, TripTemplateRepository } from '../../domain/interfaces';
+import {
+  TripInstanceRepository,
+  TripTemplateRepository,
+} from '../../domain/interfaces';
 import { CreateTripInstanceDto } from '../dtos';
 
 @Injectable()
@@ -39,7 +40,9 @@ export class CreateTripInstanceUseCase {
     input: CreateTripInstanceDto,
     organizationId: string,
   ): Promise<TripInstance> {
-    const template = await this.tripTemplateRepository.findById(input.tripTemplateId);
+    const template = await this.tripTemplateRepository.findById(
+      input.tripTemplateId,
+    );
 
     if (!template) {
       throw new TripTemplateNotFoundError(input.tripTemplateId);

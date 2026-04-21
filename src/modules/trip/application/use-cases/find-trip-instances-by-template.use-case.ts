@@ -4,7 +4,10 @@ import {
   TripTemplateAccessForbiddenError,
   TripTemplateNotFoundError,
 } from '../../domain/entities/errors/trip-template.errors';
-import { TripInstanceRepository, TripTemplateRepository } from '../../domain/interfaces';
+import {
+  TripInstanceRepository,
+  TripTemplateRepository,
+} from '../../domain/interfaces';
 import {
   PaginatedResponse,
   PaginationOptions,

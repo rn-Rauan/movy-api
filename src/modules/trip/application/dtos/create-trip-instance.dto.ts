@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsPositive,
-  IsString,
   IsUUID,
   Min,
   IsNumber,
@@ -28,21 +27,29 @@ export class CreateTripInstanceDto {
     example: '2026-05-10T07:30:00.000Z',
     description: 'Scheduled departure date and time (ISO 8601)',
   })
-  @IsDateString({}, { message: 'departureTime must be a valid ISO 8601 date string' })
+  @IsDateString(
+    {},
+    { message: 'departureTime must be a valid ISO 8601 date string' },
+  )
   @IsNotEmpty({ message: 'departureTime is required' })
   departureTime: string;
 
   @ApiProperty({
     example: '2026-05-10T08:15:00.000Z',
-    description: 'Estimated arrival date and time (ISO 8601) — must be after departureTime',
+    description:
+      'Estimated arrival date and time (ISO 8601) — must be after departureTime',
   })
-  @IsDateString({}, { message: 'arrivalEstimate must be a valid ISO 8601 date string' })
+  @IsDateString(
+    {},
+    { message: 'arrivalEstimate must be a valid ISO 8601 date string' },
+  )
   @IsNotEmpty({ message: 'arrivalEstimate is required' })
   arrivalEstimate: string;
 
   @ApiProperty({
     example: 40,
-    description: 'Snapshot of the vehicle total seat capacity at scheduling time',
+    description:
+      'Snapshot of the vehicle total seat capacity at scheduling time',
   })
   @IsInt({ message: 'totalCapacity must be an integer' })
   @IsPositive({ message: 'totalCapacity must be positive' })

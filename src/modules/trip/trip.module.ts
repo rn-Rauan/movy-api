@@ -15,7 +15,10 @@ import {
   AssignDriverToTripInstanceUseCase,
   AssignVehicleToTripInstanceUseCase,
 } from './application/use-cases';
-import { TripInstanceRepository, TripTemplateRepository } from './domain/interfaces';
+import {
+  TripInstanceRepository,
+  TripTemplateRepository,
+} from './domain/interfaces';
 import { PrismaTripInstanceRepository } from './infrastructure/db/repositories/prisma-trip-instance.repository';
 import { PrismaTripTemplateRepository } from './infrastructure/db/repositories/prisma-trip-template.repository';
 import { TripTemplateController } from './presentation/controllers/trip-template.controller';

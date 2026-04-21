@@ -53,14 +53,16 @@ export class TripInstanceResponseDto {
 
   @ApiPropertyOptional({
     example: '2026-05-10T06:30:00.000Z',
-    description: 'Timestamp at which auto-cancel is evaluated (before departure)',
+    description:
+      'Timestamp at which auto-cancel is evaluated (before departure)',
     nullable: true,
   })
   autoCancelAt: Date | null;
 
   @ApiProperty({
     example: false,
-    description: 'Whether the admin forced confirmation bypassing revenue checks',
+    description:
+      'Whether the admin forced confirmation bypassing revenue checks',
   })
   forceConfirm: boolean;
 

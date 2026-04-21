@@ -28,7 +28,8 @@ export function makeTripInstance(
   overrides: TripInstanceOverrides = {},
 ): TripInstance {
   const departure = overrides.departureTime ?? new Date();
-  const arrival = overrides.arrivalEstimate ?? new Date(departure.getTime() + 3600000); // +1h
+  const arrival =
+    overrides.arrivalEstimate ?? new Date(departure.getTime() + 3600000); // +1h
 
   const props = {
     id: overrides.id ?? crypto.randomUUID(),
@@ -43,7 +44,12 @@ export function makeTripInstance(
     arrivalEstimate: arrival,
   };
 
-  if (overrides.tripStatus !== undefined || overrides.forceConfirm !== undefined || overrides.createdAt !== undefined || overrides.updatedAt !== undefined) {
+  if (
+    overrides.tripStatus !== undefined ||
+    overrides.forceConfirm !== undefined ||
+    overrides.createdAt !== undefined ||
+    overrides.updatedAt !== undefined
+  ) {
     return TripInstance.restore({
       ...props,
       tripStatus: overrides.tripStatus ?? TripStatus.SCHEDULED,
