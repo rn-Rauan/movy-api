@@ -45,7 +45,7 @@ export class TripInstanceResponseDto {
   tripStatus: TripStatus;
 
   @ApiPropertyOptional({
-    example: 150.0,
+    example: 150,
     description: 'Minimum revenue threshold for auto-cancel evaluation (BRL)',
     nullable: true,
   })
@@ -89,4 +89,8 @@ export class TripInstanceResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
+
+  constructor(props: Partial<TripInstanceResponseDto>) {
+    Object.assign(this, props);
+  }
 }
