@@ -94,11 +94,10 @@ export class TripInstanceController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<PaginatedDto<TripInstanceResponseDto>> {
-    const result =
-      await this.findAllTripInstancesByOrganizationUseCase.execute(
-        organizationId,
-        { page, limit },
-      );
+    const result = await this.findAllTripInstancesByOrganizationUseCase.execute(
+      organizationId,
+      { page, limit },
+    );
     return new PaginatedDto(
       TripInstancePresenter.toHTTPList(result.data),
       result.total,
@@ -165,7 +164,9 @@ export class TripInstanceController {
   @Patch(':id/status')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Transition trip instance to a new lifecycle status' })
+  @ApiOperation({
+    summary: 'Transition trip instance to a new lifecycle status',
+  })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiResponse({
     status: 200,

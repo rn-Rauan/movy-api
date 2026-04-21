@@ -77,7 +77,9 @@ export class OrganizationController {
   @Get('me')
   @UseGuards(RolesGuard)
   @Roles(RoleName.ADMIN, RoleName.DRIVER)
-  @ApiOperation({ summary: 'Find all organizations the authenticated user belongs to' })
+  @ApiOperation({
+    summary: 'Find all organizations the authenticated user belongs to',
+  })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({

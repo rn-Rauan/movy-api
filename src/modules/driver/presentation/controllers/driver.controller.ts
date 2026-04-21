@@ -94,8 +94,7 @@ export class DriverController {
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
   @ApiOperation({
-    summary:
-      'Lookup driver profile by email and CNH (Admin only)',
+    summary: 'Lookup driver profile by email and CNH (Admin only)',
   })
   @ApiQuery({ name: 'email', required: true, example: 'joao@email.com' })
   @ApiQuery({ name: 'cnh', required: true, example: '123456789' })

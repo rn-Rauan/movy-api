@@ -22,7 +22,6 @@ export class FindOrganizationByUserUseCase {
     userId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Organization>> {
-    
     return this.organizationRepository.findOrganizationByUserId(
       userId,
       options,

@@ -61,7 +61,9 @@ export class MembershipController {
   @Get('me/role/:organizationId')
   @UseGuards(RolesGuard)
   @Roles(RoleName.ADMIN, RoleName.DRIVER)
-  @ApiOperation({ summary: 'Get the role of the authenticated user within an organization' })
+  @ApiOperation({
+    summary: 'Get the role of the authenticated user within an organization',
+  })
   @ApiParam({
     name: 'organizationId',
     description: 'The ID of the organization',

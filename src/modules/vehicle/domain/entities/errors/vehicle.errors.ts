@@ -1,4 +1,4 @@
-import { DomainError } from 'src/shared';
+import { DomainError } from 'src/shared/domain/errors/domain.error';
 
 /** Base for all plate validation errors */
 export abstract class PlateValidationError extends DomainError {
