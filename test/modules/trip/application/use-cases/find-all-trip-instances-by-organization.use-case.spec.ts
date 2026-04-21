@@ -33,7 +33,9 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   ];
   const paginated = makePaginatedResponse(instances);
 
-  mocks.tripInstanceRepository.findByOrganizationId.mockResolvedValue(paginated);
+  mocks.tripInstanceRepository.findByOrganizationId.mockResolvedValue(
+    paginated,
+  );
 
   return { instances, paginated };
 }
@@ -57,8 +59,7 @@ describe('FindAllTripInstancesByOrganizationUseCase', () => {
   describe('happy path', () => {
     it('should return paginated list of trip instances for the organization', async () => {
       // Arrange
-      const { paginated } = setupHappyPath(mocks);
-
+      setupHappyPath(mocks);
       // Act
       const result = await sut.execute(ORG_ID, PAGINATION);
 

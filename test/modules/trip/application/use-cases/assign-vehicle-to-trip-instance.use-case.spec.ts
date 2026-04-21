@@ -30,7 +30,9 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
 
   mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
   mocks.vehicleRepository.findById.mockResolvedValue(vehicle);
-  mocks.tripInstanceRepository.update.mockImplementation(async (entity) => entity);
+  mocks.tripInstanceRepository.update.mockImplementation(
+    async (entity) => entity,
+  );
 
   return { instance, vehicle };
 }
@@ -101,7 +103,9 @@ describe('AssignVehicleToTripInstanceUseCase', () => {
         vehicleId: VEHICLE_ID,
       });
       mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
-      mocks.tripInstanceRepository.update.mockImplementation(async (entity) => entity);
+      mocks.tripInstanceRepository.update.mockImplementation(
+        async (entity) => entity,
+      );
 
       // Act
       const result = await sut.execute(INSTANCE_ID, null, ORG_ID);

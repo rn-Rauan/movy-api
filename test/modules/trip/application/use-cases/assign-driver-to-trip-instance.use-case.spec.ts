@@ -27,11 +27,16 @@ function makeMocks() {
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   const instance = makeTripInstance({ organizationId: ORG_ID });
   const driver = makeDriver({ id: DRIVER_ID });
-  const updated = makeTripInstance({ organizationId: ORG_ID, driverId: DRIVER_ID });
+  const updated = makeTripInstance({
+    organizationId: ORG_ID,
+    driverId: DRIVER_ID,
+  });
 
   mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
   mocks.driverRepository.findById.mockResolvedValue(driver);
-  mocks.tripInstanceRepository.update.mockImplementation(async (entity) => entity);
+  mocks.tripInstanceRepository.update.mockImplementation(
+    async (entity) => entity,
+  );
 
   return { instance, driver, updated };
 }
@@ -102,7 +107,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
         driverId: DRIVER_ID,
       });
       mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
-      mocks.tripInstanceRepository.update.mockImplementation(async (entity) => entity);
+      mocks.tripInstanceRepository.update.mockImplementation(
+        async (entity) => entity,
+      );
 
       // Act
       const result = await sut.execute(INSTANCE_ID, null, ORG_ID);
@@ -119,9 +126,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.tripInstanceRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceNotFoundError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        TripInstanceNotFoundError,
+      );
     });
 
     it('should NOT call driverRepository when instance is not found', async () => {
@@ -129,9 +136,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.tripInstanceRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceNotFoundError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        TripInstanceNotFoundError,
+      );
 
       expect(mocks.driverRepository.findById).not.toHaveBeenCalled();
     });
@@ -144,9 +151,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceAccessForbiddenError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        TripInstanceAccessForbiddenError,
+      );
     });
 
     it('should NOT validate driver when org check fails', async () => {
@@ -155,9 +162,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceAccessForbiddenError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        TripInstanceAccessForbiddenError,
+      );
 
       expect(mocks.driverRepository.findById).not.toHaveBeenCalled();
     });
@@ -171,9 +178,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.driverRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(DriverNotFoundError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        DriverNotFoundError,
+      );
     });
 
     it('should NOT call repository.update when driver is not found', async () => {
@@ -183,9 +190,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.driverRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(DriverNotFoundError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        DriverNotFoundError,
+      );
 
       expect(mocks.tripInstanceRepository.update).not.toHaveBeenCalled();
     });
@@ -198,9 +205,9 @@ describe('AssignDriverToTripInstanceUseCase', () => {
       mocks.tripInstanceRepository.update.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceNotFoundError);
+      await expect(sut.execute(INSTANCE_ID, DRIVER_ID, ORG_ID)).rejects.toThrow(
+        TripInstanceNotFoundError,
+      );
     });
   });
 });

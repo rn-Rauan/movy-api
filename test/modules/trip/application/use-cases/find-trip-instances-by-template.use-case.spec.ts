@@ -74,7 +74,7 @@ describe('FindTripInstancesByTemplateUseCase', () => {
   describe('happy path', () => {
     it('should return paginated instances for a valid template', async () => {
       // Arrange
-      const { paginated } = setupHappyPath(mocks);
+      setupHappyPath(mocks);
 
       // Act
       const result = await sut.execute(TEMPLATE_ID, ORG_ID, PAGINATION);
@@ -107,11 +107,12 @@ describe('FindTripInstancesByTemplateUseCase', () => {
       await sut.execute(TEMPLATE_ID, ORG_ID, PAGINATION);
 
       // Assert
-      expect(mocks.tripInstanceRepository.findByTemplateId).toHaveBeenCalledWith(
-        TEMPLATE_ID,
-        PAGINATION,
-      );
-      expect(mocks.tripInstanceRepository.findByTemplateId).toHaveBeenCalledTimes(1);
+      expect(
+        mocks.tripInstanceRepository.findByTemplateId,
+      ).toHaveBeenCalledWith(TEMPLATE_ID, PAGINATION);
+      expect(
+        mocks.tripInstanceRepository.findByTemplateId,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('should forward the paginated response from the repository as-is', async () => {
@@ -146,7 +147,9 @@ describe('FindTripInstancesByTemplateUseCase', () => {
         sut.execute(TEMPLATE_ID, ORG_ID, PAGINATION),
       ).rejects.toThrow(TripTemplateNotFoundError);
 
-      expect(mocks.tripInstanceRepository.findByTemplateId).not.toHaveBeenCalled();
+      expect(
+        mocks.tripInstanceRepository.findByTemplateId,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -178,7 +181,9 @@ describe('FindTripInstancesByTemplateUseCase', () => {
         sut.execute(TEMPLATE_ID, ORG_ID, PAGINATION),
       ).rejects.toThrow(TripTemplateAccessForbiddenError);
 
-      expect(mocks.tripInstanceRepository.findByTemplateId).not.toHaveBeenCalled();
+      expect(
+        mocks.tripInstanceRepository.findByTemplateId,
+      ).not.toHaveBeenCalled();
     });
   });
 });
