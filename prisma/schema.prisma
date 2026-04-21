@@ -37,6 +37,7 @@ enum EnrollmentType {
 }
 
 enum TripStatus {
+  DRAFT
   SCHEDULED
   CONFIRMED
   IN_PROGRESS
@@ -281,8 +282,8 @@ model TripTemplate {
 
 model TripInstance {
   id                     String     @id @default(uuid())
-  driverId               String
-  vehicleId              String
+  driverId               String?
+  vehicleId              String?
   tripTemplateId         String
   organizationId         String
 
@@ -300,8 +301,8 @@ model TripInstance {
   updatedAt              DateTime   @updatedAt
 
   // Relations
-  driver       Driver               @relation("TripDriver", fields: [driverId], references: [id], onDelete: Restrict)
-  vehicle      Vehicle              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver       Driver?               @relation("TripDriver", fields: [driverId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle?              @relation("TripVehicle", fields: [vehicleId], references: [id], onDelete: Restrict)
   tripTemplate TripTemplate         @relation("TripInstanceTemplate", fields: [tripTemplateId], references: [id], onDelete: Cascade)
   enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
   organization Organization          @relation("TripInstanceOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
