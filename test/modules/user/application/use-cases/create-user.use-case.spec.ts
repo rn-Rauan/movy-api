@@ -30,7 +30,7 @@ const validDto: CreateUserDto = {
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   mocks.userRepository.findByEmail.mockResolvedValue(null);
   mocks.hashProvider.generateHash.mockResolvedValue('hashed-password');
-  mocks.userRepository.save.mockResolvedValue(undefined);
+  mocks.userRepository.save.mockResolvedValue(null);
 }
 
 // ── Tests ───────────────────────────────────────────────

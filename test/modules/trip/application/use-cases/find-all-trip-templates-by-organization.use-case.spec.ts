@@ -33,7 +33,9 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   ];
   const paginated = makePaginatedResponse(templates);
 
-  mocks.tripTemplateRepository.findByOrganizationId.mockResolvedValue(paginated);
+  mocks.tripTemplateRepository.findByOrganizationId.mockResolvedValue(
+    paginated,
+  );
 
   return { templates, paginated };
 }

@@ -28,7 +28,7 @@ const validDto: CreateOrganizationDto = {
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   mocks.organizationRepository.findByCnpj.mockResolvedValue(null);
   mocks.organizationRepository.findBySlug.mockResolvedValue(null);
-  mocks.organizationRepository.save.mockResolvedValue(undefined);
+  mocks.organizationRepository.save.mockResolvedValue(null);
 }
 
 // ── Tests ───────────────────────────────────────────────

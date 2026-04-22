@@ -93,9 +93,9 @@ describe('FindOrganizationByIdUseCase', () => {
       };
 
       // Act & Assert
-      await expect(
-        sut.execute('other-org-id', tenantContext),
-      ).rejects.toThrow(OrganizationForbiddenError);
+      await expect(sut.execute('other-org-id', tenantContext)).rejects.toThrow(
+        OrganizationForbiddenError,
+      );
     });
 
     it('should NOT throw when caller is a dev (isDev = true)', async () => {
