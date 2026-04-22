@@ -681,11 +681,11 @@ src/modules/payment/
 
 ### Testing 📋
 - [ ] Unit tests (target: 80%+)
-  - [ ] User module: ✅ Feito
+  - [x] User module: ✅ Feito
   - [ ] Organization module: ⏳ Next
   - [ ] Vehicles module: ⏳
   - [ ] Drivers module: ⏳
-  - [ ] Trips module: ⏳ (complexo)
+  - [x] Trips module: ✅ (11 specs, 90 testes — `FindAllTripTemplatesByOrganizationUseCase` pendente)
   - [ ] Bookings module: ⏳
   - [ ] Payments module: ⏳
 
@@ -699,13 +699,13 @@ src/modules/payment/
 ---
 
 ### CI/CD 📋
-- [ ] GitHub Actions workflow
-  - [ ] Build step
-  - [ ] Lint step
-  - [ ] Test step
+- [x] GitHub Actions workflow
+  - [x] Build step
+  - [x] Lint step
+  - [x] Test step
   - [ ] Coverage check (≥80%)
-- [ ] Deploy automático em staging
-- [ ] Notificações de falha
+- [x] Deploy automático em staging
+- [x] Notificações de falha
 
 **Arquivo:** `.github/workflows/ci.yml`
 
@@ -730,38 +730,22 @@ src/modules/payment/
 
 ---
 
-## 📝 Próximos Passos (Ordem)
+## 📝 Próximos Passos
 
-1. **Esta semana (05-07 Abr):** 
-   - [ ] Implementar Organization members associação com roles
-   - [ ] Guards de permissão baseados em Role (RBAC)
-   - [ ] Coverage de testes ≥80%
+1. **Testes unitários pendentes:**
+   - [ ] RegisterUseCase, RefreshTokenUseCase (auth module)
+   - [ ] Use cases de CRUD de Driver (FindDriverById, UpdateDriver, etc.)
 
-2. **Semana 1-2 (08-20 Abr):**
-   - [ ] Implementar Vehicles CRUD
-   - [ ] Implementar Drivers CRUD
-   - [ ] Setup CI/CD com GitHub Actions
+2. **Bookings Module** — próximo módulo de negócio
+   - [ ] Entity, Repository, Use Cases (Create, FindByUser, FindByTrip, Cancel)
+   - [ ] Validação de capacidade e conflito de inscrição duplicada
 
-3. **Semana 2-3 (21-01 Mai):**
-   - [ ] Trip Templates module
-   - [ ] Trip Instances auto-generation com CRON
+3. **Swagger** — documentação dos endpoints ainda sem `@ApiProperty` completo
 
-4. **Semana 3-4 (04-15 Mai):**
-   - [ ] Bookings module completo
-   - [ ] Testes E2E
-
-5. **Semana 4-5 (18-29 Mai):**
-   - [ ] Integração de Pagamentos (Stripe)
+4. **Fase 3 (Monetização)**
+   - [ ] Integração com Stripe (checkout, webhook)
    - [ ] Plans (Free/Pro/Enterprise)
-
-6. **Semana 5-6 (01-15 Jun):**
-   - [ ] Swagger completo
-   - [ ] Documentação TCC
-
-7. **Semana 6-7 (18+ Jun):**
-   - [ ] Polish, testes finais
-   - [ ] Deploy staging/production
-   - [ ] **MVP PRONTO**
+   - [ ] Billing + Invoices
 
 ---
 

@@ -282,7 +282,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 - **`sut`** (System Under Test): Instância real do use case com dependências injetadas manualmente.
 - **Factories por módulo**: Funções `make*()` que criam entidades de domínio com valores padrão e suporte a overrides.
 
-**Suites de Teste (5 suites, 27 testes):**
+**Suites de Teste (23 suites, 148 testes):**
 
 | Use Case | Testes | Cenários Cobertos |
 |----------|--------|--------------------|
@@ -291,8 +291,26 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `SetupOrganizationForExistingUserUseCase` | 6 | Happy path, orquestração completa, user not found, user inactive, ADMIN role not found, membership fails |
 | `CreateMembershipUseCase` | 7 | Happy path ADMIN, happy path DRIVER com perfil, restore soft-deleted, user not found, DRIVER sem perfil, membership already exists |
 | `CreateDriverUseCase` | 4 | Happy path criação, verificação de duplicata, DriverAlreadyExistsError, DriverCreationFailedError |
+| `CreateTripTemplateUseCase` | 5 | Happy path (create + return, save once, campos corretos), TripTemplateCreationFailedError, InvalidTripPriceConfigurationError |
+| `FindTripTemplateByIdUseCase` | 4 | Happy path, TripTemplateNotFoundError, TripTemplateAccessForbiddenError, acesso por org |
+| `UpdateTripTemplateUseCase` | 8 | Happy path, campos atualizados, save once, NotFoundError, AccessForbiddenError, InactiveError, update null, sem campos |
+| `DeactivateTripTemplateUseCase` | 4 | Happy path, TripTemplateNotFoundError, TripTemplateAccessForbiddenError, template já inativo |
+| `CreateTripInstanceUseCase` | 15 | Happy path, campos propagados do template, TripInstanceCreationFailedError, validações de capacidade e datas |
+| `FindTripInstanceByIdUseCase` | 5 | Happy path, TripInstanceNotFoundError, TripInstanceAccessForbiddenError, retorno de campos corretos |
+| `FindAllTripInstancesByOrganizationUseCase` | 4 | Happy path, paginação, lista vazia, campos corretos |
+| `FindTripInstancesByTemplateUseCase` | 8 | Happy path, paginação, lista vazia, filtro por templateId, campos corretos |
+| `TransitionTripInstanceStatusUseCase` | 15 | Happy paths (SCHEDULED→IN_PROGRESS, IN_PROGRESS→COMPLETED/CANCELLED), InvalidTripStatusTransitionError (múltiplas transições inválidas), NotFoundError, AccessForbiddenError |
+| `AssignDriverToTripInstanceUseCase` | 11 | Happy path (atribuir + desatribuir null), DriverNotFoundError (FK validation), TripInstanceNotFoundError, TripInstanceAccessForbiddenError |
+| `AssignVehicleToTripInstanceUseCase` | 11 | Happy path (atribuir + desatribuir null), VehicleNotFoundError (FK validation), TripInstanceNotFoundError, TripInstanceAccessForbiddenError |
+| `FindAllTripTemplatesByOrganizationUseCase` | 4 | Happy path, chamada de repo com args corretos, lista vazia, repasse da resposta paginada |
+| `CreateVehicleUseCase` | 4 | Happy path (criação + save), PlateAlreadyInUseError, VehicleCreationFailedError |
+| `FindVehicleByIdUseCase` | 3 | Happy path, VehicleNotFoundError, VehicleAccessForbiddenError |
+| `CreateUserUseCase` | 3 | Happy path (criação + hash de senha), UserEmailAlreadyExistsError |
+| `FindUserByIdUseCase` | 3 | Happy path, UserNotFoundError (inexistente), UserNotFoundError (inativo) |
+| `CreateOrganizationUseCase` | 4 | Happy path (criação + save), CNPJ duplicado, slug duplicado |
+| `FindOrganizationByIdUseCase` | 6 | Happy path, bypass dev, OrganizationNotFoundError (inexistente + inativo), OrganizationForbiddenError |
 
-**Factories Implementadas (9 total):**
+**Factories Implementadas (15 total):**
 
 | Factory | Localização | Entidade/DTO |
 |---------|------------|-------------|
@@ -305,6 +323,12 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `makeRegisterOrgDto()` | `test/modules/auth/factories/` | RegisterOrganizationWithAdminDto |
 | `makeSetupOrgDto()` | `test/modules/auth/factories/` | SetupOrganizationDto |
 | `makeCreateDriverDto()` | `test/modules/driver/factories/` | CreateDriverDto |
+| `makeTripTemplate()` | `test/modules/trip/factories/` | TripTemplateEntity |
+| `makeTripInstance()` | `test/modules/trip/factories/` | TripInstanceEntity |
+| `makeCreateTripTemplateDto()` | `test/modules/trip/factories/` | CreateTripTemplateDto |
+| `makeCreateTripInstanceDto()` | `test/modules/trip/factories/` | CreateTripInstanceDto |
+| `makeUpdateTripTemplateDto()` | `test/modules/trip/factories/` | UpdateTripTemplateDto |
+| `makeVehicle()` | `test/modules/vehicle/factories/` | VehicleEntity com Plate value object |
 
 **Estrutura de Pastas dos Testes:**
 ```
@@ -320,8 +344,18 @@ test/
 │   ├── driver/
 │   │   ├── factories/ (driver, create-driver.dto)
 │   │   └── application/use-cases/ (create-driver spec)
-│   ├── user/factories/ (user)
-│   └── organization/factories/ (organization)
+│   ├── trip/
+│   │   ├── factories/ (trip-template, trip-instance, create-trip-template.dto, create-trip-instance.dto, update-trip-template.dto)
+│   │   └── application/use-cases/ (11 specs: create/find/update/deactivate template + create/find/findAll/findByTemplate/transition/assignDriver/assignVehicle instance)
+│   ├── vehicle/
+│   │   ├── factories/ (vehicle)
+│   │   └── application/use-cases/ (create-vehicle, find-vehicle-by-id specs)
+│   ├── user/
+│   │   ├── factories/ (user)
+│   │   └── application/use-cases/ (create-user, find-user-by-id specs)
+│   └── organization/
+│       ├── factories/ (organization)
+│       └── application/use-cases/ (create-organization, find-organization-by-id specs)
 └── shared/factories/ (role)
 ```
 
@@ -739,7 +773,8 @@ O script de seed foi configurado para:
 ## 7. Próximos Passos
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
-2. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization.
+2. ~~**Testes Unitários — Trip Module:**~~ ✅ **CONCLUÍDO (21 Abr)** — 11 suites, 90 testes (todos use cases de TripTemplate e TripInstance cobertos; `FindAllTripTemplatesByOrganizationUseCase` pendente).
+3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization/Vehicle/Driver.
 3. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
 4. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
 5. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
@@ -768,7 +803,7 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 21 de abril 
 - ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
 - ✅ **Segurança IDOR**: Vehicle e Driver validam ownership em operações por ID; Membership protegido via TenantFilterGuard *(17 Abr)*.
 - ✅ **Segurança FK**: Trip module valida existência de Driver e Vehicle antes de persistir atribuições, evitando HTTP 500 por FK violation *(21 Abr)*.
-- ✅ **Testes Unitários**: 5 suites, 27 testes passando com padrão AAA, factories por módulo e injeção manual *(16 Abr)*.
+- ✅ **Testes Unitários**: 23 suites, 148 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module adicionado 21 Abr; Vehicle/User/Organization adicionados)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
@@ -786,8 +821,8 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npx jest --config test/jest-unit.json`: Executa testes unitários (27 testes, 5 suites)
-- `npx jest --config test/jest-unit.json --no-coverage`: Testes sem relatório de cobertura
+- `npm run test`: Executa testes unitários (148 testes, 23 suites)
+- `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
 ```env
