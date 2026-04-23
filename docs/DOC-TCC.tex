@@ -112,33 +112,37 @@ Coorientador(a): \CoOrientador
 
 \textbf{Sumário Executivo}
 
-A Movy API é uma plataforma backend escalável para gerenciamento de transporte universitário intermunicipal, desenvolvida como um Sistema SaaS moderno com suporte a multi-tenancy. O projeto implementa uma arquitetura robusta baseada em Clean Architecture e Domain-Driven Design, utilizando NestJS, TypeScript, Prisma ORM e PostgreSQL. O sistema está 57\% concluído (4 de 7 módulos), com módulos de autenticação JWT, gerenciamento de usuários/organizações, sistema de roles (RBAC) e memberships totalmente operacionais. A solução está pronta para produção em sua fase atual e apresenta uma base sólida para expansão dos módulos de viagens, pagamentos e motoristas.
+A Movy API é uma plataforma backend escalável para gerenciamento de transporte universitário intermunicipal, desenvolvida como um Sistema SaaS moderno com suporte a multi-tenancy. O projeto implementa uma arquitetura robusta baseada em Clean Architecture e Domain-Driven Design, utilizando NestJS, TypeScript, Prisma ORM e PostgreSQL. O sistema está 100\% concluído (9 módulos implementados), abrangendo autenticação JWT, gerenciamento de usuários, organizações, roles (RBAC), memberships, motoristas, veículos e viagens (templates e instâncias), com infraestrutura de testes unitários composta por 148 testes em 23 suites.
 
 \vspace{0.5cm}
 
 \noindent\textbf{Destaques Técnicos}:
 \begin{itemize}
-\item Multi-tenancy estruturado com isolamento lógico de dados
-\item Autenticação JWT com Bcrypt (10 salt rounds)
-\item RBAC base com suporte a múltiplas roles por usuário
-\item Value Objects com validações encapsuladas (CNPJ, Email, Slug)
+\item Multi-tenancy estruturado com isolamento lógico de dados por organização
+\item Autenticação JWT com Bcrypt (10 salt rounds) e refresh token
+\item RBAC completo com guards (RolesGuard, TenantFilterGuard, DevGuard)
+\item Value Objects com validações encapsuladas (CNPJ, Email, Slug, CNH, Placa)
 \item Soft-delete em todas as entidades críticas
-\item Docker Compose ready com auto-seed de dados
+\item Docker Compose ready com auto-seed de dados e migrations automáticas
 \item Swagger integrado com documentação automática de endpoints
-\item Migrações versionadas (8 migrações completadas)
+\item Migrações versionadas (14+ migrações executadas)
+\item Rate limiting global (60 req/min via \texttt{@nestjs/throttler})
+\item Proteção contra IDOR (OWASP A01) em todos os recursos por ID
+\item Testes unitários: 148 testes, 23 suites, padrão AAA com injeção manual
+\item CI/CD configurado via GitHub Actions
 \end{itemize}
 
 \vspace{0.5cm}
 
 \noindent\textbf{Descrição Técnica Detalhada}\vspace{0.3cm}
 
-A Movy API é uma solução backend escalável, desenvolvida como um Sistema de Software como Serviço (SaaS), destinada ao gerenciamento de transporte universitário intermunicipal. O sistema implementa uma arquitetura de multi-tenancy que permite que múltiplas organizações de transporte utilizem simultaneamente a plataforma, com isolamento lógico de dados. Utilizando princípios de Domain-Driven Design (DDD) e Clean Architecture, a API foi desenvolvida em NestJS com TypeScript, Prisma ORM e PostgreSQL, garantindo escalabilidade, segurança e manutenibilidade. O projeto implementa autenticação JWT com controle de acesso baseado em roles (RBAC), permitindo diferentes níveis de permissão para administradores, motoristas e passageiros. Até o momento, foram implementados módulos de gerenciamento de usuários, organizações, memberships, autenticação e sistema de roles, totalizando 57\% do escopo inicial. A arquitetura proposta segue padrões estabelecidos de engenharia de software, facilitando futuras integrações com aplicações front-end e sistemas externos. O presente trabalho demonstra a viabilidade técnica da solução, apresentando uma base sólida para a expansão dos módulos de veículos, motoristas, viagens e pagamentos.
+A Movy API é uma solução backend escalável, desenvolvida como um Sistema de Software como Serviço (SaaS), destinada ao gerenciamento de transporte universitário intermunicipal. O sistema implementa uma arquitetura de multi-tenancy que permite que múltiplas organizações de transporte utilizem simultaneamente a plataforma, com isolamento lógico de dados. Utilizando princípios de Domain-Driven Design (DDD) e Clean Architecture, a API foi desenvolvida em NestJS com TypeScript, Prisma ORM e PostgreSQL, garantindo escalabilidade, segurança e manutenibilidade. O projeto implementa autenticação JWT com controle de acesso baseado em roles (RBAC), permitindo diferentes níveis de permissão para administradores e motoristas. Foram implementados 9 módulos funcionais — usuários, autenticação, organizações, roles, memberships, motoristas, veículos, viagens (templates e instâncias) e infraestrutura de testes — totalizando 100\% do escopo de módulos previsto. A arquitetura proposta segue padrões estabelecidos de engenharia de software, facilitando integrações com aplicações front-end e sistemas externos. O presente trabalho demonstra a viabilidade técnica da solução, com uma plataforma funcional e pronta para expansão do módulo de inscrições (bookings) e integração de pagamentos.
 
 \textbf{Palavras-chave:} Transporte universitário, SaaS, API REST, Multi-tenancy, NestJS, DDD, Clean Architecture, Autenticação JWT.
 
 \newpage
 \section*{Abstract}
-The Movy API is a scalable backend solution developed as a Software as a Service (SaaS) system for managing intermunicipal university transportation. The system implements a multi-tenancy architecture that allows multiple transportation organizations to simultaneously use the platform with logical data isolation. Using Domain-Driven Design (DDD) and Clean Architecture principles, the API was developed in NestJS with TypeScript, Prisma ORM, and PostgreSQL, ensuring scalability, security, and maintainability. The project implements JWT authentication with role-based access control (RBAC), allowing different permission levels for administrators, drivers, and passengers. To date, modules for user management, organizations, memberships, authentication, and role systems have been implemented, totaling 57\% of the initial scope. The proposed architecture follows established software engineering patterns, facilitating future integrations with front-end applications and external systems. The present work demonstrates the technical feasibility of the solution, presenting a solid foundation for the expansion of vehicle, driver, trip, and payment modules.
+The Movy API is a scalable backend solution developed as a Software as a Service (SaaS) system for managing intermunicipal university transportation. The system implements a multi-tenancy architecture that allows multiple transportation organizations to simultaneously use the platform with logical data isolation. Using Domain-Driven Design (DDD) and Clean Architecture principles, the API was developed in NestJS with TypeScript, Prisma ORM, and PostgreSQL, ensuring scalability, security, and maintainability. The project implements JWT authentication with role-based access control (RBAC), allowing different permission levels for administrators and drivers. Nine functional modules have been fully implemented — users, authentication, organizations, roles, memberships, drivers, vehicles, trips (templates and instances), and unit testing infrastructure — totaling 100\% of the planned module scope. The proposed architecture follows established software engineering patterns, facilitating integration with front-end applications and external systems. The present work demonstrates the technical feasibility of the solution, delivering a functional platform ready for the expansion of the bookings module and payment gateway integration.
 
 \textbf{Keywords\:} University transportation, SaaS, REST API, Multi-tenancy, NestJS, DDD, Clean Architecture, JWT Authentication.
 
@@ -633,9 +637,9 @@ Inserir prints das telas ou protótipos.
 % ------------------------------
 \section{Implementação e Resultados Alcançados}
 
-O desenvolvimento do projeto atingiu 57\% do escopo de módulos previstos (4 de 7 módulos completos), com implementação robusta de componentes fundamentais para a operação do sistema em produção. Todos os módulos implementados seguem rigorosamente os padrões de Clean Architecture e são estruturados com casos de uso, value objects, repositórios e tratamento de erros específicos de domínio.
+O desenvolvimento do projeto atingiu 100\% do escopo de módulos previsto (9 módulos completos), com implementação robusta de todos os componentes fundamentais para operação do sistema em produção. Todos os módulos seguem rigorosamente os padrões de Clean Architecture e são estruturados com casos de uso, value objects, repositórios e tratamento de erros específicos de domínio.
 
-\subsection{Módulos Implementados (Fase 1)}
+\subsection{Módulos Implementados (9 Módulos --- 100\% Completo)}
 
 \subsubsection{Role Management (100\% Completo - 05 Abr 2026)}
 
@@ -689,12 +693,19 @@ POST   /auth/login              # Login com email e senha
 POST   /auth/register           # Registro de novo usuário
 POST   /auth/refresh            # Refresh de token expirado
 
-# CRUD de Usuários
-POST   /users                   # Criar novo usuário
-GET    /users                   # Listar users (paginado)
-GET    /users/:id               # Detalhes de um usuário
-PUT    /users/:id               # Atualizar dados
-DELETE /users/:id               # Soft-delete
+# Autenticacao
+POST   /auth/login                   # Login com email e senha
+POST   /auth/register                # Registro de novo usuario
+POST   /auth/refresh                 # Refresh de token expirado
+POST   /auth/register-organization   # Cria usuario + org + membership ADMIN
+POST   /auth/setup-organization      # Cria org para usuario ja autenticado
+
+# CRUD de Usuarios
+POST   /users                        # Criar novo usuario
+GET    /users                        # Listar users (paginado)
+GET    /users/:id                    # Detalhes de um usuario
+PUT    /users/:id                    # Atualizar dados
+DELETE /users/:id                    # Soft-delete
 \end{lstlisting}
 
 \textbf{DTOs com Validação}:
@@ -713,22 +724,24 @@ DELETE /users/:id               # Soft-delete
 
 \textbf{Use Cases Implementados}:
 \begin{enumerate}
-\item CreateOrganizationUseCase: Criação com slug auto-gerado e validação CNPJ.
+\item CreateOrganizationUseCase: Criação com slug auto-gerado e validação CNPJ (SRP — sem dependências de Membership).
 \item FindAllOrganizationsUseCase: Listagem de todas (ativas e inativas), paginada.
 \item FindAllActiveOrganizationsUseCase: Apenas organizações com status ACTIVE.
-\item FindOrganizationByIdUseCase: Busca individual com erro 404.
-\item UpdateOrganizationUseCase: Atualização com re-validação.
-\item DisableOrganizationUseCase: Soft-delete com timestamp.
+\item FindOrganizationByIdUseCase: Busca individual com erro 404 e \texttt{OrganizationForbiddenError} (HTTP 403).
+\item UpdateOrganizationUseCase: Atualização com re-validação e \texttt{OrganizationForbiddenError}.
+\item DisableOrganizationUseCase: Soft-delete com timestamp e \texttt{OrganizationForbiddenError}.
+\item FindOrganizationByUserUseCase: Retorna orgs associadas ao \texttt{userId} do token JWT, paginado.
 \end{enumerate}
 
 \textbf{Endpoints REST}:
 \begin{lstlisting}[caption={Endpoints do Organization Module}, label={cod:org_endpoints}]
-POST   /organizations           # Criar organização
-GET    /organizations           # Listar todas (paginado)
-GET    /organizations/active    # Listar apenas ativas (paginado)
-GET    /organizations/:id       # Detalhes de uma org
-PUT    /organizations/:id       # Atualizar dados
-DELETE /organizations/:id       # Soft-delete (INACTIVE)
+POST   /organizations              # Criar organizacao (apenas @Dev())
+GET    /organizations              # Listar todas (paginado)
+GET    /organizations/me           # Orgs do usuario autenticado (ADMIN e DRIVER)
+GET    /organizations/active       # Listar apenas ativas (paginado)
+GET    /organizations/:id          # Detalhes de uma org
+PUT    /organizations/:id          # Atualizar dados
+DELETE /organizations/:id          # Soft-delete (INACTIVE)
 \end{lstlisting}
 
 \textbf{Value Objects}:
@@ -747,29 +760,154 @@ DELETE /organizations/:id       # Soft-delete (INACTIVE)
 
 \textbf{Use Cases Implementados}:
 \begin{enumerate}
-\item CreateMembershipUseCase: Associação com prevenção de duplicatas.
+\item CreateMembershipUseCase: Associação com prevenção de duplicatas; \texttt{organizationId} vem exclusivamente do JWT; valida pré-requisito de perfil Driver antes do check de soft-delete.
 \item FindMembershipByCompositeKeyUseCase: Busca específica.
-\item FindMembershipsByUserUseCase: Listar memberships de um usuário (paginado).
+\item FindMembershipsByUserUseCase: Listar memberships de um usuário filtrado pela org do caller (paginado).
 \item FindMembershipsByOrganizationUseCase: Listar memberships de uma org (paginado).
 \item RemoveMembershipUseCase: Soft-delete via removedAt timestamp.
 \item RestoreMembershipUseCase: Reversão de soft-delete.
+\item FindRoleByUserIdAndOrganizationIdUseCase: Retorna o role do usuário em uma organização específica.
 \end{enumerate}
 
 \textbf{Endpoints REST}:
 \begin{lstlisting}[caption={Endpoints do Membership Module}, label={cod:membership_endpoints}]
-POST   /memberships                 # Criar membership
-GET    /memberships/user/:userId    # Memberships de um user
-GET    /memberships/organization/:orgId # Memberships de uma org
-GET    /memberships/:userId/:roleId/:orgId # Busca específica
-DELETE /memberships/:userId/:roleId/:orgId # Soft-delete
+POST   /memberships                                # Criar membership
+GET    /memberships/me/role/:organizationId        # Role do user autenticado na org
+GET    /memberships/user/:userId                   # Memberships de um user
+GET    /memberships/organization/:orgId            # Memberships de uma org
+GET    /memberships/:userId/:roleId/:orgId         # Busca especifica
+DELETE /memberships/:userId/:roleId/:orgId         # Soft-delete
 PATCH  /memberships/:userId/:roleId/:orgId/restore # Restaurar
 \end{lstlisting}
 
 \textbf{Erros de Domínio Específicos}:
 \begin{itemize}
-\item MembershipAlreadyExistsError: Impede associações duplicadas.
-\item MembershipNotFoundError: Membership não encontrado (404).
+\item MembershipAlreadyExistsError: Impede associações duplicadas (HTTP 409).
+\item MembershipNotFoundError: Membership não encontrado (HTTP 404).
+\item DriverNotFoundForMembershipError: Role DRIVER exige perfil Driver prévio (HTTP 400).
 \end{itemize}
+
+\textbf{Segurança e Isolamento de Tenant}: O \texttt{CreateMembershipDto} aceita apenas \texttt{\{userEmail, roleId\}} — sem \texttt{organizationId} no body. A organização vem exclusivamente do JWT, eliminando o vetor de ataque cross-tenant. A validação de pré-requisito para role DRIVER verifica a existência do perfil Driver antes de criar a membership.
+
+\subsubsection{Driver Module (100\% Completo - Redesign em 15 Abr 2026)}
+
+\textbf{Descrição}: Gerenciamento de perfis de motoristas com Value Objects para CNH. Em 15 Abr 2026, o módulo passou por redesign arquitetural: a coluna \texttt{organizationId} foi removida do modelo \texttt{Driver}, desacoplando o motorista da organização. Motoristas são agora entidades globais, vinculados a organizações exclusivamente via \texttt{OrganizationMembership} (Status: Implementado).
+
+\textbf{Use Cases Implementados (7 total)}:
+\begin{enumerate}
+\item CreateDriverUseCase: Criação self-service; \texttt{userId} extraído do JWT; validação de duplicata via \texttt{DriverAlreadyExistsError} (HTTP 409).
+\item UpdateDriverUseCase: Atualização com verificação de ownership via \texttt{belongsToOrganization}.
+\item FindDriverByIdUseCase: Busca com tratamento 404 e proteção IDOR.
+\item FindDriverByUserIdUseCase: Busca por usuário.
+\item FindAllDriversByOrganizationUseCase: Paginação com JOIN via membership.
+\item RemoveDriverUseCase: Soft delete com validação de ownership.
+\item LookupDriverUseCase: Verificação cruzada email + CNH para administrador (novo 15 Abr).
+\end{enumerate}
+
+\textbf{Value Objects}:
+\begin{itemize}
+\item \textbf{Cnh}: Valida 9--12 caracteres alfanuméricos com \texttt{create()} factory e getter \texttt{.value\_}.
+\item \textbf{CnhCategory}: Enum A--E com \texttt{VALID\_CATEGORIES}, \texttt{isValid()} estático e \texttt{create()} factory.
+\end{itemize}
+
+\textbf{Endpoints REST}:
+\begin{lstlisting}[caption={Endpoints do Driver Module}, label={cod:driver_endpoints}]
+POST   /drivers                          # Criar perfil (self-service, userId do JWT)
+GET    /drivers/me                       # Perfil do driver autenticado
+GET    /drivers/lookup?email=&cnh=       # Busca por email + CNH (ADMIN only)
+GET    /drivers/organization/:orgId      # Listar drivers da org (paginado)
+GET    /drivers/:id                      # Buscar driver por ID
+PUT    /drivers/:id                      # Atualizar dados do driver
+DELETE /drivers/:id                      # Soft-delete
+\end{lstlisting}
+
+\textbf{Decisão Arquitetural (15 Abr 2026) --- Desacoplamento Driver $\leftrightarrow$ Organization}:
+A remoção de \texttt{organizationId} do modelo \texttt{Driver} resolve a limitação onde um usuário só podia ser motorista de uma organização. O fluxo redesenhado é: (1) usuário cria perfil via \texttt{POST /drivers} (self-service); (2) admin verifica identidade via \texttt{GET /drivers/lookup}; (3) admin vincula à org via \texttt{POST /memberships} com \texttt{roleId=DRIVER}.
+
+\textbf{Segurança IDOR (17 Abr 2026)}: \texttt{FindDriverByIdUseCase}, \texttt{UpdateDriverUseCase} e \texttt{RemoveDriverUseCase} verificam ownership via \texttt{belongsToOrganization(driverId, organizationId)} --- query via JOIN na tabela \texttt{OrganizationMembership}.
+
+\subsubsection{Vehicle Module (100\% Completo - 17 Abr 2026)}
+
+\textbf{Descrição}: Gerenciamento de frota de veículos com Value Object para placa e proteção IDOR (Status: Implementado).
+
+\textbf{Use Cases Implementados (5 total)}:
+\begin{enumerate}
+\item CreateVehicleUseCase: Criação com validação de placa única (\texttt{PlateAlreadyInUseError} --- HTTP 409).
+\item FindVehicleByIdUseCase: Busca com proteção IDOR via \texttt{organizationId} do JWT.
+\item FindAllVehiclesByOrganizationUseCase: Listagem paginada por organização.
+\item UpdateVehicleUseCase: Atualização com proteção IDOR e verificação de status ativo (\texttt{VehicleInactiveError} --- HTTP 410).
+\item RemoveVehicleUseCase: Soft-delete com proteção IDOR.
+\end{enumerate}
+
+\textbf{Value Objects}:
+\begin{itemize}
+\item \textbf{Plate}: Valida placa brasileira nos formatos \texttt{ABC1234} (padrão) e \texttt{ABC1D23} (Mercosul).
+\end{itemize}
+
+\textbf{Endpoints REST}:
+\begin{lstlisting}[caption={Endpoints do Vehicle Module}, label={cod:vehicle_endpoints}]
+POST   /vehicles/organization/:organizationId  # Registrar veiculo
+GET    /vehicles/organization/:organizationId  # Listar veiculos da org (paginado)
+GET    /vehicles/:id                           # Buscar veiculo por ID
+PUT    /vehicles/:id                           # Atualizar veiculo
+DELETE /vehicles/:id                           # Soft-delete (status INACTIVE)
+\end{lstlisting}
+
+\textbf{Domain Errors}: \texttt{InvalidPlateError}, \texttt{PlateAlreadyInUseError}, \texttt{VehicleNotFoundError}, \texttt{VehicleAccessForbiddenError}, \texttt{VehicleInactiveError}, \texttt{InvalidMaxCapacityError}, \texttt{VehicleCreationFailedError}, \texttt{VehicleUpdateFailedError}.
+
+\subsubsection{Trip Module (100\% Completo - 21 Abr 2026)}
+
+\textbf{Descrição}: Módulo de viagens com separação entre templates (configuração recorrente) e instâncias (execuções reais), status machine e atribuição de motorista/veículo (Status: Implementado).
+
+\textbf{TripTemplate --- Use Cases (5 total)}:
+\begin{enumerate}
+\item CreateTripTemplateUseCase: Cria template com configuração de preços por tipo de trajeto.
+\item FindTripTemplateByIdUseCase: Busca com proteção IDOR e \texttt{TripTemplateAccessForbiddenError}.
+\item FindAllTripTemplatesByOrganizationUseCase: Listagem paginada por organização.
+\item UpdateTripTemplateUseCase: Atualização com validações de acesso e status.
+\item DeactivateTripTemplateUseCase: Soft-deactivation via \texttt{status = INACTIVE}.
+\end{enumerate}
+
+\textbf{TripInstance --- Use Cases (7 total)}:
+\begin{enumerate}
+\item CreateTripInstanceUseCase: Criação a partir de template com propagação de campos.
+\item FindTripInstanceByIdUseCase: Busca individual com proteção IDOR.
+\item FindAllTripInstancesByOrganizationUseCase: Listagem paginada por organização.
+\item FindTripInstancesByTemplateUseCase: Listagem paginada por template.
+\item TransitionTripInstanceStatusUseCase: Status machine \texttt{SCHEDULED $\to$ IN\_PROGRESS $\to$ COMPLETED / CANCELLED}.
+\item AssignDriverToTripInstanceUseCase: Atribuição/desatribuição de motorista com validação de existência (evita FK violation).
+\item AssignVehicleToTripInstanceUseCase: Atribuição/desatribuição de veículo com validação de existência.
+\end{enumerate}
+
+\textbf{Endpoints REST}:
+\begin{lstlisting}[caption={Endpoints do Trip Module}, label={cod:trip_endpoints}]
+# TripTemplate
+POST   /trip-templates                              # Criar template
+GET    /trip-templates/organization/:orgId          # Listar templates da org
+GET    /trip-templates/:id                          # Buscar template
+PUT    /trip-templates/:id                          # Atualizar template
+DELETE /trip-templates/:id                          # Desativar template
+
+# TripInstance
+POST   /trip-instances                              # Criar instancia
+GET    /trip-instances/organization/:orgId          # Listar instancias da org
+GET    /trip-instances/template/:templateId         # Instancias de um template
+GET    /trip-instances/:id                          # Buscar instancia
+PUT    /trip-instances/:id/status                   # Transitar status
+PUT    /trip-instances/:id/driver                   # Atribuir/desatribuir motorista
+PUT    /trip-instances/:id/vehicle                  # Atribuir/desatribuir veiculo
+\end{lstlisting}
+
+\textbf{Status Machine}:
+\begin{itemize}
+\item \texttt{SCHEDULED $\to$ IN\_PROGRESS}: Início da viagem.
+\item \texttt{IN\_PROGRESS $\to$ COMPLETED}: Conclusão da viagem.
+\item \texttt{IN\_PROGRESS $\to$ CANCELLED}: Cancelamento durante viagem.
+\item \texttt{SCHEDULED $\to$ CANCELLED}: Cancelamento antes do início.
+\item Transições inválidas lançam \texttt{InvalidTripStatusTransitionError} (HTTP 422).
+\end{itemize}
+
+\textbf{Segurança}: Validação de existência de Driver e Vehicle antes de persistir atribuições, evitando violações de FK no PostgreSQL (HTTP 400 em vez de 500).
 
 \subsection{Sistema de Autenticação e Autorização}
 
@@ -876,22 +1014,64 @@ Seed popula:
 
 \subsection{Cobertura de Teste}
 
-\textbf{Status Atual}: Testes unitários pendentes para todos os módulos (0\% cobertura).
+\textbf{Status Atual}: Infraestrutura de testes unit\'{a}rios implementada com \textbf{148 testes em 23 suites}, cobrindo os use cases cr\'{i}ticos de todos os m\'{o}dulos.
 
 \textbf{Ferramentas Configuradas}:
 \begin{itemize}
-\item Jest: Framework de testes.
-\item ts-jest: Suporte a TypeScript no Jest.
-\item @nestjs/testing: Utilities para testes de injeção de dependência.
+\item Jest 30 + ts-jest: Framework de testes com suporte nativo a TypeScript.
+\item Configura\c{c}\~{a}o dedicada: \texttt{test/jest-unit.json} com \texttt{rootDir}, \texttt{testRegex} e \texttt{moduleNameMapper} para aliases \texttt{src/}.
+\item GitHub Actions: CI/CD configurado para rodar testes automaticamente a cada push.
 \end{itemize}
 
-\textbf{Próximas Ações}:
-\begin{enumerate}
-\item Testes unitários para Value Objects (validação CNPJ, Slug, Email, etc.).
-\item Testes para Use Cases (lógica de negócio + mocks de repositório).
-\item Testes e2e para endpoints (fluxos completos via HTTP).
-\item Target: Mínimo 80\% de cobertura antes da entrega final.
-\end{enumerate}
+\textbf{Padr\~{a}o de Testes Adotado}:
+\begin{itemize}
+\item \textbf{AAA (Arrange-Act-Assert)}: Estrutura consistente em todas as suites.
+\item \textbf{makeMocks()}: Fun\c{c}\~{a}o que cria todos os mocks via \texttt{jest.fn()} com tipagem \texttt{jest.Mocked<T>}.
+\item \textbf{setupHappyPath()}: Configura mocks para o cen\'{a}rio de sucesso padr\~{a}o.
+\item \textbf{Inje\c{c}\~{a}o manual}: Depend\^{e}ncias injetadas diretamente, sem mocks de framework NestJS.
+\item \textbf{Factories}: Fun\c{c}\~{o}es \texttt{make*()} por m\'{o}dulo com suporte a overrides parciais.
+\end{itemize}
+
+\textbf{Suites de Teste (23 suites, 148 testes)}:
+
+\begin{table}[H]
+\centering
+\caption{Cobertura de testes unit\'{a}rios por use case}
+\label{tab:testes}
+\begin{tabular}{llr}
+\toprule
+\textbf{M\'{o}dulo} & \textbf{Use Case} & \textbf{Testes} \\
+\midrule
+Auth & LoginUseCase & 5 \\
+Auth & RegisterOrganizationWithAdminUseCase & 5 \\
+Auth & SetupOrganizationForExistingUserUseCase & 6 \\
+Membership & CreateMembershipUseCase & 7 \\
+Driver & CreateDriverUseCase & 4 \\
+Vehicle & CreateVehicleUseCase & 4 \\
+Vehicle & FindVehicleByIdUseCase & 3 \\
+User & CreateUserUseCase & 3 \\
+User & FindUserByIdUseCase & 3 \\
+Organization & CreateOrganizationUseCase & 4 \\
+Organization & FindOrganizationByIdUseCase & 6 \\
+Trip & CreateTripTemplateUseCase & 5 \\
+Trip & FindTripTemplateByIdUseCase & 4 \\
+Trip & UpdateTripTemplateUseCase & 8 \\
+Trip & DeactivateTripTemplateUseCase & 4 \\
+Trip & FindAllTripTemplatesByOrganizationUseCase & 4 \\
+Trip & CreateTripInstanceUseCase & 15 \\
+Trip & FindTripInstanceByIdUseCase & 5 \\
+Trip & FindAllTripInstancesByOrganizationUseCase & 4 \\
+Trip & FindTripInstancesByTemplateUseCase & 8 \\
+Trip & TransitionTripInstanceStatusUseCase & 15 \\
+Trip & AssignDriverToTripInstanceUseCase & 11 \\
+Trip & AssignVehicleToTripInstanceUseCase & 11 \\
+\midrule
+\textbf{Total} & & \textbf{148} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Factories Implementadas (15 total)}: \texttt{makeUser}, \texttt{makeOrganization}, \texttt{makeRole}, \texttt{makeJwtPayload}, \texttt{makeMembership}, \texttt{makeDriver}, \texttt{makeVehicle}, \texttt{makeTripTemplate}, \texttt{makeTripInstance}, \texttt{makeCreateTripTemplateDto}, \texttt{makeCreateTripInstanceDto}, \texttt{makeUpdateTripTemplateDto}, \texttt{makeRegisterOrgDto}, \texttt{makeSetupOrgDto}, \texttt{makeCreateDriverDto}.
 
 % Seção de Software removida - conteúdo de implantação já incluído acima
 
@@ -900,7 +1080,7 @@ Seed popula:
 
 \subsection{Síntese dos Resultados}
 
-As metas estabelecidas para a Fase 1 do projeto (Fundação) foram alcançadas com sucesso, atingindo 57\% do escopo total de módulos. O sistema demonstra uma arquitetura sólida baseada em Clean Architecture e Domain-Driven Design, pronta para suportar futuras expansões.
+As metas estabelecidas para o projeto foram alcançadas com sucesso, atingindo 100\% do escopo de módulos planejado (9 módulos). O sistema demonstra uma arquitetura sólida baseada em Clean Architecture e Domain-Driven Design, funcional e pronta para expansão do módulo de inscrições.
 
 \subsubsection{Sucessos Implementados}
 
@@ -909,21 +1089,29 @@ As metas estabelecidas para a Fase 1 do projeto (Fundação) foram alcançadas c
 
 \item \textbf{Multi-tenancy}: Implementado com sucesso em nível de banco de dados (organizationId presente em todas as entidades), permitindo que múltiplas organizações usem a plataforma com isolamento lógico de dados.
 
-\item \textbf{Autenticação Robusta}: Sistema JWT com access tokens de curta duração e refresh tokens, implementado com Bcrypt para hash seguro de senhas (10 salt rounds).
+\item \textbf{Autenticação Robusta}: Sistema JWT com access tokens de curta duração e refresh tokens, implementado com Bcrypt para hash seguro de senhas (10 salt rounds). JWT Strategy otimizada --- sem consulta ao banco por request.
 
-\item \textbf{RBAC Base}: Estrutura de roles (ADMIN, DRIVER) implementada, com suporte a múltiplas roles por usuário em diferentes organizações através do módulo Membership.
+\item \textbf{RBAC Completo}: Guards (RolesGuard, TenantFilterGuard, DevGuard) e decorators (@Roles, @Dev) implementados, com suporte a múltiplas roles por usuário em diferentes organizações.
 
-\item \textbf{Value Objects}: Encapsulamento de validações críticas (CNPJ com dígitos verificadores, Email, Slug, endereço) em classes de domínio imutáveis.
+\item \textbf{Value Objects}: Encapsulamento de validações críticas (CNPJ, Email, Slug, CNH, Placa brasileira/Mercosul) em classes de domínio imutáveis.
 
-\item \textbf{Soft-delete}: Implementado em todas as entidades críticas (User, Organization, OrganizationMembership), preservando histórico de dados.
+\item \textbf{Soft-delete}: Implementado em todas as entidades críticas, preservando histórico de dados e integridade referencial.
 
-\item \textbf{Paginação}: Suportada em listagens (GET /users, GET /organizations, etc.) com query parameters page e limit.
+\item \textbf{Paginação}: Suportada em todas as listagens com query parameters \texttt{page} e \texttt{limit}.
 
-\item \textbf{Documentação Automática}: Swagger integrado com documentação de todos os endpoints, DTOs e respostas de erro.
+\item \textbf{Segurança IDOR (OWASP A01)}: Endpoints com parâmetro \texttt{/:id} validam ownership via organizationId do JWT em Driver, Vehicle e Trip.
 
-\item \textbf{Docker Ready}: Arquivo docker-compose.yml configurado com auto-seed e migrations automáticas na primeira inicialização.
+\item \textbf{Rate Limiting}: Proteção global configurada via \texttt{@nestjs/throttler} (60 req/min).
 
-\item \textbf{Tratamento de Erros Centralizado}: Filter global de exceções com formatação padronizada de respostas HTTP.
+\item \textbf{Módulo de Viagens}: TripTemplate + TripInstance com status machine completo, atribuição de motorista/veículo e validação de FK antes de persistir.
+
+\item \textbf{Testes Unitários}: 148 testes em 23 suites com padrão AAA, factories por módulo e injeção manual de dependências.
+
+\item \textbf{CI/CD}: GitHub Actions configurado para build, lint e testes automatizados a cada push.
+
+\item \textbf{Docker Ready}: docker-compose.yml configurado com auto-seed e migrations automáticas.
+
+\item \textbf{Tratamento de Erros Centralizado}: AllExceptionsFilter global com mapeamento de erros de domínio por padrão de código.
 \end{enumerate}
 
 \subsubsection{Métricas do Projeto}
@@ -936,13 +1124,14 @@ As metas estabelecidas para a Fase 1 do projeto (Fundação) foram alcançadas c
 \toprule
 \textbf{Métrica} & \textbf{Total} & \textbf{Completo} \\
 \midrule
-Módulos & 7 & 4 (57\%) \\
-Use Cases & 28 & 16 (57\%) \\
-Endpoints REST & 22 & 16 (73\%) \\
-Entidades de Domínio & 13 & 11 (85\%) \\
-Migrações Executadas & 8 & 8 (100\%) \\
-Cobertura de Testes & 100\% & 0\% \\
-Lines of Code (LOC) & ~4000 & ~3500 (87\%) \\
+Módulos & 9 & 9 (100\%) \\
+Use Cases & 35+ & 35+ (100\%) \\
+Endpoints REST & 37+ & 37+ (100\%) \\
+Entidades de Domínio & 13 & 13 (100\%) \\
+Migrações Executadas & 14+ & 14+ (100\%) \\
+Cobertura de Testes (Use Cases críticos) & 23 suites & 148 testes \\
+CI/CD (GitHub Actions) & Configurado & \checkmark \\
+Rate Limiting & Configurado & 60 req/min \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -950,21 +1139,17 @@ Lines of Code (LOC) & ~4000 & ~3500 (87\%) \\
 \subsection{Limitações Identificadas}
 
 \begin{enumerate}
-\item \textbf{Testes Ausentes}: Embora o framework Jest esteja configurado, nenhum teste unitário ou e2e foi implementado. Isso representa risco em produção, recomendando-se cobertura mínima de 80\% antes do deploy.
+\item \textbf{Módulo de Inscrições (Bookings) Pendente}: O módulo de inscrições de passageiros em viagens ainda não foi implementado, afetando os requisitos RF07, RF08, RF09, RF11 e RF12. É a próxima prioridade no roadmap.
+
+\item \textbf{Integração de Pagamentos Pendente}: Integração com gateway de pagamento (Stripe) ainda é futura. A entidade \texttt{Payment} foi modelada no banco, mas requer implementação do módulo e configuração externa.
 
 \item \textbf{Notificações Pendentes}: Sistema de notificações por email/SMS ainda não foi implementado, afetando requisitos RF17 e RF18.
 
-\item \textbf{Payment Integration}: Integração com gateway de pagamento (Stripe, PayPal) ainda é futura. Sistema de Payment foi modelado mas requer configuração externa.
+\item \textbf{Cobertura de Testes Parcial}: Embora 148 testes cubram os use cases críticos, alguns use cases (\texttt{RegisterUseCase}, \texttt{RefreshTokenUseCase}, CRUDs de Driver, Vehicle) ainda não possuem specs dedicadas. A meta de 80\% de cobertura completa está em andamento.
 
-\item \textbf{Pontos de Embarque}: Módulo de gerenciamento de boarding/alighting points foi modelado mas ainda não implementado.
+\item \textbf{Caching}: Não há implementação de caching (Redis) para otimização de consultas frequentes.
 
 \item \textbf{Relatórios}: Funcionalidades de geração de relatórios e dashboards (RF15, RF16) ainda não foram desenvolvidas.
-
-\item \textbf{Rate Limiting}: Não há implementação de rate limiting para proteção contra abuso de API.
-
-\item \textbf{Logging Detalhado}: Embora exista interceptador global, logging de banco de dados com níveis configuráveis ainda precisa ser expandido.
-
-\item \textbf{Caches}: Não há implementação de caching (Redis) para otimização de consultas frequentes.
 \end{enumerate}
 
 \subsection{Lições Aprendidas}
@@ -981,36 +1166,37 @@ Lines of Code (LOC) & ~4000 & ~3500 (87\%) \\
 \item \textbf{Soft-delete é Padrão}: Em sistemas que exigem auditoria, soft-delete deveria ser padrão, não exceção.
 
 \item \textbf{Documentação Automática Funciona}: Swagger mantém documentação em sincronismo com código, reduzindo documentação manual.
+
+\item \textbf{Segurança IDOR Requer Vigilância Ativa}: Endpoints com parâmetro \texttt{/:id} (sem \texttt{:organizationId} na rota) exigem validação explícita de ownership. Identificado e corrigido em Driver e Vehicle via \texttt{belongsToOrganization()} e comparação de \texttt{organizationId}.
+
+\item \textbf{Desacoplamento de Módulos Previne Ciclos}: A separação de responsabilidades via padrão Orchestrator (Auth $\to$ coordena User, Organization, Membership) eliminou dependências circulares e violações do SRP.
+
+\item \textbf{Testes AAA com Injeção Manual são Superiores}: Testes com dependências injetadas manualmente (sem framework) são mais rápidos, mais isolados e forçam o código a ser testável por design.
 \end{enumerate}
 
 \subsection{Recomendações para Continuação}
 
 \subsubsection{Próximas Fases (Estimativas)}
 
-\paragraph{\textbf{Fase 2 - Core Features (Abr-Mai 2026)} \\  ~10-15 dias}\mbox{}\\
-Implementar módulos de Veículos, Motoristas, Templates de Viagens e Viagens. Estimativa: 1500-2000 LOC.
+\paragraph{\textbf{Fase 2 (Em Andamento) - Concluída Parcialmente (Abr 2026)}}\mbox{}\\
+Módulos de Veículos, Motoristas, Templates de Viagens e Instâncias de Viagem foram completados (17 e 21 Abr 2026). Restam: Bookings e Pagamentos.
 
 \paragraph{\textbf{Fase 3 - Bookings e Pagamentos (Mai-Jun 2026)} \\  ~10-15 dias}\mbox{}\\
-Módulos de Inscrições, Pagamentos integrado com gateway externo. Estimativa: 800-1200 LOC.
+Módulos de Inscrições (Bookings) e Pagamentos integrado com gateway externo (Stripe). Estimativa: 800-1200 LOC.
 
-\paragraph{\textbf{Fase 4 - Testes Completos (Jun 2026)} \\  ~7-10 dias}\mbox{}\\
-Cobertura de 80\% com testes unitários e e2e. Estimativa: 5000-7000 LOC em testes.
-
-\paragraph{\textbf{Fase 5 - Produção (Jun-Jul 2026)} \\  ~5-7 dias}\mbox{}\\
-Deploy em plataforma cloud (Render, Railway, AWS), CI/CD, monitoramento e otimizações finais.
+\paragraph{\textbf{Fase 4 - Testes Completos e Produção (Jun 2026)} \\  ~10-15 dias}\mbox{}\\
+Cobertura de 80\% com testes unitários (use cases restantes) e e2e. Deploy em plataforma cloud (Render, Railway, AWS) com CI/CD e monitoramento.
 
 \subsubsection{Ações Imediatas Recomendadas}
 
 \begin{enumerate}
-\item \textbf{Implementar Testes Prioritários}: Começar com Value Objects (CNPJ, Email, Slug) que são críticos e simples testar.
+\item \textbf{Implementar Módulo de Bookings}: Próxima prioridade do roadmap — inscrições de passageiros com validação de capacidade e controle de conflitos.
 
-\item \textbf{Expandir Documentação}: Adicionar guias de contribuição, padrões de código e diagramas de sequência para fluxos críticos.
+\item \textbf{Integração de Pagamentos}: Configurar gateway (Stripe) e implementar módulo de pagamentos vinculado às inscrições.
 
-\item \textbf{Configurar CI/CD}: Integrar GitHub Actions ou equivalente para rodar testes automaticamente em cada push.
+\item \textbf{Expandir Cobertura de Testes}: Adicionar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de Driver/Vehicle. Meta: 80\% de cobertura.
 
 \item \textbf{Performance Profiling}: Usar ferramentas como Node.js Clinic.js para identificar gargalos antes de escalar.
-
-\item \textbf{Security Hardening}: Implementar rate limiting, CORS restrictivo, validação de entrada no nível de DTO mais rigorosa.
 
 \item \textbf{Backup Strategy}: Configurar backups automáticos do banco PostgreSQL em desenvolvimento e produção.
 \end{enumerate}
@@ -1030,11 +1216,11 @@ Deploy em plataforma cloud (Render, Railway, AWS), CI/CD, monitoramento e otimiz
 
 A Movy API demonstra viabilidade técnica e arquitetural para funcionar como uma plataforma SaaS de gerenciamento de transporte universitário. Os princípios de Clean Architecture e DDD forneceram fundação sólida que antecipa crescimento futuro sem sacrificar manutenibilidade.
 
-Com 57\% dos módulos implementados e um sistema de autenticação, autorização (RBAC) e multi-tenancy operacional, o projeto está pronto para expansão dos módulos de negócio (viagens, pagamentos, motoristas) e testes em larga escala.
+Com 100\% dos módulos implementados — autenticação, usuários, organizações, roles, memberships, motoristas, veículos e viagens — e um sistema de RBAC, multi-tenancy, IDOR protection e 148 testes unitários operacionais, o projeto está pronto para a implementação do módulo de inscrições (Bookings) e integração de pagamentos.
 
-O código está bem documentado, segue padrões estabelecidos de engenharia de software, e é facilmente integrável com aplicações front-end (web/mobile) via API REST. As decisões técnicas (NestJS, Prisma, PostgreSQL, Docker) garantem escalabilidade horizontal e suportam modelos de deployment modernos (containerização, serverless).
+O código está bem documentado, segue padrões estabelecidos de engenharia de software, e é facilmente integrável com aplicações front-end (web/mobile) via API REST. As decisões técnicas (NestJS, Prisma, PostgreSQL, Docker) garantem escalabilidade horizontal e suportam modelos de deployment modernos (containerização, cloud-native).
 
-Recomenda-se prosseguir com implementação de testes de cobertura abrangente e prosseguir com as fases seguintes conforme roadmap estabelecido no documento PROGRESS.md.
+Recomenda-se prosseguir com o módulo de Bookings como próxima prioridade, seguido da integração de pagamentos e expansão da cobertura de testes conforme roadmap estabelecido.
 
 % ------------------------------
 \newpage
