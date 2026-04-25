@@ -41,3 +41,13 @@ export class BookingCreationFailedError extends DomainError {
     super('Booking could not be persisted');
   }
 }
+
+export class TripInstanceNotBookableError extends DomainError {
+  readonly code = 'BOOKING_TRIP_INSTANCE_NOT_BOOKABLE_BAD_REQUEST';
+
+  constructor(tripInstanceId: string, status: string) {
+    super(
+      `Trip instance "${tripInstanceId}" is not open for bookings (status: ${status})`,
+    );
+  }
+}

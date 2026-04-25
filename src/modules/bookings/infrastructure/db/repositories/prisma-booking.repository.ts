@@ -10,7 +10,7 @@ import { BookingMapper } from '../mappers/booking.mapper';
 
 @Injectable()
 export class PrismaBookingRepository implements BookingRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Persists a new booking entity.
@@ -185,5 +185,24 @@ export class PrismaBookingRepository implements BookingRepository {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Finds a single booking for a specific user and trip instance combination.
+   * @param userId - UUID of the user
+   * @param tripInstanceId - UUID of the trip instance
+   * @returns Booking if found, or null
+   */
+  async findByUserAndTripInstance(
+    userId: string,
+    tripInstanceId: string,
+  ): Promise<Booking | null> {
+    const data = await this.prisma.enrollment.findFirst({
+      where: { userId, tripInstanceId, status: 'ACTIVE' },
+    });
+
+    if (!data) return null;
+
+    return BookingMapper.toDomain(data);
   }
 }

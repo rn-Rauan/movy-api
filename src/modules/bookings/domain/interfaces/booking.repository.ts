@@ -73,4 +73,16 @@ export abstract class BookingRepository {
     tripInstanceId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Booking>>;
+
+  /**
+   * Finds a single booking for a specific user and trip instance combination.
+   * Used to prevent duplicate bookings.
+   * @param userId - UUID of the user
+   * @param tripInstanceId - UUID of the trip instance
+   * @returns Booking if found, or null
+   */
+  abstract findByUserAndTripInstance(
+    userId: string,
+    tripInstanceId: string,
+  ): Promise<Booking | null>;
 }
