@@ -2,15 +2,15 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 21 Abr 2026
+**Última atualização:** 25 Abr 2026
 
 ---
 
 ## 📈 Resumo Geral
 
 ```
-Total Módulos: 9
-Completo: 9 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth, Vehicle, Trip
+Total Módulos: 10
+Completo: 10 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth, Vehicle, Trip, Bookings
 Em Progresso: 0
 Pendente: 0
 ```
@@ -596,39 +596,71 @@ src/modules/trip/
 
 ---
 
-### Bookings Module 📋 (~5-7 dias)
+### Bookings Module ✅ COMPLETO (25 Abr 2026)
 
 **Inscrição em Viagens:**
-- [ ] POST `/bookings` - Inscrever passageiro em viagem
-  - Validar: capacidade disponível, user ativo, trip disponível
-- [ ] GET `/bookings` - Minhas inscrições
-- [ ] GET `/trips/:id/bookings` - Passageiros da viagem
-- [ ] DELETE `/bookings/:id` - Cancelar inscrição
+- ✅ `POST /bookings` — Inscrever passageiro em viagem (userId e organizationId do JWT)
+- ✅ `GET /bookings/organization/:organizationId` — Listar inscrições da org (paginado)
+- ✅ `GET /bookings/user` — Listar inscrições do usuário autenticado (paginado)
+- ✅ `GET /bookings/trip-instance/:tripInstanceId` — Listar inscritos de uma instância (paginado)
+- ✅ `GET /bookings/:id` — Buscar inscrição por ID
+- ✅ `PATCH /bookings/:id/cancel` — Cancelar inscrição (soft: status → INACTIVE)
+- ✅ `PATCH /bookings/:id/confirm-presence` — Confirmar presença na viagem
 
-**Validações:**
-- [ ] Não permitir inscrição duplicada (mesmo user, mesma viagem)
-- [ ] Validar capacidade: não deixar inscrever se lotado
-- [ ] Soft-delete: marcar como CANCELLED (não deletar)
+**Regras de Negócio Implementadas:**
+- ✅ Inscrição apenas em viagens `SCHEDULED` ou `CONFIRMED` (`TripInstanceNotBookableError`)
+- ✅ Prevenção de inscrição duplicada ativa (mesmo user, mesma instância) → `BookingAlreadyExistsError`
+- ✅ Reinscrição após cancelamento permitida (`findByUserAndTripInstance` filtra `status: ACTIVE`)
+- ✅ Isolamento multi-tenant: `organizationId` validado em todos os acessos
+- ✅ `userId` e `organizationId` **nunca** vêm do body — exclusivamente do JWT
+- ✅ Soft-delete via `booking.cancel()` (status → INACTIVE)
+- ✅ Confirmação de presença via `booking.confirmPresence()` (presenceConfirmed → true)
 
-**Sistema de Fila (opcional - adicionár depois):**
-- [ ] Quando lotado, adicionar em waitlist
-- [ ] Liberar vagas quando alguém cancela (promover da fila)
+**Domain Layer:**
+- ✅ `Booking` entity com `create()` e `restore()`, métodos `cancel()` e `confirmPresence()`
+- ✅ `EnrollmentType` enum: `ONE_WAY | RETURN | ROUND_TRIP`
+- ✅ `Money` value object para `recordedPrice` (preço gravado no momento da inscrição)
+- ✅ 6 domain errors: `BookingNotFoundError`, `BookingAccessForbiddenError`, `BookingAlreadyExistsError`, `InvalidBookingStopError`, `BookingCreationFailedError`, `TripInstanceNotBookableError`
+- ✅ `BookingRepository` (abstract class): `save`, `update`, `delete`, `findById`, `findAll`, `findByOrganizationId`, `findByUserId`, `findByTripInstanceId`, `findByUserAndTripInstance`
+
+**Infrastructure Layer:**
+- ✅ `PrismaBookingRepository` com todos os métodos implementados
+- ✅ `$transaction([findMany, count])` para queries paginadas
+- ✅ `findByUserAndTripInstance` filtra `status: ACTIVE` (permite reinscrição após cancelamento)
+- ✅ `BookingMapper` com `toDomain()` (hidrata `Money.restore()`, cast `EnrollmentType`) e `toPersistence()`
+- ✅ Prisma field `EnrollmentType` (capital E) mapeado corretamente
+
+**Application Layer:**
+- ✅ 7 use cases: `CreateBookingUseCase`, `CancelBookingUseCase`, `ConfirmPresenceUseCase`, `FindBookingByIdUseCase`, `FindBookingsByOrganizationUseCase`, `FindBookingsByTripInstanceUseCase`, `FindBookingsByUserUseCase`
+- ✅ `CreateBookingDto`: `tripInstanceId`, `enrollmentType`, `recordedPrice`, `boardingStop`, `alightingStop`
+- ✅ `BookingResponseDto` com construtor `Object.assign`
+- ✅ `BookingPresenter` com `toHTTP()` e `toHTTPList()`
+
+**Testes Unitários:**
+- ✅ 7 suites, **54 testes** — todos passando
+- ✅ Factories: `makeBooking()`, `makeCreateBookingDto()`
+- ✅ Fix no `moduleNameMapper` do Jest: `"^test/(.*)$": "<rootDir>/test/$1"` adicionado em `jest-unit.json` e `package.json`
 
 **Arquivos:**
 ```
-src/modules/booking/
-├── application/dtos/
-│   └── create-booking.dto.ts
+src/modules/bookings/
+├── application/
+│   ├── dtos/ (create-booking.dto.ts, booking-response.dto.ts, index.ts)
+│   └── use-cases/ (7 use cases + index.ts)
 ├── domain/
-│   ├── entities/booking.entity.ts
-│   ├── errors/booking.errors.ts
-│   └── interfaces/booking.repository.ts
-├── infrastructure/repositories/
-│   └── prisma-booking.repository.ts
-├── presentation/controllers/
-│   └── booking.controller.ts
-└── booking.module.ts
+│   ├── entities/errors/booking.errors.ts
+│   └── interfaces/ (booking.repository.ts, enums/, index.ts)
+├── infrastructure/db/
+│   ├── mappers/booking.mapper.ts
+│   └── repositories/prisma-booking.repository.ts
+└── presentation/mappers/booking.presenter.ts
+
+test/modules/bookings/
+├── factories/ (booking.factory.ts, create-booking.dto.factory.ts)
+└── application/use-cases/ (7 specs)
 ```
+
+**Status:** ✅ COMPLETO — domínio, infraestrutura, use cases, presenter e testes (25 Abr 2026)
 
 ---
 
@@ -686,7 +718,7 @@ src/modules/payment/
   - [ ] Vehicles module: ⏳
   - [ ] Drivers module: ⏳
   - [x] Trips module: ✅ (11 specs, 90 testes — `FindAllTripTemplatesByOrganizationUseCase` pendente)
-  - [ ] Bookings module: ⏳
+  - [x] Bookings module: ✅ (7 specs, 54 testes — 25 Abr)
   - [ ] Payments module: ⏳
 
 - [ ] Integration tests (E2E)
@@ -736,9 +768,7 @@ src/modules/payment/
    - [ ] RegisterUseCase, RefreshTokenUseCase (auth module)
    - [ ] Use cases de CRUD de Driver (FindDriverById, UpdateDriver, etc.)
 
-2. **Bookings Module** — próximo módulo de negócio
-   - [ ] Entity, Repository, Use Cases (Create, FindByUser, FindByTrip, Cancel)
-   - [ ] Validação de capacidade e conflito de inscrição duplicada
+2. ~~**Bookings Module**~~ ✅ **CONCLUÍDO (25 Abr)** — 7 use cases, 54 testes, isolamento multi-tenant, reinscrição após cancelamento
 
 3. **Swagger** — documentação dos endpoints ainda sem `@ApiProperty` completo
 

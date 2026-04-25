@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 21 Abr 2026 
+**Última atualização:** 25 Abr 2026 
 
 ---
 
@@ -15,6 +15,9 @@ FASE 3: Mai 18 - Jun 01    (2 semanas)  ⏳ FUTURO
 FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
 
 MVP PRONTO: 15 de Junho 2026
+
+Progresso em 25 Abr 2026:
+  Fase 2 — Bookings Module completo (7 use cases, 54 testes unitários)
 ```
 
 ---
@@ -226,7 +229,7 @@ MVP PRONTO: 15 de Junho 2026
 | ✅ | FK violation fix (Driver/Vehicle validação) | ✅ Pronto (21 Abr) |
 | ✅ | Organization `GET /me` + `FindOrganizationByUserUseCase` | ✅ Pronto (21 Abr) |
 | ✅ | Membership `GET /me/role/:orgId` + `RoleResponseDto` | ✅ Pronto (21 Abr) |
-| ⏳ | Bookings (Inscrições) | 3-4 dias |
+| ✅ | Bookings (Inscrições) | ✅ Pronto (25 Abr) |
 | ⏳ | Testes E2E trip flow | 2-3 dias |
 
 **Saída:** Sistema de viagens recorrentes + booking funcional
@@ -294,7 +297,7 @@ shared/        ✅ COMPLETO
 ```
 vehicle/       ✅ COMPLETO (17 Abr)
 trip/          ✅ COMPLETO (21 Abr) — TripTemplate + TripInstance + FK fixes
-booking/       ⏳ PRÓXIMO
+booking/       ✅ COMPLETO (25 Abr) — 7 use cases, inscrições multi-tenant
 ```
 
 ### Fase 3 ⏳
@@ -331,7 +334,7 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 - [x] Drivers CRUD ✅ (11 Abr, IDOR fix 17 Abr)
 - [x] Trip Templates ✅ (21 Abr)
 - [x] Trip Instances ✅ (21 Abr)
-- [ ] Bookings ⏳
+- [x] Bookings ✅ (25 Abr)
 - [ ] Pagamentos (integração) ⏳
 - [ ] Plans básicos ⏳
 - [x] Auth JWT ✅

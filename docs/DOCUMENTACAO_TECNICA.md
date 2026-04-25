@@ -282,7 +282,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 - **`sut`** (System Under Test): Instância real do use case com dependências injetadas manualmente.
 - **Factories por módulo**: Funções `make*()` que criam entidades de domínio com valores padrão e suporte a overrides.
 
-**Suites de Teste (23 suites, 148 testes):**
+**Suites de Teste (30 suites, 202 testes):**
 
 | Use Case | Testes | Cenários Cobertos |
 |----------|--------|--------------------|
@@ -309,8 +309,15 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `FindUserByIdUseCase` | 3 | Happy path, UserNotFoundError (inexistente), UserNotFoundError (inativo) |
 | `CreateOrganizationUseCase` | 4 | Happy path (criação + save), CNPJ duplicado, slug duplicado |
 | `FindOrganizationByIdUseCase` | 6 | Happy path, bypass dev, OrganizationNotFoundError (inexistente + inativo), OrganizationForbiddenError |
+| `CreateBookingUseCase` | 14 | Happy path SCHEDULED, happy path CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceAccessForbiddenError, TripInstanceNotFoundError, BookingCreationFailedError |
+| `CancelBookingUseCase` | 8 | Happy path (status INACTIVE), update chamado uma vez, entidade persistida com INACTIVE, BookingNotFoundError, BookingAccessForbiddenError, update retorna null |
+| `ConfirmPresenceUseCase` | 7 | Happy path (presenceConfirmed=true), update chamado uma vez, entidade persistida corretamente, BookingNotFoundError, BookingAccessForbiddenError |
+| `FindBookingByIdUseCase` | 5 | Happy path, findById chamado com id correto, BookingNotFoundError, BookingAccessForbiddenError (cross-org), dados não expostos no forbidden |
+| `FindBookingsByOrganizationUseCase` | 5 | Happy path (lista paginada), args corretos, mapeamento para dto, lista vazia, metadados de paginação preservados |
+| `FindBookingsByTripInstanceUseCase` | 10 | Happy path, args corretos, ownership verificado antes, mapeamento para dto, TripInstanceNotFoundError, booking repo não chamado no not found, TripInstanceAccessForbiddenError, booking repo não chamado no forbidden |
+| `FindBookingsByUserUseCase` | 5 | Happy path, userId correto (req 4 — somente as próprias), mapeamento para dto, não expe dados de outro user, lista vazia |
 
-**Factories Implementadas (15 total):**
+**Factories Implementadas (17 total):**
 
 | Factory | Localização | Entidade/DTO |
 |---------|------------|-------------|
@@ -329,6 +336,8 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `makeCreateTripInstanceDto()` | `test/modules/trip/factories/` | CreateTripInstanceDto |
 | `makeUpdateTripTemplateDto()` | `test/modules/trip/factories/` | UpdateTripTemplateDto |
 | `makeVehicle()` | `test/modules/vehicle/factories/` | VehicleEntity com Plate value object |
+| `makeBooking()` | `test/modules/bookings/factories/` | Booking entity com Money/EnrollmentType (suporte a overrides de status) |
+| `makeCreateBookingDto()` | `test/modules/bookings/factories/` | CreateBookingDto literal |
 
 **Estrutura de Pastas dos Testes:**
 ```
@@ -356,8 +365,14 @@ test/
 │   └── organization/
 │       ├── factories/ (organization)
 │       └── application/use-cases/ (create-organization, find-organization-by-id specs)
+└── bookings/
+    ├── factories/ (booking, create-booking.dto)
+    └── application/use-cases/ (7 specs: create, cancel, confirm-presence, find-by-id, find-by-org, find-by-trip-instance, find-by-user)
 └── shared/factories/ (role)
 ```
+
+**Fix Jest — `moduleNameMapper` (25 Abr 2026):**
+Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` em `test/jest-unit.json` e `package.json`. Sem esse mapeamento, imports como `import { makeTripInstance } from 'test/modules/trip/factories/...'` falhavam na resolução de módulo quando o spec era rodado pelo VS Code Jest runner (que usa o config do `package.json` diretamente).
 
 ### 4.8 RBAC (Role-Based Access Control) Architecture ✅ COMPLETO (11 Abr 2026)
 
@@ -749,10 +764,74 @@ instance.assignDriver(driverId);
 - `userId` extraído do JWT (`@GetUser()`) — não aceita userId no body para evitar ataque de personificação
 
 **Compilação:** ✅ `npx tsc --noEmit` = 0 erros
-
 ---
 
-## 6.1 Implementações Anteriores (05 Abr 2026)
+## 6.7 Implementações (25 Abr 2026)
+
+### Bookings Module — Inscrições em Viagens
+Implementação completa do módulo de bookings, cobrindo inscrições de passageiros em instâncias de viagem com isolamento multi-tenant, prevenção de duplicatas e suporte a reinscrição.
+
+**Domain Layer:**
+- `Booking` entity com `create()` (factory de criação) e `restore()` (hidratação), métodos `cancel()` (status → INACTIVE) e `confirmPresence()` (presenceConfirmed → true)
+- `EnrollmentType` enum: `ONE_WAY | RETURN | ROUND_TRIP`
+- `Money` value object para `recordedPrice` (preço gravado no ato da inscrição, imutável após criação)
+- 6 domain errors: `BookingNotFoundError`, `BookingAccessForbiddenError`, `BookingAlreadyExistsError`, `InvalidBookingStopError`, `BookingCreationFailedError`, `TripInstanceNotBookableError`
+- `BookingRepository` (abstract class): `save`, `update`, `delete`, `findById`, `findAll`, `findByOrganizationId`, `findByUserId`, `findByTripInstanceId`, `findByUserAndTripInstance`
+
+**Infrastructure Layer:**
+- `PrismaBookingRepository`: implementa todos os métodos, queries paginadas via `$transaction([findMany, count])`
+- Quirk do schema: campo Prisma é `EnrollmentType` (E maiúsculo), mapeado explicitamente no `BookingMapper`
+- `findByUserAndTripInstance` filtra `status: 'ACTIVE'` — decisão de domínio que permite reinscrição após cancelamento sem alterar a query de criação
+- `BookingMapper.toDomain()` hidrata `Money.restore(Number(raw.recordedPrice))`; `toPersistence()` extrai `entity.recordedPrice.toNumber()`
+
+**Application Layer:**
+- 7 use cases com segregação clara de responsabilidades:
+
+| Use Case | Dependências | Regra de negócio principal |
+|----------|-------------|----------------------------|
+| `CreateBookingUseCase` | BookingRepo + TripInstanceRepo | Trip deve ser SCHEDULED ou CONFIRMED; sem duplicata ativa; userId/orgId do JWT |
+| `CancelBookingUseCase` | BookingRepo | Verifica org antes de cancelar; `booking.cancel()` |
+| `ConfirmPresenceUseCase` | BookingRepo | Verifica org; `booking.confirmPresence()` |
+| `FindBookingByIdUseCase` | BookingRepo | Verifica org para isolamento de tenant |
+| `FindBookingsByOrganizationUseCase` | BookingRepo | Lista paginada por org |
+| `FindBookingsByTripInstanceUseCase` | BookingRepo + TripInstanceRepo | Valida ownership da instância antes de retornar inscritos |
+| `FindBookingsByUserUseCase` | BookingRepo | Retorna apenas as inscrições do próprio userId |
+
+**Fluxo `CreateBookingUseCase`:**
+```
+findById(tripInstanceId) → 404 se não encontrado
+verifica organizationId → 403 se org diferente
+verifica tripStatus (SCHEDULED || CONFIRMED) → 400 se não bookable
+findByUserAndTripInstance(userId, tripInstanceId) → 409 se já existe ATIVO
+Booking.create(...) → save() → 500 se save retorna null
+```
+
+**Endpoints REST:**
+| Método | Rota | Descrição |
+|--------|------|----------|
+| POST | `/bookings` | Inscrever (userId/orgId do JWT) |
+| GET | `/bookings/organization/:organizationId` | Inscrições da org (paginado) |
+| GET | `/bookings/user` | Inscrições do usuário autenticado (paginado) |
+| GET | `/bookings/trip-instance/:tripInstanceId` | Inscritos de uma instância (paginado) |
+| GET | `/bookings/:id` | Buscar por ID |
+| PATCH | `/bookings/:id/cancel` | Cancelar inscrição |
+| PATCH | `/bookings/:id/confirm-presence` | Confirmar presença |
+
+**Testes Unitários — 7 suites, 54 testes:**
+- Cobrem todos os 12 fluxos de negócio mapeados no requisito original:
+  - Inscrição em viagem SCHEDULED e CONFIRMED
+  - Prevenção de inscrição duplicada ativa
+  - Isolamento por usuário (cada user só vê as próprias)
+  - Cancelamento e status correto (INACTIVE)
+  - Reinscrição após cancelamento
+  - Bloqueio de viagem não inscritível (DRAFT, CANCELED, IN_PROGRESS)
+  - Dono da viagem visualiza todos os inscritos
+  - Isolamento cross-org (tripInstance e booking)
+
+**Fix Jest `moduleNameMapper` (25 Abr 2026):**
+Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` nos dois configs Jest (`test/jest-unit.json` e `package.json`). O VS Code Jest runner usa o config de `package.json` diretamente, causando falha na resolução de imports `test/modules/trip/factories/...` sem esse mapeamento.
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
 
 ### Role Management & Database Seeding
 - ✅ Implementado sistema de **Role Entity** com tipos pré-definidos (ADMIN, DRIVER).
@@ -777,13 +856,13 @@ O script de seed foi configurado para:
 3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization/Vehicle/Driver.
 3. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
 4. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
-5. **Módulo de Bookings:** Inscrições/reservas com validação de capacidade e conflitos.
+5. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 7 use cases, 54 testes, multi-tenant, reinscrição após cancelamento.
 6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
 7. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
 8. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 21 de abril de 2026, a **Fase 1 está 100% completa** e a **Fase 2 está em andamento avançado** com Vehicle e Trip modules completos:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 25 de abril de 2026, a **Fase 1 está 100% completa** e a **Fase 2 está em andamento avançado** com Vehicle, Trip e Bookings modules completos:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*.
@@ -792,6 +871,7 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 21 de abril 
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError` *(17 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
 - ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir *(21 Abr)*.
+- ✅ **Bookings Module**: Inscrições em viagens com isolamento multi-tenant, prevenção de duplicatas ativas, reinscrição após cancelamento, confirmação de presença, 7 use cases, 54 testes unitários *(25 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
