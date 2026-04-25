@@ -9,10 +9,8 @@ import { PrismaService } from 'src/shared/infrastructure/database/prisma.service
 import { TripInstanceMapper } from '../mappers/trip-instance.mapper';
 
 @Injectable()
-export class PrismaTripInstanceRepository extends TripInstanceRepository {
-  constructor(private readonly prisma: PrismaService) {
-    super();
-  }
+export class PrismaTripInstanceRepository implements TripInstanceRepository {
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Persists a new trip instance entity.
