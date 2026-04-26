@@ -9,7 +9,6 @@ export function makeCreateBookingDto(
   return {
     tripInstanceId: overrides.tripInstanceId ?? 'trip-instance-id-stub',
     enrollmentType: overrides.enrollmentType ?? EnrollmentType.ONE_WAY,
-    recordedPrice: overrides.recordedPrice ?? 49.9,
     boardingStop: overrides.boardingStop ?? 'A1',
     alightingStop: overrides.alightingStop ?? 'B3',
   };

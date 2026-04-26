@@ -4,17 +4,17 @@ import {
   TripInstanceRepository,
   TripStatus,
 } from 'src/modules/trip/domain/interfaces';
-import {
-  TripInstanceAccessForbiddenError,
-  TripInstanceNotFoundError,
-} from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { TripTemplateRepository } from 'src/modules/trip/domain/interfaces/trip-template.repository';
+import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { EnrollmentType, BookingRepository } from '../../domain/interfaces';
 import { Booking } from '../../domain/entities';
 import {
   BookingAlreadyExistsError,
   BookingCreationFailedError,
+  TripInstanceFullError,
   TripInstanceNotBookableError,
+  TripPriceNotAvailableError,
 } from '../../domain/entities/errors/booking.errors';
-import { BookingRepository } from '../../domain/interfaces';
 import { BookingResponseDto, CreateBookingDto } from '../dtos';
 import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
 
@@ -23,25 +23,27 @@ export class CreateBookingUseCase {
   constructor(
     private readonly bookingRepository: BookingRepository,
     private readonly tripInstanceRepository: TripInstanceRepository,
+    private readonly tripTemplateRepository: TripTemplateRepository,
   ) {}
 
   /**
    * Creates a new booking for a user in a trip instance.
-   * @param dto - Booking creation data
+   * - recordedPrice is resolved server-side from the TripTemplate (never trusted from client)
+   * - Capacity is enforced against instance.totalCapacity before saving
+   * @param dto - Booking creation data (recordedPrice field ignored)
    * @param userId - UUID of the authenticated user (from JWT)
-   * @param organizationId - UUID of the organization (from JWT)
    * @returns BookingResponseDto of the created booking
    * @throws TripInstanceNotFoundError if the trip instance does not exist
-   * @throws TripInstanceAccessForbiddenError if the trip belongs to a different organization
    * @throws TripInstanceNotBookableError if the trip is not in SCHEDULED or CONFIRMED status
-   * @throws BookingAlreadyExistsError if the user already has a booking for this trip instance
+   * @throws TripInstanceFullError if the trip has reached its maximum capacity
+   * @throws BookingAlreadyExistsError if the user already has an active booking for this trip instance
+   * @throws TripPriceNotAvailableError if no price is configured for the given enrollmentType
    * @throws InvalidBookingStopError if boardingStop or alightingStop are invalid
    * @throws BookingCreationFailedError if persistence fails
    */
   async execute(
     dto: CreateBookingDto,
     userId: string,
-    organizationId: string,
   ): Promise<BookingResponseDto> {
     const instance = await this.tripInstanceRepository.findById(
       dto.tripInstanceId,
@@ -49,10 +51,6 @@ export class CreateBookingUseCase {
 
     if (!instance) {
       throw new TripInstanceNotFoundError(dto.tripInstanceId);
-    }
-
-    if (instance.organizationId !== organizationId) {
-      throw new TripInstanceAccessForbiddenError(dto.tripInstanceId);
     }
 
     if (
@@ -65,6 +63,14 @@ export class CreateBookingUseCase {
       );
     }
 
+    const activeCount = await this.bookingRepository.countActiveByTripInstance(
+      dto.tripInstanceId,
+    );
+
+    if (activeCount >= instance.totalCapacity) {
+      throw new TripInstanceFullError(dto.tripInstanceId);
+    }
+
     const existing = await this.bookingRepository.findByUserAndTripInstance(
       userId,
       dto.tripInstanceId,
@@ -74,12 +80,18 @@ export class CreateBookingUseCase {
       throw new BookingAlreadyExistsError(userId, dto.tripInstanceId);
     }
 
+    const template = await this.tripTemplateRepository.findById(
+      instance.tripTemplateId,
+    );
+
+    const recordedPrice = this.resolvePrice(template, dto.enrollmentType);
+
     const booking = Booking.create({
-      organizationId,
+      organizationId: instance.organizationId,
       userId,
       tripInstanceId: dto.tripInstanceId,
       enrollmentType: dto.enrollmentType,
-      recordedPrice: Money.create(dto.recordedPrice),
+      recordedPrice,
       boardingStop: dto.boardingStop,
       alightingStop: dto.alightingStop,
     });
@@ -91,5 +103,28 @@ export class CreateBookingUseCase {
     }
 
     return BookingPresenter.toHTTP(saved);
+  }
+
+  private resolvePrice(
+    template: import('src/modules/trip/domain/entities').TripTemplate | null,
+    enrollmentType: EnrollmentType,
+  ): Money {
+    let price: Money | null | undefined;
+
+    if (template) {
+      if (enrollmentType === EnrollmentType.ONE_WAY) {
+        price = template.priceOneWay;
+      } else if (enrollmentType === EnrollmentType.RETURN) {
+        price = template.priceReturn;
+      } else {
+        price = template.priceRoundTrip;
+      }
+    }
+
+    if (!price) {
+      throw new TripPriceNotAvailableError(enrollmentType);
+    }
+
+    return Money.create(price.toNumber());
   }
 }

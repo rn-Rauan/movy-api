@@ -1,17 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsPositive,
-  IsString,
-  IsUUID,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 import { EnrollmentType } from '../../domain/interfaces';
 
 /**
  * DTO for creating a new booking (enrollment) in a trip instance.
  * organizationId and userId are extracted from the JWT — never sent in body.
+ * recordedPrice is resolved server-side from the TripTemplate — never trusted from client.
  */
 export class CreateBookingDto {
   @ApiProperty({
@@ -31,14 +25,6 @@ export class CreateBookingDto {
     message: 'enrollmentType must be a valid EnrollmentType',
   })
   enrollmentType: EnrollmentType;
-
-  @ApiProperty({
-    example: 49.9,
-    description: 'Price snapshot at the time of booking (BRL)',
-  })
-  @IsNumber({}, { message: 'recordedPrice must be a number' })
-  @IsPositive({ message: 'recordedPrice must be positive' })
-  recordedPrice: number;
 
   @ApiProperty({
     example: 'A2',

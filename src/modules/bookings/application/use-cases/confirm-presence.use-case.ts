@@ -13,15 +13,18 @@ export class ConfirmPresenceUseCase {
 
   /**
    * Confirms the passenger's physical presence for a booking.
+   * Only org members (Admin/Driver) can confirm presence — the passenger cannot confirm themselves.
    * @param id - UUID of the booking
-   * @param organizationId - UUID of the organization from JWT context
+   * @param userId - UUID of the authenticated user (from JWT)
+   * @param organizationId - UUID of the organization (from JWT, required for presence confirmation)
    * @returns BookingResponseDto with presenceConfirmed = true
    * @throws BookingNotFoundError if the booking does not exist
-   * @throws BookingAccessForbiddenError if the booking belongs to a different organization
+   * @throws BookingAccessForbiddenError if caller is not from the same org as the booking
    */
   async execute(
     id: string,
-    organizationId: string,
+    userId: string,
+    organizationId?: string,
   ): Promise<BookingResponseDto> {
     const booking = await this.bookingRepository.findById(id);
 
@@ -29,7 +32,10 @@ export class ConfirmPresenceUseCase {
       throw new BookingNotFoundError(id);
     }
 
-    if (booking.organizationId !== organizationId) {
+    const hasOrgAccess =
+      organizationId != null && booking.organizationId === organizationId;
+
+    if (!hasOrgAccess) {
       throw new BookingAccessForbiddenError(id);
     }
 

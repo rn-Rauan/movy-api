@@ -282,7 +282,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 - **`sut`** (System Under Test): Instância real do use case com dependências injetadas manualmente.
 - **Factories por módulo**: Funções `make*()` que criam entidades de domínio com valores padrão e suporte a overrides.
 
-**Suites de Teste (30 suites, 202 testes):**
+**Suites de Teste (32 suites, 237 testes):**
 
 | Use Case | Testes | Cenários Cobertos |
 |----------|--------|--------------------|
@@ -309,13 +309,15 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `FindUserByIdUseCase` | 3 | Happy path, UserNotFoundError (inexistente), UserNotFoundError (inativo) |
 | `CreateOrganizationUseCase` | 4 | Happy path (criação + save), CNPJ duplicado, slug duplicado |
 | `FindOrganizationByIdUseCase` | 6 | Happy path, bypass dev, OrganizationNotFoundError (inexistente + inativo), OrganizationForbiddenError |
-| `CreateBookingUseCase` | 14 | Happy path SCHEDULED, happy path CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceAccessForbiddenError, TripInstanceNotFoundError, BookingCreationFailedError |
+| `CreateBookingUseCase` | 12 | Happy path SCHEDULED, happy path CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceNotFoundError, BookingCreationFailedError |
 | `CancelBookingUseCase` | 8 | Happy path (status INACTIVE), update chamado uma vez, entidade persistida com INACTIVE, BookingNotFoundError, BookingAccessForbiddenError, update retorna null |
-| `ConfirmPresenceUseCase` | 7 | Happy path (presenceConfirmed=true), update chamado uma vez, entidade persistida corretamente, BookingNotFoundError, BookingAccessForbiddenError |
+| `ConfirmPresenceUseCase` | 7 | Happy path org member (presenceConfirmed=true), update chamado uma vez, entidade persistida corretamente, owner bloqueado (2 testes), BookingNotFoundError, BookingAccessForbiddenError cross-org |
 | `FindBookingByIdUseCase` | 5 | Happy path, findById chamado com id correto, BookingNotFoundError, BookingAccessForbiddenError (cross-org), dados não expostos no forbidden |
 | `FindBookingsByOrganizationUseCase` | 5 | Happy path (lista paginada), args corretos, mapeamento para dto, lista vazia, metadados de paginação preservados |
-| `FindBookingsByTripInstanceUseCase` | 10 | Happy path, args corretos, ownership verificado antes, mapeamento para dto, TripInstanceNotFoundError, booking repo não chamado no not found, TripInstanceAccessForbiddenError, booking repo não chamado no forbidden |
-| `FindBookingsByUserUseCase` | 5 | Happy path, userId correto (req 4 — somente as próprias), mapeamento para dto, não expe dados de outro user, lista vazia |
+| `FindBookingsByTripInstanceUseCase` | 9 | Happy path com ORG_ID (4 testes), TripInstanceNotFoundError (2), acesso negado — org mismatch, B2C, repo não chamado (3 testes) |
+| `FindBookingsByUserUseCase` | 8 | Happy path, userId correto (somente as próprias), mapeamento para dto, lista vazia, filtro status ACTIVE, filtro INACTIVE, filtro undefined (sem filtro) |
+| `FindBookingDetailsUseCase` | 11 | Happy path owner (4 testes), happy path org member (1), BookingNotFoundError (2), BookingAccessForbiddenError (3), TripInstanceNotFoundError (1) |
+| `GetBookingAvailabilityUseCase` | 9 | SCHEDULED/CONFIRMED bookable (2), DRAFT/IN_PROGRESS não bookable (2), trip lotada (1), capacity=0 (1), tripInstanceId no response (1), trip not found (2) |
 
 **Factories Implementadas (17 total):**
 
@@ -367,7 +369,7 @@ test/
 │       └── application/use-cases/ (create-organization, find-organization-by-id specs)
 └── bookings/
     ├── factories/ (booking, create-booking.dto)
-    └── application/use-cases/ (7 specs: create, cancel, confirm-presence, find-by-id, find-by-org, find-by-trip-instance, find-by-user)
+    └── application/use-cases/ (9 specs: create, cancel, confirm-presence, find-by-id, find-by-org, find-by-trip-instance, find-by-user, find-booking-details, get-booking-availability)
 └── shared/factories/ (role)
 ```
 
@@ -768,8 +770,72 @@ instance.assignDriver(driverId);
 
 ## 6.7 Implementações (25 Abr 2026)
 
-### Bookings Module — Inscrições em Viagens
-Implementação completa do módulo de bookings, cobrindo inscrições de passageiros em instâncias de viagem com isolamento multi-tenant, prevenção de duplicatas e suporte a reinscrição.
+### Bookings Module — Melhorias (25 Abr 2026)
+
+Após a implementação inicial, o módulo passou por um ciclo de melhorias que expandiu de 7 para 9 use cases e de 50 para 85 testes unitários.
+
+**Novos Use Cases:**
+
+`FindBookingDetailsUseCase` — Retorna detalhe enriquecido do booking, incluindo dados da `TripInstance` (horário de partida, estimativa de chegada, status da viagem, capacidade total e vagas disponíveis). Injeta `BookingRepository` + `TripInstanceRepository`. Acesso: owner do booking OU org member. Throws: `BookingNotFoundError`, `BookingAccessForbiddenError`, `TripInstanceNotFoundError`.
+
+`GetBookingAvailabilityUseCase` — Permite a qualquer JWT autenticado verificar disponibilidade antes de criar uma inscrição. Retorna `BookingAvailabilityResponseDto` com `tripInstanceId`, `tripStatus`, `totalCapacity`, `activeCount`, `availableSlots`, `isBookable`. A flag `isBookable = BOOKABLE_STATUSES.has(tripStatus) && availableSlots > 0` onde `BOOKABLE_STATUSES = new Set(['SCHEDULED', 'CONFIRMED'])`.
+
+**Novos DTOs:**
+- `BookingDetailsResponseDto`: extends `BookingResponseDto`, adiciona `tripDepartureTime`, `tripArrivalEstimate`, `tripStatus`, `totalCapacity`, `availableSlots`
+- `BookingAvailabilityResponseDto`: `tripInstanceId`, `tripStatus`, `totalCapacity`, `activeCount`, `availableSlots`, `isBookable`
+
+**Melhorias em Use Cases Existentes:**
+
+- `CreateBookingUseCase`: Preço gravado server-side — busca o `TripTemplate` via `tripInstance.tripTemplateId` e seleciona `priceOneWay | priceReturn | priceRoundTrip` com base no `enrollmentType`. Client não envia preço. Verifica capacidade via `countActiveByTripInstance` antes de criar (`TripInstanceFullError` → HTTP 409).
+- `CancelBookingUseCase`: Bloqueia cancelamento em trips `IN_PROGRESS` ou `FINISHED` (`BookingCancellationNotAllowedError` → HTTP 400).
+- `ConfirmPresenceUseCase`: Apenas org members podem confirmar presença. Owner é bloqueado com `BookingAccessForbiddenError` — semântica intencional: motorista/admin da org confirma presença do passageiro.
+- `FindBookingsByTripInstanceUseCase`: Aceita `callerOrganizationId?` como 3º parâmetro. Se não for org member, lança `BookingAccessForbiddenError`. Usuaarios B2C não vêem a lista de passageiros.
+- `FindBookingsByUserUseCase`: Aceita `status?: Status` como 3º parâmetro, repassado ao repositório para filtro de ACTIVE/INACTIVE.
+
+**Novos Domain Errors (9 total):**
+| Error | Código | HTTP |
+|-------|--------|------|
+| `BookingNotFoundError` | `BOOKING_NOT_FOUND` | 404 |
+| `BookingAccessForbiddenError` | `BOOKING_ACCESS_FORBIDDEN` | 403 |
+| `BookingAlreadyExistsError` | `BOOKING_ALREADY_EXISTS_CONFLICT` | 409 |
+| `InvalidBookingStopError` | `BOOKING_STOP_BAD_REQUEST` | 400 |
+| `BookingCreationFailedError` | `BOOKING_CREATION_FAILED_BAD_REQUEST` | 400 |
+| `TripInstanceNotBookableError` | `BOOKING_TRIP_INSTANCE_NOT_BOOKABLE_BAD_REQUEST` | 400 |
+| `TripInstanceFullError` | `BOOKING_TRIP_INSTANCE_FULL_CONFLICT` | 409 |
+| `BookingCancellationNotAllowedError` | `BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST` | 400 |
+| `TripPriceNotAvailableError` | `BOOKING_PRICE_NOT_AVAILABLE_BAD_REQUEST` | 400 |
+
+**Novos Repositório Methods:**
+- `findByUserId(userId, options, status?: Status)` — status opcional para filtro
+- `countActiveByTripInstance(tripInstanceId)` — conta apenas status ACTIVE para checar capacidade
+
+**Endpoints REST Finais (9 rotas):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| POST | `/bookings` | JWT | Cria inscrição (price server-side, capacity check) |
+| GET | `/bookings/user?status=ACTIVE\|INACTIVE` | JWT | Bookings do usuário (filtro por status) |
+| GET | `/bookings/availability/:tripInstanceId` | JWT | Verifica vagas disponíveis |
+| GET | `/bookings/trip-instance/:id` | JWT + ORG | Passageiros (só org members) |
+| GET | `/bookings/organization/:id` | JWT + ADMIN | Lista por org (paginado) |
+| GET | `/bookings/:id` | JWT | Detalhe básico (owner ou org) |
+| GET | `/bookings/:id/details` | JWT | Detalhe enriquecido com dados da viagem |
+| PATCH | `/bookings/:id/cancel` | JWT | Cancela (bloqueia IN_PROGRESS/FINISHED) |
+| PATCH | `/bookings/:id/confirm-presence` | JWT + ORG | Confirma presença (só org members) |
+
+**Testes Unitários Adicionados:**
+- `find-booking-details.use-case.spec.ts`: 11 testes (NOVO)
+- `get-booking-availability.use-case.spec.ts`: 9 testes (NOVO)
+- `find-bookings-by-trip-instance.use-case.spec.ts`: reescrito (9 testes)
+- `find-bookings-by-user.use-case.spec.ts`: atualizado (8 testes)
+- `confirm-presence.use-case.spec.ts`: atualizado (7 testes)
+
+**Total bookings:** 9 suites, 85 testes. **Total projeto:** 32 suites, 237 testes.
+
+**Compilacao:** ✅ `npx tsc --noEmit` = 0 erros
+
+**Bugs identificados (pendentes):**
+- `CancelBookingUseCase`: nao bloqueia booking ja `INACTIVE`
+- `ConfirmPresenceUseCase`: nao bloqueia booking cancelado
 
 **Domain Layer:**
 - `Booking` entity com `create()` (factory de criação) e `restore()` (hidratação), métodos `cancel()` (status → INACTIVE) e `confirmPresence()` (presenceConfirmed → true)
@@ -817,8 +883,8 @@ Booking.create(...) → save() → 500 se save retorna null
 | PATCH | `/bookings/:id/cancel` | Cancelar inscrição |
 | PATCH | `/bookings/:id/confirm-presence` | Confirmar presença |
 
-**Testes Unitários — 7 suites, 54 testes:**
-- Cobrem todos os 12 fluxos de negócio mapeados no requisito original:
+**Testes Unitários — 7 suites, 50 testes:**
+- Cobrem todos os fluxos de negócio B2C implementados:
   - Inscrição em viagem SCHEDULED e CONFIRMED
   - Prevenção de inscrição duplicada ativa
   - Isolamento por usuário (cada user só vê as próprias)
@@ -826,7 +892,7 @@ Booking.create(...) → save() → 500 se save retorna null
   - Reinscrição após cancelamento
   - Bloqueio de viagem não inscritível (DRAFT, CANCELED, IN_PROGRESS)
   - Dono da viagem visualiza todos os inscritos
-  - Isolamento cross-org (tripInstance e booking)
+  - Acesso por `hasOrgAccess || isOwner` (admin da org OU dono do booking)
 
 **Fix Jest `moduleNameMapper` (25 Abr 2026):**
 Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` nos dois configs Jest (`test/jest-unit.json` e `package.json`). O VS Code Jest runner usa o config de `package.json` diretamente, causando falha na resolução de imports `test/modules/trip/factories/...` sem esse mapeamento.
@@ -856,7 +922,7 @@ O script de seed foi configurado para:
 3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization/Vehicle/Driver.
 3. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
 4. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
-5. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 7 use cases, 54 testes, multi-tenant, reinscrição após cancelamento.
+5. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
 6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
 7. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
 8. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
@@ -871,7 +937,7 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 25 de abril 
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError` *(17 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
 - ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir *(21 Abr)*.
-- ✅ **Bookings Module**: Inscrições em viagens com isolamento multi-tenant, prevenção de duplicatas ativas, reinscrição após cancelamento, confirmação de presença, 7 use cases, 54 testes unitários *(25 Abr)*.
+- ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmção de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
@@ -883,11 +949,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 25 de abril 
 - ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
 - ✅ **Segurança IDOR**: Vehicle e Driver validam ownership em operações por ID; Membership protegido via TenantFilterGuard *(17 Abr)*.
 - ✅ **Segurança FK**: Trip module valida existência de Driver e Vehicle antes de persistir atribuições, evitando HTTP 500 por FK violation *(21 Abr)*.
-- ✅ **Testes Unitários**: 23 suites, 148 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module adicionado 21 Abr; Vehicle/User/Organization adicionados)*.
+- ✅ **Testes Unitários**: 32 suites, 237 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module adicionado 21 Abr; Vehicle/User/Organization adicionados; Bookings 85 testes 25 Abr)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fase 1 100% COMPLETA** (✅). **Fase 2 em andamento** — Vehicle Module (17 Abr) e Trip Module (21 Abr) completos. Próximo: Bookings Module.
+**Progresso atual:** **Fase 1 100% COMPLETA** (✅). **Fase 2 em andamento** — Vehicle Module (17 Abr), Trip Module (21 Abr) e Bookings Module (25 Abr, 9 use cases / 85 testes) completos. Próximo: Pagamentos.
 
 ---
 
@@ -901,7 +967,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (148 testes, 23 suites)
+- `npm run test`: Executa testes unitários (198 testes, 30 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias

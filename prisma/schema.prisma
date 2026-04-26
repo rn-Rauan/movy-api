@@ -323,7 +323,7 @@ model Enrollment {
   enrollmentDate    DateTime   @default(now())
   status            Status     @default(ACTIVE)
   presenceConfirmed Boolean    @default(false)
-  EnrollmentType         EnrollmentType
+  enrollmentType    EnrollmentType
   recordedPrice     Decimal    @db.Decimal(10, 2)
   userId            String
   tripInstanceId    String
@@ -339,10 +339,12 @@ model Enrollment {
   payment      Payment?     @relation("PaymentEnrollment")
   organization Organization @relation("EnrollmentOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, tripInstanceId])
   @@index([userId])
   @@index([tripInstanceId])
   @@index([organizationId])
   @@index([status])
+  @@index([userId, tripInstanceId, status])
   @@map("enrollment")
 }
 

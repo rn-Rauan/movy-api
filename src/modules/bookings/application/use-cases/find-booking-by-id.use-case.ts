@@ -19,9 +19,19 @@ export class FindBookingByIdUseCase {
    * @throws BookingNotFoundError if the booking does not exist
    * @throws BookingAccessForbiddenError if the booking belongs to a different organization
    */
+  /**
+   * Finds a booking by ID. Org members or the booking owner can access it.
+   * @param id - UUID of the booking
+   * @param userId - UUID of the authenticated user (from JWT)
+   * @param organizationId - UUID of the organization (from JWT, optional for B2C users)
+   * @returns BookingResponseDto found
+   * @throws BookingNotFoundError if the booking does not exist
+   * @throws BookingAccessForbiddenError if caller is not the owner and not from the same org
+   */
   async execute(
     id: string,
-    organizationId: string,
+    userId: string,
+    organizationId?: string,
   ): Promise<BookingResponseDto> {
     const booking = await this.bookingRepository.findById(id);
 
@@ -29,7 +39,11 @@ export class FindBookingByIdUseCase {
       throw new BookingNotFoundError(id);
     }
 
-    if (booking.organizationId !== organizationId) {
+    const hasOrgAccess =
+      organizationId != null && booking.organizationId === organizationId;
+    const isOwner = booking.userId === userId;
+
+    if (!hasOrgAccess && !isOwner) {
       throw new BookingAccessForbiddenError(id);
     }
 

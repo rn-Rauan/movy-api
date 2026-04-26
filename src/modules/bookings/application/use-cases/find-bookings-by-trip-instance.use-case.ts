@@ -4,10 +4,8 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces';
-import {
-  TripInstanceAccessForbiddenError,
-  TripInstanceNotFoundError,
-} from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { BookingAccessForbiddenError } from '../../domain/entities/errors/booking.errors';
 import { BookingRepository } from '../../domain/interfaces';
 import { BookingResponseDto } from '../dtos';
 import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
@@ -20,19 +18,19 @@ export class FindBookingsByTripInstanceUseCase {
   ) {}
 
   /**
-   * Lists all bookings for a given trip instance, scoped to the requesting organization.
-   * Validates trip instance ownership before querying bookings.
+   * Lists all bookings for a given trip instance.
+   * Only org members (Admin/Driver) can view the passenger list.
    * @param tripInstanceId - UUID of the trip instance
-   * @param organizationId - UUID of the organization from JWT context
    * @param options - Pagination options (page, limit)
+   * @param callerOrganizationId - organizationId from JWT (required for access)
    * @returns Paginated response with BookingResponseDto list
    * @throws TripInstanceNotFoundError if the trip instance does not exist
-   * @throws TripInstanceAccessForbiddenError if the trip belongs to a different organization
+   * @throws BookingAccessForbiddenError if caller does not belong to the trip's organization
    */
   async execute(
     tripInstanceId: string,
-    organizationId: string,
     options: PaginationOptions,
+    callerOrganizationId?: string,
   ): Promise<PaginatedResponse<BookingResponseDto>> {
     const instance = await this.tripInstanceRepository.findById(tripInstanceId);
 
@@ -40,8 +38,12 @@ export class FindBookingsByTripInstanceUseCase {
       throw new TripInstanceNotFoundError(tripInstanceId);
     }
 
-    if (instance.organizationId !== organizationId) {
-      throw new TripInstanceAccessForbiddenError(tripInstanceId);
+    const hasOrgAccess =
+      callerOrganizationId != null &&
+      instance.organizationId === callerOrganizationId;
+
+    if (!hasOrgAccess) {
+      throw new BookingAccessForbiddenError(tripInstanceId);
     }
 
     const result = await this.bookingRepository.findByTripInstanceId(

@@ -50,7 +50,7 @@ describe('FindBookingByIdUseCase', () => {
       const { booking } = setupHappyPath(mocks);
 
       // Act
-      const result = await sut.execute(BOOKING_ID, ORG_ID);
+      const result = await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       expect(result).toBeDefined();
@@ -64,7 +64,7 @@ describe('FindBookingByIdUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(BOOKING_ID, ORG_ID);
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       expect(mocks.bookingRepository.findById).toHaveBeenCalledWith(BOOKING_ID);
@@ -78,7 +78,7 @@ describe('FindBookingByIdUseCase', () => {
       mocks.bookingRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingNotFoundError,
       );
     });
@@ -86,13 +86,16 @@ describe('FindBookingByIdUseCase', () => {
 
   // ── req 5: não pode acessar inscrições de outros usuários ────────────────
   describe('error — cross-org access (req 5 — isolamento por organização)', () => {
-    it('should throw BookingAccessForbiddenError when booking belongs to another org', async () => {
+    it('should throw BookingAccessForbiddenError when caller is not the owner and org differs', async () => {
       // Arrange
-      const booking = makeBooking({ organizationId: 'other-org' });
+      const booking = makeBooking({
+        organizationId: 'other-org',
+        userId: 'foreign-user',
+      });
       mocks.bookingRepository.findById.mockResolvedValue(booking);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingAccessForbiddenError,
       );
     });
@@ -106,7 +109,7 @@ describe('FindBookingByIdUseCase', () => {
       mocks.bookingRepository.findById.mockResolvedValue(foreignBooking);
 
       // Act
-      const call = sut.execute(BOOKING_ID, ORG_ID);
+      const call = sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       await expect(call).rejects.toThrow(BookingAccessForbiddenError);

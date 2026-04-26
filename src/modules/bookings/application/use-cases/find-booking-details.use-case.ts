@@ -1,41 +1,37 @@
 import { Injectable } from '@nestjs/common';
+import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces';
+import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
 import {
   BookingAccessForbiddenError,
-  BookingCancellationNotAllowedError,
   BookingNotFoundError,
 } from '../../domain/entities/errors/booking.errors';
 import { BookingRepository } from '../../domain/interfaces';
-import {
-  TripInstanceRepository,
-  TripStatus,
-} from 'src/modules/trip/domain/interfaces';
-import { BookingResponseDto } from '../dtos';
+import { BookingDetailsResponseDto } from '../dtos/booking-details-response.dto';
 import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
 
 @Injectable()
-export class CancelBookingUseCase {
+export class FindBookingDetailsUseCase {
   constructor(
     private readonly bookingRepository: BookingRepository,
     private readonly tripInstanceRepository: TripInstanceRepository,
   ) {}
 
   /**
-   * Cancels a booking by setting its status to INACTIVE.
-   * Admin/Driver with org access or the booking owner can cancel.
-   * Cancellation is blocked if the trip is already IN_PROGRESS or FINISHED.
-   * @param id - UUID of the booking to cancel
+   * Returns a booking with enriched trip instance data (departure time, status, available slots).
+   * Owner or org member can access.
+   * @param id - UUID of the booking
    * @param userId - UUID of the authenticated user (from JWT)
    * @param organizationId - UUID of the organization (from JWT, optional for B2C users)
-   * @returns BookingResponseDto of the cancelled booking
+   * @returns BookingDetailsResponseDto with trip data included
    * @throws BookingNotFoundError if the booking does not exist
    * @throws BookingAccessForbiddenError if caller is not the owner and not from the same org
-   * @throws BookingCancellationNotAllowedError if the trip is IN_PROGRESS or FINISHED
+   * @throws TripInstanceNotFoundError if the linked trip instance no longer exists
    */
   async execute(
     id: string,
     userId: string,
     organizationId?: string,
-  ): Promise<BookingResponseDto> {
+  ): Promise<BookingDetailsResponseDto> {
     const booking = await this.bookingRepository.findById(id);
 
     if (!booking) {
@@ -54,25 +50,22 @@ export class CancelBookingUseCase {
       booking.tripInstanceId,
     );
 
-    if (
-      instance &&
-      (instance.tripStatus === TripStatus.IN_PROGRESS ||
-        instance.tripStatus === TripStatus.FINISHED)
-    ) {
-      throw new BookingCancellationNotAllowedError(
-        booking.tripInstanceId,
-        instance.tripStatus,
-      );
+    if (!instance) {
+      throw new TripInstanceNotFoundError(booking.tripInstanceId);
     }
 
-    booking.cancel();
+    const activeCount = await this.bookingRepository.countActiveByTripInstance(
+      booking.tripInstanceId,
+    );
 
-    const updated = await this.bookingRepository.update(booking);
+    const base = BookingPresenter.toHTTP(booking);
 
-    if (!updated) {
-      throw new BookingNotFoundError(id);
-    }
-
-    return BookingPresenter.toHTTP(updated);
+    return Object.assign(new BookingDetailsResponseDto(base), {
+      tripDepartureTime: instance.departureTime,
+      tripArrivalEstimate: instance.arrivalEstimate,
+      tripStatus: instance.tripStatus,
+      totalCapacity: instance.totalCapacity,
+      availableSlots: Math.max(0, instance.totalCapacity - activeCount),
+    });
   }
 }

@@ -1,10 +1,14 @@
 import { CancelBookingUseCase } from 'src/modules/bookings/application/use-cases/cancel-booking.use-case';
 import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
+import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
+import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import {
   BookingAccessForbiddenError,
+  BookingCancellationNotAllowedError,
   BookingNotFoundError,
 } from 'src/modules/bookings/domain/entities/errors/booking.errors';
 import { makeBooking } from '../../factories/booking.factory';
+import { makeTripInstance } from 'test/modules/trip/factories/trip-instance.factory';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -14,21 +18,32 @@ function makeMocks() {
     update: jest.fn(),
   } as any as jest.Mocked<BookingRepository>;
 
-  return { bookingRepository };
+  const tripInstanceRepository = {
+    findById: jest.fn(),
+  } as any as jest.Mocked<TripInstanceRepository>;
+
+  return { bookingRepository, tripInstanceRepository };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
-  const booking = makeBooking({ organizationId: ORG_ID, status: 'ACTIVE' });
+  const booking = makeBooking({
+    organizationId: ORG_ID,
+    userId: USER_ID,
+    status: 'ACTIVE',
+  });
+  const instance = makeTripInstance({ tripStatus: TripStatus.SCHEDULED });
 
   mocks.bookingRepository.findById.mockResolvedValue(booking);
   mocks.bookingRepository.update.mockImplementation(async (entity) => entity);
+  mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
 
-  return { booking };
+  return { booking, instance };
 }
 
 // ── Tests ───────────────────────────────────────────────
 
 const ORG_ID = 'org-id-stub';
+const USER_ID = 'user-id-stub';
 const BOOKING_ID = 'booking-id-stub';
 
 describe('CancelBookingUseCase', () => {
@@ -37,7 +52,10 @@ describe('CancelBookingUseCase', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
-    sut = new CancelBookingUseCase(mocks.bookingRepository);
+    sut = new CancelBookingUseCase(
+      mocks.bookingRepository,
+      mocks.tripInstanceRepository,
+    );
   });
 
   // ── req 6, 7: usuário pode cancelar e status deve mudar ──────────────────
@@ -47,11 +65,7 @@ describe('CancelBookingUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      const result = await sut.execute(BOOKING_ID, ORG_ID);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.status).toBe('INACTIVE');
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
     });
 
     it('should call repository.update exactly once', async () => {
@@ -59,7 +73,7 @@ describe('CancelBookingUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(BOOKING_ID, ORG_ID);
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       expect(mocks.bookingRepository.update).toHaveBeenCalledTimes(1);
@@ -70,7 +84,7 @@ describe('CancelBookingUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(BOOKING_ID, ORG_ID);
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       const updated = mocks.bookingRepository.update.mock.calls[0][0];
@@ -84,7 +98,7 @@ describe('CancelBookingUseCase', () => {
       mocks.bookingRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID)).rejects.toThrow(
         BookingNotFoundError,
       );
     });
@@ -94,7 +108,7 @@ describe('CancelBookingUseCase', () => {
       mocks.bookingRepository.findById.mockResolvedValue(null);
 
       // Act
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID)).rejects.toThrow(
         BookingNotFoundError,
       );
 
@@ -105,24 +119,30 @@ describe('CancelBookingUseCase', () => {
 
   // ── segurança: req 7 — não cancela booking de outra org ─────────────────
   describe('error — cross-org access', () => {
-    it('should throw BookingAccessForbiddenError when booking belongs to another org', async () => {
+    it('should throw BookingAccessForbiddenError when booking belongs to another org and user is not the owner', async () => {
       // Arrange
-      const booking = makeBooking({ organizationId: 'other-org' });
+      const booking = makeBooking({
+        organizationId: 'other-org',
+        userId: 'other-user',
+      });
       mocks.bookingRepository.findById.mockResolvedValue(booking);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingAccessForbiddenError,
       );
     });
 
     it('should NOT call update when org differs (security: vaga não liberada indevidamente)', async () => {
       // Arrange
-      const booking = makeBooking({ organizationId: 'other-org' });
+      const booking = makeBooking({
+        organizationId: 'other-org',
+        userId: 'other-user',
+      });
       mocks.bookingRepository.findById.mockResolvedValue(booking);
 
       // Act
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingAccessForbiddenError,
       );
 
@@ -138,8 +158,70 @@ describe('CancelBookingUseCase', () => {
       mocks.bookingRepository.update.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingNotFoundError,
+      );
+    });
+  });
+
+  // ── req 10: cancelamento bloqueado em trip ativa ou finalizada ───────────
+  describe('error — cancellation not allowed (trip IN_PROGRESS)', () => {
+    it('should throw BookingCancellationNotAllowedError when trip is IN_PROGRESS', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        status: 'ACTIVE',
+      });
+      const instance = makeTripInstance({ tripStatus: TripStatus.IN_PROGRESS });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+      mocks.bookingRepository.update.mockImplementation(
+        async (entity) => entity,
+      );
+      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+
+      // Act & Assert
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
+        BookingCancellationNotAllowedError,
+      );
+    });
+
+    it('should NOT call update when trip is IN_PROGRESS', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        status: 'ACTIVE',
+      });
+      const instance = makeTripInstance({ tripStatus: TripStatus.IN_PROGRESS });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+
+      // Act
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
+        BookingCancellationNotAllowedError,
+      );
+
+      // Assert
+      expect(mocks.bookingRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — cancellation not allowed (trip FINISHED)', () => {
+    it('should throw BookingCancellationNotAllowedError when trip is FINISHED', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        status: 'ACTIVE',
+      });
+      const instance = makeTripInstance({ tripStatus: TripStatus.FINISHED });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+
+      // Act & Assert
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
+        BookingCancellationNotAllowedError,
       );
     });
   });

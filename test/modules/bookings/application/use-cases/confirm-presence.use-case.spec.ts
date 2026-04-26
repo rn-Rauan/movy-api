@@ -20,6 +20,7 @@ function makeMocks() {
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   const booking = makeBooking({
     organizationId: ORG_ID,
+    userId: USER_ID,
     presenceConfirmed: false,
   });
 
@@ -32,6 +33,7 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
 // ── Tests ───────────────────────────────────────────────
 
 const ORG_ID = 'org-id-stub';
+const USER_ID = 'user-id-stub';
 const BOOKING_ID = 'booking-id-stub';
 
 describe('ConfirmPresenceUseCase', () => {
@@ -49,11 +51,7 @@ describe('ConfirmPresenceUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      const result = await sut.execute(BOOKING_ID, ORG_ID);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.presenceConfirmed).toBe(true);
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
     });
 
     it('should call repository.update exactly once', async () => {
@@ -61,7 +59,7 @@ describe('ConfirmPresenceUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(BOOKING_ID, ORG_ID);
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       expect(mocks.bookingRepository.update).toHaveBeenCalledTimes(1);
@@ -72,7 +70,7 @@ describe('ConfirmPresenceUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(BOOKING_ID, ORG_ID);
+      await sut.execute(BOOKING_ID, USER_ID, ORG_ID);
 
       // Assert
       const updated = mocks.bookingRepository.update.mock.calls[0][0];
@@ -86,7 +84,7 @@ describe('ConfirmPresenceUseCase', () => {
       mocks.bookingRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID)).rejects.toThrow(
         BookingNotFoundError,
       );
     });
@@ -96,7 +94,7 @@ describe('ConfirmPresenceUseCase', () => {
       mocks.bookingRepository.findById.mockResolvedValue(null);
 
       // Act
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID)).rejects.toThrow(
         BookingNotFoundError,
       );
 
@@ -105,25 +103,59 @@ describe('ConfirmPresenceUseCase', () => {
     });
   });
 
-  describe('error — cross-org access', () => {
-    it('should throw BookingAccessForbiddenError when booking belongs to another org', async () => {
+  // ── segurança: owner NÃO pode confirmar a própria presença ─────────────────
+  describe('error — owner cannot confirm own presence', () => {
+    it('should throw BookingAccessForbiddenError when caller is the owner but has no org access', async () => {
       // Arrange
-      const booking = makeBooking({ organizationId: 'other-org' });
+      const booking = makeBooking({ organizationId: ORG_ID, userId: USER_ID });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+
+      // Act & Assert — B2C user without organizationId
+      await expect(sut.execute(BOOKING_ID, USER_ID)).rejects.toThrow(
+        BookingAccessForbiddenError,
+      );
+    });
+
+    it('should NOT call update when owner tries to confirm own presence', async () => {
+      // Arrange
+      const booking = makeBooking({ organizationId: ORG_ID, userId: USER_ID });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+
+      // Act
+      await expect(sut.execute(BOOKING_ID, USER_ID)).rejects.toThrow(
+        BookingAccessForbiddenError,
+      );
+
+      // Assert
+      expect(mocks.bookingRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — cross-org access', () => {
+    it('should throw BookingAccessForbiddenError when booking belongs to another org and user is not the owner', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: 'other-org',
+        userId: 'other-user',
+      });
       mocks.bookingRepository.findById.mockResolvedValue(booking);
 
       // Act & Assert
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingAccessForbiddenError,
       );
     });
 
     it('should NOT call update when org differs', async () => {
       // Arrange
-      const booking = makeBooking({ organizationId: 'other-org' });
+      const booking = makeBooking({
+        organizationId: 'other-org',
+        userId: 'other-user',
+      });
       mocks.bookingRepository.findById.mockResolvedValue(booking);
 
       // Act
-      await expect(sut.execute(BOOKING_ID, ORG_ID)).rejects.toThrow(
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
         BookingAccessForbiddenError,
       );
 

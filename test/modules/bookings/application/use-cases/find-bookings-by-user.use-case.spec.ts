@@ -1,4 +1,4 @@
-import { FindBookingsByUserUseCase } from 'src/modules/bookings/application/use-cases/find-bookings-by-user.use-case';
+﻿import { FindBookingsByUserUseCase } from 'src/modules/bookings/application/use-cases/find-bookings-by-user.use-case';
 import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
 import { Booking } from 'src/modules/bookings/domain/entities';
 import { PaginatedResponse } from 'src/shared/domain/interfaces';
@@ -76,6 +76,7 @@ describe('FindBookingsByUserUseCase', () => {
       expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
         USER_ID,
         PAGINATION,
+        undefined,
       );
       expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledTimes(1);
     });
@@ -108,9 +109,11 @@ describe('FindBookingsByUserUseCase', () => {
       expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
         otherUserId,
         PAGINATION,
+        undefined,
       );
       expect(mocks.bookingRepository.findByUserId).not.toHaveBeenCalledWith(
         USER_ID,
+        expect.anything(),
         expect.anything(),
       );
     });
@@ -127,6 +130,38 @@ describe('FindBookingsByUserUseCase', () => {
       // Assert
       expect(result.data).toHaveLength(0);
       expect(result.total).toBe(0);
+    });
+  });
+
+  describe('filter -- status', () => {
+    it('should pass status ACTIVE to repository when provided', async () => {
+      setupHappyPath(mocks);
+      await sut.execute(USER_ID, PAGINATION, 'ACTIVE');
+      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+        USER_ID,
+        PAGINATION,
+        'ACTIVE',
+      );
+    });
+
+    it('should pass status INACTIVE to repository when provided', async () => {
+      setupHappyPath(mocks);
+      await sut.execute(USER_ID, PAGINATION, 'INACTIVE');
+      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+        USER_ID,
+        PAGINATION,
+        'INACTIVE',
+      );
+    });
+
+    it('should pass undefined to repository when no status is provided', async () => {
+      setupHappyPath(mocks);
+      await sut.execute(USER_ID, PAGINATION);
+      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+        USER_ID,
+        PAGINATION,
+        undefined,
+      );
     });
   });
 });

@@ -5,6 +5,7 @@ import {
   PaginatedResponse,
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
+import type { Status } from 'src/shared/domain/types';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { BookingMapper } from '../mappers/booking.mapper';
 
@@ -132,18 +133,20 @@ export class PrismaBookingRepository implements BookingRepository {
   async findByUserId(
     userId: string,
     options: PaginationOptions,
+    status?: Status,
   ): Promise<PaginatedResponse<Booking>> {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
+    const where = status ? { userId, status } : { userId };
 
     const [bookings, total] = await this.prisma.$transaction([
       this.prisma.enrollment.findMany({
-        where: { userId },
+        where,
         orderBy: { enrollmentDate: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.enrollment.count({ where: { userId } }),
+      this.prisma.enrollment.count({ where }),
     ]);
 
     return {
@@ -204,5 +207,17 @@ export class PrismaBookingRepository implements BookingRepository {
     if (!data) return null;
 
     return BookingMapper.toDomain(data);
+  }
+
+  /**
+   * Counts active bookings for a specific trip instance.
+   * Used to enforce vehicle capacity limits.
+   * @param tripInstanceId - UUID of the trip instance
+   * @returns Number of active bookings
+   */
+  async countActiveByTripInstance(tripInstanceId: string): Promise<number> {
+    return this.prisma.enrollment.count({
+      where: { tripInstanceId, status: 'ACTIVE' },
+    });
   }
 }

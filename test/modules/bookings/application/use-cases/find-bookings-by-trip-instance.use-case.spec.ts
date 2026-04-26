@@ -1,16 +1,14 @@
-import { FindBookingsByTripInstanceUseCase } from 'src/modules/bookings/application/use-cases/find-bookings-by-trip-instance.use-case';
+﻿import { FindBookingsByTripInstanceUseCase } from 'src/modules/bookings/application/use-cases/find-bookings-by-trip-instance.use-case';
 import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
 import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
-import {
-  TripInstanceAccessForbiddenError,
-  TripInstanceNotFoundError,
-} from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { BookingAccessForbiddenError } from 'src/modules/bookings/domain/entities/errors/booking.errors';
 import { Booking } from 'src/modules/bookings/domain/entities';
 import { PaginatedResponse } from 'src/shared/domain/interfaces';
 import { makeBooking } from '../../factories/booking.factory';
 import { makeTripInstance } from 'test/modules/trip/factories/trip-instance.factory';
 
-// ── Mocks ───────────────────────────────────────────────
+// â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeMocks() {
   const bookingRepository = {
@@ -48,7 +46,7 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   return { instance, bookings, paginated };
 }
 
-// ── Tests ───────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ORG_ID = 'org-id-stub';
 const TRIP_INSTANCE_ID = 'trip-instance-id-stub';
@@ -66,14 +64,14 @@ describe('FindBookingsByTripInstanceUseCase', () => {
     );
   });
 
-  // ── req 11: dono da viagem visualiza todos os inscritos ──────────────────
+  // â”€â”€ req 11: dono da viagem visualiza todos os inscritos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('happy path', () => {
     it('should return all bookings for the trip instance', async () => {
       // Arrange
       setupHappyPath(mocks);
 
       // Act
-      const result = await sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION);
+      const result = await sut.execute(TRIP_INSTANCE_ID, PAGINATION, ORG_ID);
 
       // Assert
       expect(result).toBeDefined();
@@ -86,7 +84,7 @@ describe('FindBookingsByTripInstanceUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION);
+      await sut.execute(TRIP_INSTANCE_ID, PAGINATION, ORG_ID);
 
       // Assert
       expect(mocks.bookingRepository.findByTripInstanceId).toHaveBeenCalledWith(
@@ -100,9 +98,9 @@ describe('FindBookingsByTripInstanceUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION);
+      await sut.execute(TRIP_INSTANCE_ID, PAGINATION, ORG_ID);
 
-      // Assert — trip instance checked first
+      // Assert â€” trip instance checked first
       expect(mocks.tripInstanceRepository.findById).toHaveBeenCalledWith(
         TRIP_INSTANCE_ID,
       );
@@ -113,7 +111,7 @@ describe('FindBookingsByTripInstanceUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      const result = await sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION);
+      const result = await sut.execute(TRIP_INSTANCE_ID, PAGINATION, ORG_ID);
 
       // Assert
       expect(result.data[0]).toHaveProperty('id');
@@ -121,15 +119,15 @@ describe('FindBookingsByTripInstanceUseCase', () => {
     });
   });
 
-  describe('error — trip instance not found', () => {
+  describe('error â€” trip instance not found', () => {
     it('should throw TripInstanceNotFoundError when trip does not exist', async () => {
       // Arrange
       mocks.tripInstanceRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(
-        sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION),
-      ).rejects.toThrow(TripInstanceNotFoundError);
+      await expect(sut.execute(TRIP_INSTANCE_ID, PAGINATION)).rejects.toThrow(
+        TripInstanceNotFoundError,
+      );
     });
 
     it('should NOT call booking repo when trip not found', async () => {
@@ -137,9 +135,9 @@ describe('FindBookingsByTripInstanceUseCase', () => {
       mocks.tripInstanceRepository.findById.mockResolvedValue(null);
 
       // Act
-      await expect(
-        sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION),
-      ).rejects.toThrow(TripInstanceNotFoundError);
+      await expect(sut.execute(TRIP_INSTANCE_ID, PAGINATION)).rejects.toThrow(
+        TripInstanceNotFoundError,
+      );
 
       // Assert
       expect(
@@ -148,30 +146,27 @@ describe('FindBookingsByTripInstanceUseCase', () => {
     });
   });
 
-  // ── segurança: isolamento de tenant ─────────────────────────────────────
-  describe('error — cross-org access', () => {
-    it('should throw TripInstanceAccessForbiddenError when trip belongs to another org', async () => {
-      // Arrange
-      const foreignInstance = makeTripInstance({ organizationId: 'other-org' });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(foreignInstance);
-
-      // Act & Assert
+  // seguranca: so org member ve a lista de passageiros
+  describe('error -- unauthorized caller (no org access)', () => {
+    it('should throw BookingAccessForbiddenError when caller org does not match trip org', async () => {
+      setupHappyPath(mocks);
       await expect(
-        sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION),
-      ).rejects.toThrow(TripInstanceAccessForbiddenError);
+        sut.execute(TRIP_INSTANCE_ID, PAGINATION, 'other-org'),
+      ).rejects.toThrow(BookingAccessForbiddenError);
     });
 
-    it('should NOT return bookings when trip belongs to another org', async () => {
-      // Arrange
-      const foreignInstance = makeTripInstance({ organizationId: 'other-org' });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(foreignInstance);
+    it('should throw BookingAccessForbiddenError for B2C user (no org)', async () => {
+      setupHappyPath(mocks);
+      await expect(sut.execute(TRIP_INSTANCE_ID, PAGINATION)).rejects.toThrow(
+        BookingAccessForbiddenError,
+      );
+    });
 
-      // Act
+    it('should NOT call booking repo when access is denied', async () => {
+      setupHappyPath(mocks);
       await expect(
-        sut.execute(TRIP_INSTANCE_ID, ORG_ID, PAGINATION),
-      ).rejects.toThrow(TripInstanceAccessForbiddenError);
-
-      // Assert
+        sut.execute(TRIP_INSTANCE_ID, PAGINATION, 'other-org'),
+      ).rejects.toThrow(BookingAccessForbiddenError);
       expect(
         mocks.bookingRepository.findByTripInstanceId,
       ).not.toHaveBeenCalled();

@@ -3,6 +3,7 @@ import {
   PaginatedResponse,
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
+import type { Status } from 'src/shared/domain/types';
 import { BookingRepository } from '../../domain/interfaces';
 import { BookingResponseDto } from '../dtos';
 import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
@@ -15,13 +16,19 @@ export class FindBookingsByUserUseCase {
    * Lists all bookings belonging to a specific user with pagination.
    * @param userId - UUID of the user
    * @param options - Pagination options (page, limit)
+   * @param status - Optional status filter ('ACTIVE' | 'INACTIVE')
    * @returns Paginated response with BookingResponseDto list ordered by enrollment date
    */
   async execute(
     userId: string,
     options: PaginationOptions,
+    status?: Status,
   ): Promise<PaginatedResponse<BookingResponseDto>> {
-    const result = await this.bookingRepository.findByUserId(userId, options);
+    const result = await this.bookingRepository.findByUserId(
+      userId,
+      options,
+      status,
+    );
 
     return {
       ...result,

@@ -17,7 +17,8 @@ FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
 MVP PRONTO: 15 de Junho 2026
 
 Progresso em 25 Abr 2026:
-  Fase 2 — Bookings Module completo (7 use cases, 54 testes unitários)
+  Fase 2 — Bookings Module completo (7 use cases, 50 testes unitários, lógica B2C)
+  Total acumulado: 30 suites, 198 testes passando
 ```
 
 ---
@@ -229,7 +230,7 @@ Progresso em 25 Abr 2026:
 | ✅ | FK violation fix (Driver/Vehicle validação) | ✅ Pronto (21 Abr) |
 | ✅ | Organization `GET /me` + `FindOrganizationByUserUseCase` | ✅ Pronto (21 Abr) |
 | ✅ | Membership `GET /me/role/:orgId` + `RoleResponseDto` | ✅ Pronto (21 Abr) |
-| ✅ | Bookings (Inscrições) | ✅ Pronto (25 Abr) |
+| ✅ | Bookings (Inscrições) — 9 use cases, 85 testes | ✅ Pronto (25 Abr) |
 | ⏳ | Testes E2E trip flow | 2-3 dias |
 
 **Saída:** Sistema de viagens recorrentes + booking funcional
@@ -297,7 +298,7 @@ shared/        ✅ COMPLETO
 ```
 vehicle/       ✅ COMPLETO (17 Abr)
 trip/          ✅ COMPLETO (21 Abr) — TripTemplate + TripInstance + FK fixes
-booking/       ✅ COMPLETO (25 Abr) — 7 use cases, inscrições multi-tenant
+booking/       ✅ COMPLETO (25 Abr) — 9 use cases, lógica B2C + org-only, controller REST, 85 testes
 ```
 
 ### Fase 3 ⏳

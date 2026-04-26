@@ -17,7 +17,7 @@ export class BookingAccessForbiddenError extends DomainError {
 }
 
 export class BookingAlreadyExistsError extends DomainError {
-  readonly code = 'BOOKING_ALREADY_EXISTS';
+  readonly code = 'BOOKING_ALREADY_EXISTS_CONFLICT';
 
   constructor(userId: string, tripInstanceId: string) {
     super(
@@ -48,6 +48,34 @@ export class TripInstanceNotBookableError extends DomainError {
   constructor(tripInstanceId: string, status: string) {
     super(
       `Trip instance "${tripInstanceId}" is not open for bookings (status: ${status})`,
+    );
+  }
+}
+
+export class TripInstanceFullError extends DomainError {
+  readonly code = 'BOOKING_TRIP_INSTANCE_FULL_CONFLICT';
+
+  constructor(tripInstanceId: string) {
+    super(`Trip instance "${tripInstanceId}" has reached its maximum capacity`);
+  }
+}
+
+export class BookingCancellationNotAllowedError extends DomainError {
+  readonly code = 'BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST';
+
+  constructor(tripInstanceId: string, status: string) {
+    super(
+      `Cannot cancel booking: trip instance "${tripInstanceId}" is already ${status}`,
+    );
+  }
+}
+
+export class TripPriceNotAvailableError extends DomainError {
+  readonly code = 'BOOKING_PRICE_NOT_AVAILABLE_BAD_REQUEST';
+
+  constructor(enrollmentType: string) {
+    super(
+      `Price is not configured for enrollment type "${enrollmentType}" in this trip`,
     );
   }
 }

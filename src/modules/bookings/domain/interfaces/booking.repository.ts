@@ -2,6 +2,7 @@ import {
   PaginatedResponse,
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
+import type { Status } from 'src/shared/domain/types';
 import { Booking } from '../entities';
 
 export abstract class BookingRepository {
@@ -56,11 +57,13 @@ export abstract class BookingRepository {
    * Lists bookings belonging to a specific user.
    * @param userId - UUID of the user
    * @param options - Pagination options (page, limit)
+   * @param status - Optional status filter ('ACTIVE' | 'INACTIVE')
    * @returns Paginated response with Booking list
    */
   abstract findByUserId(
     userId: string,
     options: PaginationOptions,
+    status?: Status,
   ): Promise<PaginatedResponse<Booking>>;
 
   /**
@@ -85,4 +88,12 @@ export abstract class BookingRepository {
     userId: string,
     tripInstanceId: string,
   ): Promise<Booking | null>;
+
+  /**
+   * Counts active bookings for a specific trip instance.
+   * Used to enforce vehicle capacity limits.
+   * @param tripInstanceId - UUID of the trip instance
+   * @returns Number of active bookings
+   */
+  abstract countActiveByTripInstance(tripInstanceId: string): Promise<number>;
 }

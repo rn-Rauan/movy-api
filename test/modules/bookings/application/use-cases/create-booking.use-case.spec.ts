@@ -1,50 +1,63 @@
-import { CreateBookingUseCase } from 'src/modules/bookings/application/use-cases/create-booking.use-case';
+﻿import { CreateBookingUseCase } from 'src/modules/bookings/application/use-cases/create-booking.use-case';
 import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
 import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
+import { TripTemplateRepository } from 'src/modules/trip/domain/interfaces/trip-template.repository';
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
-import {
-  TripInstanceAccessForbiddenError,
-  TripInstanceNotFoundError,
-} from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
+import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
 import {
   BookingAlreadyExistsError,
   BookingCreationFailedError,
+  TripInstanceFullError,
   TripInstanceNotBookableError,
+  TripPriceNotAvailableError,
 } from 'src/modules/bookings/domain/entities/errors/booking.errors';
 import { makeBooking } from '../../factories/booking.factory';
 import { makeCreateBookingDto } from '../../factories/create-booking.dto.factory';
 import { makeTripInstance } from 'test/modules/trip/factories/trip-instance.factory';
+import { makeTripTemplate } from 'test/modules/trip/factories/trip-template.factory';
 
-// ── Mocks ───────────────────────────────────────────────
+// â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeMocks() {
   const bookingRepository = {
     save: jest.fn(),
     findByUserAndTripInstance: jest.fn(),
+    countActiveByTripInstance: jest.fn(),
   } as any as jest.Mocked<BookingRepository>;
 
   const tripInstanceRepository = {
     findById: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
-  return { bookingRepository, tripInstanceRepository };
+  const tripTemplateRepository = {
+    findById: jest.fn(),
+  } as any as jest.Mocked<TripTemplateRepository>;
+
+  return { bookingRepository, tripInstanceRepository, tripTemplateRepository };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   const instance = makeTripInstance({
     organizationId: ORG_ID,
     tripStatus: TripStatus.SCHEDULED,
+    totalCapacity: 10,
   });
   const booking = makeBooking({ organizationId: ORG_ID, userId: USER_ID });
+  const template = makeTripTemplate({
+    organizationId: ORG_ID,
+    priceOneWay: 49.9,
+  });
 
   mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+  mocks.bookingRepository.countActiveByTripInstance.mockResolvedValue(0);
   mocks.bookingRepository.findByUserAndTripInstance.mockResolvedValue(null);
+  mocks.tripTemplateRepository.findById.mockResolvedValue(template);
   mocks.bookingRepository.save.mockImplementation(async (entity) => entity);
 
-  return { instance, booking };
+  return { instance, booking, template };
 }
 
-// ── Tests ───────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ORG_ID = 'org-id-stub';
 const USER_ID = 'user-id-stub';
@@ -58,18 +71,19 @@ describe('CreateBookingUseCase', () => {
     sut = new CreateBookingUseCase(
       mocks.bookingRepository,
       mocks.tripInstanceRepository,
+      mocks.tripTemplateRepository,
     );
   });
 
-  // ── req 2: pode se inscrever em SCHEDULED ou CONFIRMED ──────────────────
-  describe('happy path — trip SCHEDULED', () => {
+  // â”€â”€ req 2: pode se inscrever em SCHEDULED ou CONFIRMED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  describe('happy path â€” trip SCHEDULED', () => {
     it('should create booking and return response dto', async () => {
       // Arrange
       setupHappyPath(mocks);
       const dto = makeCreateBookingDto();
 
       // Act
-      const result = await sut.execute(dto, USER_ID, ORG_ID);
+      const result = await sut.execute(dto, USER_ID);
 
       // Assert
       expect(result).toBeDefined();
@@ -83,18 +97,18 @@ describe('CreateBookingUseCase', () => {
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID);
+      await sut.execute(makeCreateBookingDto(), USER_ID);
 
       // Assert
       expect(mocks.bookingRepository.save).toHaveBeenCalledTimes(1);
     });
 
-    it('should persist booking with correct userId and organizationId — never from body', async () => {
+    it('should persist booking with correct userId and organizationId â€” never from body', async () => {
       // Arrange
       setupHappyPath(mocks);
 
       // Act
-      await sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID);
+      await sut.execute(makeCreateBookingDto(), USER_ID);
 
       // Assert
       const saved = mocks.bookingRepository.save.mock.calls[0][0];
@@ -103,19 +117,24 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  describe('happy path — trip CONFIRMED', () => {
+  describe('happy path â€” trip CONFIRMED', () => {
     it('should create booking when trip status is CONFIRMED', async () => {
       // Arrange
       const instance = makeTripInstance({
         organizationId: ORG_ID,
         tripStatus: TripStatus.CONFIRMED,
+        totalCapacity: 10,
       });
       mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+      mocks.bookingRepository.countActiveByTripInstance.mockResolvedValue(0);
       mocks.bookingRepository.findByUserAndTripInstance.mockResolvedValue(null);
+      mocks.tripTemplateRepository.findById.mockResolvedValue(
+        makeTripTemplate({ organizationId: ORG_ID, priceOneWay: 49.9 }),
+      );
       mocks.bookingRepository.save.mockImplementation(async (entity) => entity);
 
       // Act
-      const result = await sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID);
+      const result = await sut.execute(makeCreateBookingDto(), USER_ID);
 
       // Assert
       expect(result).toBeDefined();
@@ -123,16 +142,16 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  // ── req 8: pode se reinscrever após cancelamento ────────────────────────
-  describe('happy path — re-enrollment after cancellation', () => {
+  // â”€â”€ req 8: pode se reinscrever apÃ³s cancelamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  describe('happy path â€” re-enrollment after cancellation', () => {
     it('should allow re-enrollment when previous booking was cancelled (findByUserAndTripInstance returns null)', async () => {
       // Arrange
       // Cancelled booking is filtered out by the repo (status: ACTIVE only),
-      // so findByUserAndTripInstance returns null → no duplicate block
+      // so findByUserAndTripInstance returns null â†’ no duplicate block
       setupHappyPath(mocks); // already mocks null
 
       // Act
-      const result = await sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID);
+      const result = await sut.execute(makeCreateBookingDto(), USER_ID);
 
       // Assert
       expect(result).toBeDefined();
@@ -140,8 +159,8 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  // ── req 3: não pode se inscrever em trip não bookável ───────────────────
-  describe('error — trip not bookable (DRAFT)', () => {
+  // â”€â”€ req 3: nÃ£o pode se inscrever em trip nÃ£o bookÃ¡vel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  describe('error â€” trip not bookable (DRAFT)', () => {
     it('should throw TripInstanceNotBookableError when trip is DRAFT', async () => {
       // Arrange
       const instance = makeTripInstance({
@@ -152,7 +171,7 @@ describe('CreateBookingUseCase', () => {
 
       // Act & Assert
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(TripInstanceNotBookableError);
     });
 
@@ -166,7 +185,7 @@ describe('CreateBookingUseCase', () => {
 
       // Act
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(TripInstanceNotBookableError);
 
       // Assert
@@ -174,7 +193,7 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  describe('error — trip not bookable (CANCELED)', () => {
+  describe('error â€” trip not bookable (CANCELED)', () => {
     it('should throw TripInstanceNotBookableError when trip is CANCELED', async () => {
       // Arrange
       const instance = makeTripInstance({
@@ -185,12 +204,12 @@ describe('CreateBookingUseCase', () => {
 
       // Act & Assert
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(TripInstanceNotBookableError);
     });
   });
 
-  describe('error — trip not bookable (IN_PROGRESS)', () => {
+  describe('error â€” trip not bookable (IN_PROGRESS)', () => {
     it('should throw TripInstanceNotBookableError when trip is IN_PROGRESS', async () => {
       // Arrange
       const instance = makeTripInstance({
@@ -201,13 +220,13 @@ describe('CreateBookingUseCase', () => {
 
       // Act & Assert
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(TripInstanceNotBookableError);
     });
   });
 
-  // ── req 3a / req 9: impede inscrição duplicada ──────────────────────────
-  describe('error — duplicate active booking', () => {
+  // â”€â”€ req 3a / req 9: impede inscriÃ§Ã£o duplicada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  describe('error â€” duplicate active booking', () => {
     it('should throw BookingAlreadyExistsError when user already has active booking', async () => {
       // Arrange
       setupHappyPath(mocks);
@@ -217,7 +236,7 @@ describe('CreateBookingUseCase', () => {
 
       // Act & Assert
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(BookingAlreadyExistsError);
     });
 
@@ -230,7 +249,7 @@ describe('CreateBookingUseCase', () => {
 
       // Act
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(BookingAlreadyExistsError);
 
       // Assert
@@ -238,14 +257,14 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  describe('error — trip instance not found', () => {
+  describe('error â€” trip instance not found', () => {
     it('should throw TripInstanceNotFoundError when trip does not exist', async () => {
       // Arrange
       mocks.tripInstanceRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(TripInstanceNotFoundError);
     });
 
@@ -255,7 +274,7 @@ describe('CreateBookingUseCase', () => {
 
       // Act
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(TripInstanceNotFoundError);
 
       // Assert
@@ -265,40 +284,6 @@ describe('CreateBookingUseCase', () => {
       expect(mocks.bookingRepository.save).not.toHaveBeenCalled();
     });
   });
-
-  // ── segurança: isolamento por organização ───────────────────────────────
-  describe('error — cross-org trip access', () => {
-    it('should throw TripInstanceAccessForbiddenError when trip belongs to another org', async () => {
-      // Arrange
-      const instance = makeTripInstance({
-        organizationId: 'other-org',
-        tripStatus: TripStatus.SCHEDULED,
-      });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
-
-      // Act & Assert
-      await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceAccessForbiddenError);
-    });
-
-    it('should NOT proceed to duplicate check when trip is from another org', async () => {
-      // Arrange
-      const instance = makeTripInstance({ organizationId: 'other-org' });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
-
-      // Act
-      await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
-      ).rejects.toThrow(TripInstanceAccessForbiddenError);
-
-      // Assert
-      expect(
-        mocks.bookingRepository.findByUserAndTripInstance,
-      ).not.toHaveBeenCalled();
-    });
-  });
-
   describe('error — persistence failure', () => {
     it('should throw BookingCreationFailedError when save returns null', async () => {
       // Arrange
@@ -307,8 +292,65 @@ describe('CreateBookingUseCase', () => {
 
       // Act & Assert
       await expect(
-        sut.execute(makeCreateBookingDto(), USER_ID, ORG_ID),
+        sut.execute(makeCreateBookingDto(), USER_ID),
       ).rejects.toThrow(BookingCreationFailedError);
+    });
+  });
+
+  // ── req 11: impede inscrição quando capacidade está esgotada ─────────────
+  describe('error — trip instance full', () => {
+    it('should throw TripInstanceFullError when active count equals totalCapacity', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.bookingRepository.countActiveByTripInstance.mockResolvedValue(10);
+
+      // Act & Assert
+      await expect(
+        sut.execute(makeCreateBookingDto(), USER_ID),
+      ).rejects.toThrow(TripInstanceFullError);
+    });
+
+    it('should NOT call save when trip instance is full', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.bookingRepository.countActiveByTripInstance.mockResolvedValue(10);
+
+      // Act
+      await expect(
+        sut.execute(makeCreateBookingDto(), USER_ID),
+      ).rejects.toThrow(TripInstanceFullError);
+
+      // Assert
+      expect(mocks.bookingRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── req 12: preço resolvido server-side — falha se template sem preço ────
+  describe('error — price not available', () => {
+    it('should throw TripPriceNotAvailableError when template has no price for enrollmentType', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      // Retornar null simula template não encontrado → preço indisponível
+      mocks.tripTemplateRepository.findById.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        sut.execute(makeCreateBookingDto(), USER_ID),
+      ).rejects.toThrow(TripPriceNotAvailableError);
+    });
+
+    it('should NOT call save when price is not available', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.tripTemplateRepository.findById.mockResolvedValue(null);
+
+      // Act
+      await expect(
+        sut.execute(makeCreateBookingDto(), USER_ID),
+      ).rejects.toThrow(TripPriceNotAvailableError);
+
+      // Assert
+      expect(mocks.bookingRepository.save).not.toHaveBeenCalled();
     });
   });
 });
