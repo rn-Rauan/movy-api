@@ -5,8 +5,7 @@ import {
   BookingNotFoundError,
 } from '../../domain/entities/errors/booking.errors';
 import { BookingRepository } from '../../domain/interfaces';
-import { BookingResponseDto } from '../dtos';
-import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
+import { Booking } from '../../domain/entities';
 
 @Injectable()
 export class ConfirmPresenceUseCase {
@@ -28,7 +27,7 @@ export class ConfirmPresenceUseCase {
     id: string,
     userId: string,
     organizationId?: string,
-  ): Promise<BookingResponseDto> {
+  ): Promise<Booking> {
     const booking = await this.bookingRepository.findById(id);
 
     if (!booking) {
@@ -54,6 +53,6 @@ export class ConfirmPresenceUseCase {
       throw new BookingNotFoundError(id);
     }
 
-    return BookingPresenter.toHTTP(updated);
+    return updated;
   }
 }

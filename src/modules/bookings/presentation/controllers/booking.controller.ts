@@ -42,6 +42,7 @@ import {
   FindBookingsByUserUseCase,
   GetBookingAvailabilityUseCase,
 } from '../../application/use-cases';
+import { BookingPresenter } from '../mappers/booking.presenter';
 
 @ApiTags('bookings')
 @Controller('bookings')
@@ -72,7 +73,9 @@ export class BookingController {
     @Body() createDto: CreateBookingDto,
     @GetUser() context: TenantContext,
   ): Promise<BookingResponseDto> {
-    return this.createBookingUseCase.execute(createDto, context.userId);
+    return BookingPresenter.toHTTP(
+      await this.createBookingUseCase.execute(createDto, context.userId),
+    );
   }
 
   // ── Listagens paginadas ────────────────────────────────────────────────────
@@ -99,7 +102,7 @@ export class BookingController {
       { page, limit },
     );
     return new PaginatedDto(
-      result.data,
+      BookingPresenter.toHTTPList(result.data),
       result.total,
       result.page,
       result.limit,
@@ -135,7 +138,7 @@ export class BookingController {
       status,
     );
     return new PaginatedDto(
-      result.data,
+      BookingPresenter.toHTTPList(result.data),
       result.total,
       result.page,
       result.limit,
@@ -169,7 +172,7 @@ export class BookingController {
       context.organizationId,
     );
     return new PaginatedDto(
-      result.data,
+      BookingPresenter.toHTTPList(result.data),
       result.total,
       result.page,
       result.limit,
@@ -211,10 +214,12 @@ export class BookingController {
     @Param('id') id: string,
     @GetUser() context: TenantContext,
   ): Promise<BookingResponseDto> {
-    return this.findBookingByIdUseCase.execute(
-      id,
-      context.userId,
-      context.organizationId,
+    return BookingPresenter.toHTTP(
+      await this.findBookingByIdUseCase.execute(
+        id,
+        context.userId,
+        context.organizationId,
+      ),
     );
   }
 
@@ -254,10 +259,12 @@ export class BookingController {
     @Param('id') id: string,
     @GetUser() context: TenantContext,
   ): Promise<BookingResponseDto> {
-    return this.cancelBookingUseCase.execute(
-      id,
-      context.userId,
-      context.organizationId,
+    return BookingPresenter.toHTTP(
+      await this.cancelBookingUseCase.execute(
+        id,
+        context.userId,
+        context.organizationId,
+      ),
     );
   }
 
@@ -273,10 +280,12 @@ export class BookingController {
     @Param('id') id: string,
     @GetUser() context: TenantContext,
   ): Promise<BookingResponseDto> {
-    return this.confirmPresenceUseCase.execute(
-      id,
-      context.userId,
-      context.organizationId,
+    return BookingPresenter.toHTTP(
+      await this.confirmPresenceUseCase.execute(
+        id,
+        context.userId,
+        context.organizationId,
+      ),
     );
   }
 }

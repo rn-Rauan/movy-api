@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 import { EnrollmentType } from '../../domain/interfaces';
+import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 
 /**
  * DTO for creating a new booking (enrollment) in a trip instance.
@@ -41,4 +42,12 @@ export class CreateBookingDto {
   @IsString()
   @IsNotEmpty({ message: 'alightingStop is required' })
   alightingStop: string;
+
+  @ApiProperty({
+    example: MethodPayment.PIX,
+    description: 'Payment method for this booking',
+    enum: MethodPayment,
+  })
+  @IsEnum(MethodPayment, { message: 'method must be a valid MethodPayment' })
+  method: MethodPayment;
 }

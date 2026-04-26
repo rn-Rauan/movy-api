@@ -2,6 +2,7 @@
 import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
 import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
 import { TripTemplateRepository } from 'src/modules/trip/domain/interfaces/trip-template.repository';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
 import {
@@ -15,8 +16,6 @@ import { makeBooking } from '../../factories/booking.factory';
 import { makeCreateBookingDto } from '../../factories/create-booking.dto.factory';
 import { makeTripInstance } from 'test/modules/trip/factories/trip-instance.factory';
 import { makeTripTemplate } from 'test/modules/trip/factories/trip-template.factory';
-
-// â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeMocks() {
   const bookingRepository = {
@@ -33,7 +32,16 @@ function makeMocks() {
     findById: jest.fn(),
   } as any as jest.Mocked<TripTemplateRepository>;
 
-  return { bookingRepository, tripInstanceRepository, tripTemplateRepository };
+  const paymentRepository = {
+    save: jest.fn(),
+  } as any as jest.Mocked<PaymentRepository>;
+
+  return {
+    bookingRepository,
+    tripInstanceRepository,
+    tripTemplateRepository,
+    paymentRepository,
+  };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
@@ -54,10 +62,10 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   mocks.tripTemplateRepository.findById.mockResolvedValue(template);
   mocks.bookingRepository.save.mockImplementation(async (entity) => entity);
 
+  mocks.paymentRepository.save.mockImplementation(async (entity) => entity);
+
   return { instance, booking, template };
 }
-
-// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ORG_ID = 'org-id-stub';
 const USER_ID = 'user-id-stub';
@@ -72,10 +80,10 @@ describe('CreateBookingUseCase', () => {
       mocks.bookingRepository,
       mocks.tripInstanceRepository,
       mocks.tripTemplateRepository,
+      mocks.paymentRepository,
     );
   });
 
-  // â”€â”€ req 2: pode se inscrever em SCHEDULED ou CONFIRMED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('happy path â€” trip SCHEDULED', () => {
     it('should create booking and return response dto', async () => {
       // Arrange
@@ -131,8 +139,7 @@ describe('CreateBookingUseCase', () => {
       mocks.tripTemplateRepository.findById.mockResolvedValue(
         makeTripTemplate({ organizationId: ORG_ID, priceOneWay: 49.9 }),
       );
-      mocks.bookingRepository.save.mockImplementation(async (entity) => entity);
-
+      mocks.bookingRepository.save.mockImplementation(async (entity) => entity);      mocks.paymentRepository.save.mockImplementation(async (entity) => entity);
       // Act
       const result = await sut.execute(makeCreateBookingDto(), USER_ID);
 
@@ -142,7 +149,6 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  // â”€â”€ req 8: pode se reinscrever apÃ³s cancelamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('happy path â€” re-enrollment after cancellation', () => {
     it('should allow re-enrollment when previous booking was cancelled (findByUserAndTripInstance returns null)', async () => {
       // Arrange
@@ -159,7 +165,6 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  // â”€â”€ req 3: nÃ£o pode se inscrever em trip nÃ£o bookÃ¡vel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('error â€” trip not bookable (DRAFT)', () => {
     it('should throw TripInstanceNotBookableError when trip is DRAFT', async () => {
       // Arrange
@@ -225,7 +230,6 @@ describe('CreateBookingUseCase', () => {
     });
   });
 
-  // â”€â”€ req 3a / req 9: impede inscriÃ§Ã£o duplicada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe('error â€” duplicate active booking', () => {
     it('should throw BookingAlreadyExistsError when user already has active booking', async () => {
       // Arrange

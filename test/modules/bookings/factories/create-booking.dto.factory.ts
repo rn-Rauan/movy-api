@@ -1,5 +1,6 @@
 import { CreateBookingDto } from 'src/modules/bookings/application/dtos';
 import { EnrollmentType } from 'src/modules/bookings/domain/interfaces';
+import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 
 type CreateBookingDtoOverrides = Partial<CreateBookingDto>;
 
@@ -11,5 +12,6 @@ export function makeCreateBookingDto(
     enrollmentType: overrides.enrollmentType ?? EnrollmentType.ONE_WAY,
     boardingStop: overrides.boardingStop ?? 'A1',
     alightingStop: overrides.alightingStop ?? 'B3',
+    method: overrides.method ?? MethodPayment.PIX,
   };
 }

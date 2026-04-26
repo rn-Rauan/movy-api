@@ -11,8 +11,7 @@ import {
   TripInstanceRepository,
   TripStatus,
 } from 'src/modules/trip/domain/interfaces';
-import { BookingResponseDto } from '../dtos';
-import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
+import { Booking } from '../../domain/entities';
 
 @Injectable()
 export class CancelBookingUseCase {
@@ -44,7 +43,7 @@ export class CancelBookingUseCase {
     id: string,
     userId: string,
     organizationId?: string,
-  ): Promise<BookingResponseDto> {
+  ): Promise<Booking> {
     const booking = await this.bookingRepository.findById(id);
 
     if (!booking) {
@@ -98,6 +97,6 @@ export class CancelBookingUseCase {
       throw new BookingNotFoundError(id);
     }
 
-    return BookingPresenter.toHTTP(updated);
+    return updated;
   }
 }

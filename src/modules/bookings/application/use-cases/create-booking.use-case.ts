@@ -15,8 +15,10 @@ import {
   TripInstanceNotBookableError,
   TripPriceNotAvailableError,
 } from '../../domain/entities/errors/booking.errors';
-import { BookingResponseDto, CreateBookingDto } from '../dtos';
-import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
+import { CreateBookingDto } from '../dtos';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
+import { PaymentEntity } from 'src/modules/payment/domain/entities/payment.entity';
+import { PaymentCreationFailedError } from 'src/modules/payment/domain/errors/payment.errors';
 
 @Injectable()
 export class CreateBookingUseCase {
@@ -24,6 +26,7 @@ export class CreateBookingUseCase {
     private readonly bookingRepository: BookingRepository,
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly tripTemplateRepository: TripTemplateRepository,
+    private readonly paymentRepository: PaymentRepository,
   ) {}
 
   /**
@@ -41,10 +44,7 @@ export class CreateBookingUseCase {
    * @throws InvalidBookingStopError if boardingStop or alightingStop are invalid
    * @throws BookingCreationFailedError if persistence fails
    */
-  async execute(
-    dto: CreateBookingDto,
-    userId: string,
-  ): Promise<BookingResponseDto> {
+  async execute(dto: CreateBookingDto, userId: string): Promise<Booking> {
     const instance = await this.tripInstanceRepository.findById(
       dto.tripInstanceId,
     );
@@ -102,7 +102,19 @@ export class CreateBookingUseCase {
       throw new BookingCreationFailedError();
     }
 
-    return BookingPresenter.toHTTP(saved);
+    const payment = PaymentEntity.create({
+      organizationId: saved.organizationId,
+      enrollmentId: saved.id,
+      method: dto.method,
+      amount: saved.recordedPrice,
+    });
+
+    const savedPayment = await this.paymentRepository.save(payment);
+    if (!savedPayment) {
+      throw new PaymentCreationFailedError();
+    }
+
+    return saved;
   }
 
   private resolvePrice(
