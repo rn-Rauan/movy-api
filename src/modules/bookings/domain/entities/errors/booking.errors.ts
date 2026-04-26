@@ -79,3 +79,19 @@ export class TripPriceNotAvailableError extends DomainError {
     );
   }
 }
+
+export class BookingAlreadyInactiveError extends DomainError {
+  readonly code = 'BOOKING_ALREADY_INACTIVE_BAD_REQUEST';
+
+  constructor(id: string) {
+    super(`Booking "${id}" is already inactive/canceled`);
+  }
+}
+
+export class BookingCancellationDeadlineError extends DomainError {
+  readonly code = 'BOOKING_CANCELLATION_DEADLINE_BAD_REQUEST';
+
+  constructor(id: string) {
+    super(`Cancellation deadline for booking "${id}" has already passed`);
+  }
+}

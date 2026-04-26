@@ -25,6 +25,7 @@ Este documento descreve os casos de uso para os diferentes módulos e atores do 
 ---
 
 ## Módulo 2: Organizações e Membros (RBAC)
+- **UC-060:** (Sistema) Garantir isolamento de dados entre organizações e usuários, evitando acesso não autorizado a informações de outras organizações.
 
 ### 2.1. Gerenciamento de Organizações
 - **UC-007:** Criar uma nova organização (com nome, CNPJ, email, etc.).
@@ -94,6 +95,11 @@ Este módulo descreve como as organizações assinam e utilizam a plataforma Mov
 - **UC-043:** (Motorista) Iniciar uma viagem (alterar status para `IN_PROGRESS`).
 - **UC-044:** (Motorista) Finalizar uma viagem (alterar status para `FINISHED`).
 - **UC-045:** (Admin da Org) Cancelar uma instância de viagem (alterar status para `CANCELED`).
+- **UC-058:** (Sistema) Executar auto-cancelamento de viagens baseado em autoCancelAt e minRevenue.
+- **UC-059:** (Sistema) Validar regras antes de permitir inscrição em uma viagem.
+- **UC-061:** (Sistema) Validar regras de cancelamento de inscrição (tempo limite, status da viagem).
+- **UC-062:** (Sistema) Bloquear início de viagem sem motorista ou veículo atribuídos.
+- **UC-063:** (Sistema) Permitir inscrição apenas em viagens prontas (configurável).
 
 ---
 
@@ -106,6 +112,8 @@ Este módulo descreve como as organizações assinam e utilizam a plataforma Mov
 - **UC-049:** (Passageiro) Cancelar uma inscrição em uma viagem (alterar status para `INACTIVE`).
 - **UC-050:** (Admin da Org / Motorista) Listar todos os passageiros inscritos em uma viagem.
 - **UC-051:** (Admin da Org / Motorista) Confirmar a presença de um passageiro a bordo.
+- **UC-064:** (Sistema) Impedir inscrições quando capacidade da viagem for atingida.
+- **UC-065:** (Sistema) Garantir que o preço registrado na inscrição não seja alterado após criação.
 
 ### 6.2. Gerenciamento de Pagamentos
 - **UC-052:** (Passageiro) Realizar o pagamento de uma inscrição, escolhendo o método (Dinheiro, PIX, Cartão).

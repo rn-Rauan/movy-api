@@ -4,6 +4,8 @@ import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import {
   BookingAccessForbiddenError,
+  BookingAlreadyInactiveError,
+  BookingCancellationDeadlineError,
   BookingCancellationNotAllowedError,
   BookingNotFoundError,
 } from 'src/modules/bookings/domain/entities/errors/booking.errors';
@@ -31,7 +33,14 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
     userId: USER_ID,
     status: 'ACTIVE',
   });
-  const instance = makeTripInstance({ tripStatus: TripStatus.SCHEDULED });
+  // Departure in 2 hours
+  const departure = new Date();
+  departure.setHours(departure.getHours() + 2);
+
+  const instance = makeTripInstance({
+    tripStatus: TripStatus.SCHEDULED,
+    departureTime: departure,
+  });
 
   mocks.bookingRepository.findById.mockResolvedValue(booking);
   mocks.bookingRepository.update.mockImplementation(async (entity) => entity);
@@ -148,6 +157,50 @@ describe('CancelBookingUseCase', () => {
 
       // Assert
       expect(mocks.bookingRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — booking already inactive', () => {
+    it('should throw BookingAlreadyInactiveError when booking is already INACTIVE', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        status: 'INACTIVE',
+      });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+
+      // Act & Assert
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
+        BookingAlreadyInactiveError,
+      );
+    });
+  });
+
+  describe('error — cancellation deadline passed', () => {
+    it('should throw BookingCancellationDeadlineError when departure is in less than 30 minutes', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        status: 'ACTIVE',
+      });
+      // Departure in 20 minutes
+      const departure = new Date();
+      departure.setMinutes(departure.getMinutes() + 20);
+
+      const instance = makeTripInstance({
+        tripStatus: TripStatus.SCHEDULED,
+        departureTime: departure,
+      });
+
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+
+      // Act & Assert
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
+        BookingCancellationDeadlineError,
+      );
     });
   });
 

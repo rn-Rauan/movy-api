@@ -2,6 +2,7 @@ import { ConfirmPresenceUseCase } from 'src/modules/bookings/application/use-cas
 import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
 import {
   BookingAccessForbiddenError,
+  BookingAlreadyInactiveError,
   BookingNotFoundError,
 } from 'src/modules/bookings/domain/entities/errors/booking.errors';
 import { makeBooking } from '../../factories/booking.factory';
@@ -131,7 +132,24 @@ describe('ConfirmPresenceUseCase', () => {
     });
   });
 
-  describe('error — cross-org access', () => {
+  describe('error — booking already inactive', () => {
+    it('should throw BookingAlreadyInactiveError when booking is INACTIVE', async () => {
+      // Arrange
+      const booking = makeBooking({
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        status: 'INACTIVE',
+      });
+      mocks.bookingRepository.findById.mockResolvedValue(booking);
+
+      // Act & Assert
+      await expect(sut.execute(BOOKING_ID, USER_ID, ORG_ID)).rejects.toThrow(
+        BookingAlreadyInactiveError,
+      );
+    });
+  });
+
+  describe('error — access forbidden', () => {
     it('should throw BookingAccessForbiddenError when booking belongs to another org and user is not the owner', async () => {
       // Arrange
       const booking = makeBooking({
