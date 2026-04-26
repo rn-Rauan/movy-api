@@ -50,7 +50,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
     ]);
 
     return {
-      data: payments.map(PaymentMapper.toDomain),
+      data: payments.map((payment) => PaymentMapper.toDomain(payment)),
       total,
       page,
       limit,

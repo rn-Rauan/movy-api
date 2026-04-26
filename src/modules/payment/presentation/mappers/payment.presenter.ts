@@ -16,6 +16,6 @@ export class PaymentPresenter {
   }
 
   static toHTTPList(entities: PaymentEntity[]): PaymentResponseDto[] {
-    return entities.map(PaymentPresenter.toHTTP);
+    return entities.map((entity) => PaymentPresenter.toHTTP(entity));
   }
 }

@@ -139,7 +139,8 @@ describe('CreateBookingUseCase', () => {
       mocks.tripTemplateRepository.findById.mockResolvedValue(
         makeTripTemplate({ organizationId: ORG_ID, priceOneWay: 49.9 }),
       );
-      mocks.bookingRepository.save.mockImplementation(async (entity) => entity);      mocks.paymentRepository.save.mockImplementation(async (entity) => entity);
+      mocks.bookingRepository.save.mockImplementation(async (entity) => entity);
+      mocks.paymentRepository.save.mockImplementation(async (entity) => entity);
       // Act
       const result = await sut.execute(makeCreateBookingDto(), USER_ID);
 
