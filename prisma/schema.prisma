@@ -84,7 +84,7 @@ enum VehicleType {
 enum PlanName {
   FREE
   BASIC
-  STANDARD
+  PRO
   PREMIUM
 }
 
