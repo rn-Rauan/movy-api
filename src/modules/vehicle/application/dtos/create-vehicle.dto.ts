@@ -11,11 +11,13 @@ import {
 import { VehicleType } from '../../domain/interfaces/enums/vehicle-type.enum';
 
 /**
- * DTO for registering a new vehicle.
- * @param plate - Brazilian plate string (old or Mercosul format, 7 chars)
- * @param model - Vehicle model description
- * @param type - Vehicle type (VAN, BUS, MINIBUS, CAR)
- * @param maxCapacity - Maximum passenger capacity (positive integer)
+ * Input DTO for `POST /vehicles/organization/:organizationId`.
+ *
+ * @remarks
+ * - `plate` accepts both Brazilian old format (`ABC1234`) and Mercosul (`ABC1D23`);
+ *   normalisation (uppercase, hyphen removal) is applied before validation
+ * - Plate uniqueness is enforced at use-case level; conflicts throw {@link PlateAlreadyInUseError}
+ * - `maxCapacity` must be a positive integer between 1 and 200
  */
 export class CreateVehicleDto {
   @ApiProperty({

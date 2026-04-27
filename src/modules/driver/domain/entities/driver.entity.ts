@@ -1,9 +1,7 @@
 import { DriverStatus } from '../interfaces/enums/driver-status.enum';
 import { Cnh, CnhCategory } from './value-objects';
 
-/**
- * Interface that defines the properties of the Driver entity.
- */
+/** @internal */
 export interface DriverProps {
   readonly id: string;
   userId: string;
@@ -16,12 +14,15 @@ export interface DriverProps {
 }
 
 /**
- * Entity Driver
+ * Aggregate root representing a driver profile linked to a {@link User}.
  *
- * Responsibility:
- * - Manage driver data
- * - Validate data integrity
- * - Encapsulate business rules
+ * @remarks
+ * A driver is always associated with exactly one user (`userId`).
+ * CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`) can only be updated
+ * atomically — partial updates throw {@link PartialCnhUpdateError}.
+ * Status transitions: `ACTIVE` → `INACTIVE` | `SUSPENDED`.
+ *
+ * @see {@link DriverRepository} for persistence operations
  */
 export class DriverEntity {
   private readonly props: Required<DriverProps>;
@@ -38,7 +39,10 @@ export class DriverEntity {
   }
 
   /**
-   * Method to create a new Driver instance.
+   * Creates a new driver profile with default `ACTIVE` status.
+   *
+   * @param props - Driver properties (omits `createdAt`, `updatedAt`)
+   * @returns A new {@link DriverEntity} instance
    */
   static create(
     props: Omit<DriverProps, 'createdAt' | 'status' | 'updatedAt'>,
@@ -47,7 +51,10 @@ export class DriverEntity {
   }
 
   /**
-   * Method to restore an existing Driver instance.
+   * Restores a driver from persisted data (skips default assignment).
+   *
+   * @param props - Full driver properties from storage
+   * @returns A hydrated {@link DriverEntity} instance
    */
   static restore(props: DriverProps): DriverEntity {
     return new DriverEntity(props);

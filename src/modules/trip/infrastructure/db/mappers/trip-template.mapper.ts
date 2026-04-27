@@ -4,18 +4,17 @@ import { DayOfWeek, Shift } from 'src/modules/trip/domain/interfaces';
 import { Money, type Status } from 'src/shared';
 
 /**
- * TripTemplateMapper
+ * Bidirectional mapper between the Prisma `TripTemplate` model and the {@link TripTemplate} domain object.
  *
- * Responsibility:
- * - Map between Prisma TripTemplate (persistence) and TripTemplate (domain)
- * - Hydrate Money value objects from raw database values
- * - Convert domain entity to persistence format
+ * Handles price fields by casting `Prisma.Decimal` to `number` via `Number()` and
+ * reconstructing the {@link Money} Value Object via `Money.restore()`. Contains no business logic.
  */
 export class TripTemplateMapper {
   /**
-   * Map a raw Prisma TripTemplate row to a TripTemplate domain object.
-   * @param raw - PrismaTripTemplate row from database
-   * @returns Hydrated TripTemplate
+   * Converts a raw Prisma `TripTemplate` record to a {@link TripTemplate} domain object.
+   *
+   * @param raw - Raw `TripTemplate` record returned by the Prisma client
+   * @returns A fully hydrated {@link TripTemplate} instance
    */
   static toDomain(raw: PrismaTripTemplate): TripTemplate {
     return TripTemplate.restore({
@@ -47,9 +46,11 @@ export class TripTemplateMapper {
   }
 
   /**
-   * Map a TripTemplate domain object to a plain object suitable for Prisma persistence.
-   * @param entity - TripTemplate domain object
-   * @returns Prisma-compatible persistence payload
+   * Converts a {@link TripTemplate} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * @param entity - The {@link TripTemplate} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.tripTemplate.create({ data })`
    */
   static toPersistence(entity: TripTemplate) {
     return {

@@ -29,6 +29,18 @@ import {
   FindPaymentsByOrganizationUseCase,
 } from '../../application/use-cases';
 
+/**
+ * HTTP controller for the Payments module.
+ *
+ * All endpoints require the `ADMIN` role and are scoped to the requesting
+ * user's organisation via `TenantFilterGuard`.
+ *
+ * Base path: `/organizations/:organizationId/payments`
+ *
+ * @remarks
+ * Payments are created implicitly by {@link CreateBookingUseCase} in the Bookings module.
+ * This controller exposes read-only operations only.
+ */
 @ApiTags('payments')
 @Controller('organizations/:organizationId/payments')
 @UseGuards(JwtAuthGuard)
@@ -38,6 +50,12 @@ export class PaymentController {
     private readonly findPaymentsByOrganization: FindPaymentsByOrganizationUseCase,
   ) {}
 
+  /**
+   * Retrieves a single payment by its UUID. Requires `ADMIN` role within the organisation.
+   *
+   * @param id - UUID of the payment to retrieve
+   * @returns The payment as a {@link PaymentResponseDto}
+   */
   @Get(':id')
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
@@ -49,6 +67,13 @@ export class PaymentController {
     return PaymentPresenter.toHTTP(await this.findPaymentById.execute(id));
   }
 
+  /**
+   * Returns a paginated list of the organisation's payments, ordered by creation date descending.
+   *
+   * @param page - Page number (default: 1)
+   * @param limit - Number of items per page (default: 10)
+   * @returns A {@link PaginatedDto} containing {@link PaymentResponseDto} items
+   */
   @Get()
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)

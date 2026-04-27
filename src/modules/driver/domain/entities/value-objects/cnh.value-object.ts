@@ -1,12 +1,12 @@
 import { InvalidCnhError } from '../errors';
 
 /**
- * CNH Value Object
+ * Value Object representing a Brazilian driver license number (CNH).
  *
- * Responsibility:
- * - Encapsulate CNH validation logic
- * - Guarantee CNH invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * Accepts 9–12 alphanumeric characters (trimmed). Use {@link Cnh.create} for
+ * new input and {@link Cnh.restore} to reconstruct from persistence without
+ * re-validation.
  */
 export class Cnh {
   private readonly value: string;
@@ -16,9 +16,11 @@ export class Cnh {
   }
 
   /**
-   * Create a new CNH instance
-   * @param cnh CNH string to validate
-   * @throws InvalidCnhError if CNH format is invalid
+   * Validates and creates a new {@link Cnh} instance.
+   *
+   * @param cnh - Raw CNH string (9–12 alphanumeric chars)
+   * @returns A valid {@link Cnh} Value Object
+   * @throws {@link InvalidCnhError} if the string is empty or out of range
    */
   static create(cnh: string): Cnh {
     if (!cnh || cnh.trim().length === 0) {
@@ -43,7 +45,11 @@ export class Cnh {
   }
 
   /**
-   * Restore a CNH from persistence (skips validation)
+   * Reconstructs a {@link Cnh} from a previously validated persisted value.
+   * Skips validation — only call with data that already passed `create()`.
+   *
+   * @param cnh - Persisted CNH string
+   * @returns A {@link Cnh} instance
    */
   static restore(cnh: string): Cnh {
     return new Cnh(cnh);

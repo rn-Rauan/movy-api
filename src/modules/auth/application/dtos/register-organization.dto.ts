@@ -2,17 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 /**
- * DTO for registering a new organization along with its admin user.
- * @param userName - Admin user's full name
- * @param userEmail - Admin user's email
- * @param userPassword - Admin user's password (min 8 characters)
- * @param userTelephone - Admin user's telephone
- * @param organizationName - Name of the organization
- * @param cnpj - Unique CNPJ of the organization
- * @param organizationEmail - Organization's contact email
- * @param organizationTelephone - Organization's contact telephone
- * @param address - Organization's address
- * @param slug - Unique URL slug for the organization
+ * Input DTO for {@link RegisterOrganizationWithAdminUseCase} — `POST /auth/register-organization`.
+ *
+ * @remarks
+ * Atomically creates a user account and an organization, linking the user as `ADMIN`.
+ * Compensates by deleting the user if organization or membership creation fails.
  */
 export class RegisterOrganizationWithAdminDto {
   // User Info

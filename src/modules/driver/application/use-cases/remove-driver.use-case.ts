@@ -5,6 +5,14 @@ import {
   DriverNotFoundError,
 } from '../../domain/entities/errors/driver.errors';
 
+/**
+ * Soft-deactivates a driver profile by setting its status to `INACTIVE`.
+ *
+ * @remarks
+ * Organization ownership is verified before mutation.
+ * The driver record is NOT hard-deleted; use-case calls
+ * {@link DriverEntity.deactivate} followed by {@link DriverRepository.update}.
+ */
 @Injectable()
 export class RemoveDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}

@@ -1,11 +1,15 @@
 import { DomainError } from 'src/shared/domain/errors/domain.error';
 
-/** Base for all TripTemplate validation errors */
+/** @internal Base class for all {@link TripTemplate} domain validation errors. */
 export abstract class TripTemplateValidationError extends DomainError {
   abstract code: string;
 }
 
-/** Thrown when departurePoint and destination are the same or either is empty */
+/**
+ * Thrown when `departurePoint` and `destination` are the same, or either is empty.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class InvalidTripRoutePointsError extends TripTemplateValidationError {
   code = 'INVALID_TRIP_ROUTE_POINTS';
 
@@ -14,7 +18,11 @@ export class InvalidTripRoutePointsError extends TripTemplateValidationError {
   }
 }
 
-/** Thrown when stops array has fewer than 2 valid items */
+/**
+ * Thrown when the `stops` array has fewer than 2 valid (non-empty) items.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class InvalidTripStopsError extends TripTemplateValidationError {
   code = 'INVALID_TRIP_STOPS';
 
@@ -23,7 +31,11 @@ export class InvalidTripStopsError extends TripTemplateValidationError {
   }
 }
 
-/** Thrown when no price is provided for any enrollment type */
+/**
+ * Thrown when no price tier (`priceOneWay`, `priceReturn`, `priceRoundTrip`) is provided.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class InvalidTripPriceConfigurationError extends TripTemplateValidationError {
   code = 'INVALID_TRIP_PRICE_CONFIGURATION';
 
@@ -32,7 +44,11 @@ export class InvalidTripPriceConfigurationError extends TripTemplateValidationEr
   }
 }
 
-/** Thrown when a recurring trip has no frequency days defined */
+/**
+ * Thrown when a recurring template has no days defined in `frequency`.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class InvalidTripFrequencyError extends TripTemplateValidationError {
   code = 'INVALID_TRIP_FREQUENCY';
 
@@ -41,7 +57,11 @@ export class InvalidTripFrequencyError extends TripTemplateValidationError {
   }
 }
 
-/** Thrown when auto-cancel is enabled but minRevenue or autoCancelOffset are missing or invalid */
+/**
+ * Thrown when auto-cancel is enabled but `minRevenue` or `autoCancelOffset` are missing or invalid.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class InvalidTripAutoCancelConfigurationError extends TripTemplateValidationError {
   code = 'INVALID_TRIP_AUTO_CANCEL_CONFIGURATION';
 
@@ -54,7 +74,11 @@ export class InvalidTripAutoCancelConfigurationError extends TripTemplateValidat
   }
 }
 
-/** Thrown when a TripTemplate with the given ID is not found */
+/**
+ * Thrown when a `TripTemplate` cannot be found by the provided UUID.
+ *
+ * @remarks Maps to HTTP `404 Not Found`.
+ */
 export class TripTemplateNotFoundError extends DomainError {
   code = 'TRIP_TEMPLATE_NOT_FOUND';
 
@@ -63,7 +87,11 @@ export class TripTemplateNotFoundError extends DomainError {
   }
 }
 
-/** Thrown when the requester does not own the TripTemplate */
+/**
+ * Thrown when the calling organisation does not own the requested `TripTemplate`.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
 export class TripTemplateAccessForbiddenError extends DomainError {
   code = 'TRIP_TEMPLATE_ACCESS_FORBIDDEN';
 
@@ -72,7 +100,11 @@ export class TripTemplateAccessForbiddenError extends DomainError {
   }
 }
 
-/** Thrown when an operation requires an active TripTemplate but it is INACTIVE */
+/**
+ * Thrown when an operation requires an active template but it has `status = INACTIVE`.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class TripTemplateInactiveError extends DomainError {
   code = 'TRIP_TEMPLATE_INACTIVE';
 
@@ -81,7 +113,11 @@ export class TripTemplateInactiveError extends DomainError {
   }
 }
 
-/** Thrown when persistence fails on TripTemplate creation */
+/**
+ * Thrown when the `TripTemplate` row cannot be persisted due to an unexpected repository error.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class TripTemplateCreationFailedError extends DomainError {
   code = 'TRIP_TEMPLATE_CREATION_FAILED';
 

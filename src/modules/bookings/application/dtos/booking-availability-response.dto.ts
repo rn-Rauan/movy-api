@@ -2,8 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
 
 /**
- * Response DTO for the trip availability endpoint.
- * Allows passengers to check capacity before attempting to create a booking.
+ * HTTP response shape for the `GET /bookings/availability/:tripInstanceId` endpoint.
+ *
+ * Allows passengers to check capacity and bookability before attempting to create a booking,
+ * avoiding an unnecessary `409 Conflict` response.
  */
 export class BookingAvailabilityResponseDto {
   @ApiProperty({

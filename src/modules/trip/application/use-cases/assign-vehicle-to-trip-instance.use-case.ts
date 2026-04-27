@@ -8,6 +8,12 @@ import { TripInstanceRepository } from '../../domain/interfaces';
 import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
 import { VehicleNotFoundError } from 'src/modules/vehicle/domain/entities/errors/vehicle.errors';
 
+/**
+ * Assigns or unassigns a vehicle from a {@link TripInstance}.
+ *
+ * Passing `null` as `vehicleId` unassigns the current vehicle.
+ * Vehicle existence is validated via {@link VehicleRepository}.
+ */
 @Injectable()
 export class AssignVehicleToTripInstanceUseCase {
   constructor(
@@ -16,14 +22,15 @@ export class AssignVehicleToTripInstanceUseCase {
   ) {}
 
   /**
-   * Assigns or removes a vehicle from a trip instance.
-   * Passing null unassigns the current vehicle.
+   * Validates instance ownership, optionally validates vehicle existence, then persists.
+   *
    * @param id - UUID of the trip instance
-   * @param vehicleId - UUID of the vehicle to assign, or null to unassign
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns TripInstance with updated vehicle assignment
-   * @throws TripInstanceNotFoundError if the trip instance does not exist
-   * @throws TripInstanceAccessForbiddenError if the instance belongs to a different organization
+   * @param vehicleId - UUID of the vehicle to assign, or `null` to unassign
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @returns The updated {@link TripInstance}
+   * @throws {@link TripInstanceNotFoundError} if the instance does not exist
+   * @throws {@link TripInstanceAccessForbiddenError} if the instance belongs to a different org
+   * @throws {@link VehicleNotFoundError} if `vehicleId` is provided but the vehicle does not exist
    */
   async execute(
     id: string,

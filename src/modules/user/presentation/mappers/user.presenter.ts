@@ -1,11 +1,18 @@
 import { UserResponseDto } from '../../application/dtos/user-response.dto';
 import { User } from '../../domain/entities';
 
+/**
+ * Serialises a {@link User} domain object into the HTTP response shape {@link UserResponseDto}.
+ *
+ * Intentionally excludes `passwordHash` from the response.
+ * Should be called exclusively from controller methods, never from use cases.
+ */
 export class UserPresenter {
   /**
-   * Converts a domain User entity to HTTP response DTO format.
-   * @param user - User entity
-   * @returns UserResponseDto
+   * Maps a single entity to its HTTP response DTO.
+   *
+   * @param user - The {@link User} to serialise
+   * @returns A {@link UserResponseDto} safe to include in an HTTP response
    */
   static toHTTP(user: User): UserResponseDto {
     return new UserResponseDto({
@@ -20,9 +27,10 @@ export class UserPresenter {
   }
 
   /**
-   * Converts a list of User entities to HTTP response DTOs.
-   * @param users - Array of User entities
-   * @returns Array of UserResponseDto formatted for the API
+   * Maps a collection of entities to an array of HTTP response DTOs.
+   *
+   * @param users - Array of {@link User} instances to serialise
+   * @returns Array of {@link UserResponseDto} objects
    */
   static toHTTPList(users: User[]): UserResponseDto[] {
     return users.map((user) => this.toHTTP(user));

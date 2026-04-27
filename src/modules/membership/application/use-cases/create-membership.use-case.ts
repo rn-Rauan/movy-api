@@ -12,6 +12,19 @@ import {
   DriverNotFoundForMembershipError,
 } from '../../domain/entities';
 
+/**
+ * Creates a membership between a user, a role, and the caller's organization.
+ *
+ * @remarks
+ * Resolution order:
+ * 1. Resolves the user by `userEmail` — throws {@link UserNotFoundForMembershipError} if absent.
+ * 2. If the target role is `DRIVER`, validates the user has a driver profile —
+ *    throws {@link DriverNotFoundForMembershipError} otherwise.
+ * 3. Checks for an existing membership via composite key:
+ *    - If found and previously removed (`removedAt !== null`), auto-restores it.
+ *    - If found and active, throws {@link MembershipAlreadyExistsError}.
+ * 4. Otherwise creates and persists a new {@link Membership}.
+ */
 @Injectable()
 export class CreateMembershipUseCase {
   constructor(

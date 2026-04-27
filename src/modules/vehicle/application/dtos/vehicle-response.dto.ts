@@ -3,7 +3,12 @@ import { VehicleStatus } from '../../domain/interfaces/enums/vehicle-status.enum
 import { VehicleType } from '../../domain/interfaces/enums/vehicle-type.enum';
 
 /**
- * Response DTO with public vehicle data.
+ * Output DTO for all vehicle endpoints.
+ *
+ * @remarks
+ * Mirrors all {@link VehicleEntity} public fields, including audit timestamps
+ * (`createdAt`, `updatedAt`) and enum values for `type` and `status`.
+ * The `plate` field contains the normalised 7-character string (uppercase, no hyphen).
  */
 export class VehicleResponseDto {
   @ApiProperty({

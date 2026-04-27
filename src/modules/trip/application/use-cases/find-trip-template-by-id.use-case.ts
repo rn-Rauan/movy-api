@@ -6,6 +6,12 @@ import {
 } from '../../domain/entities/errors/trip-template.errors';
 import { TripTemplateRepository } from '../../domain/interfaces';
 
+/**
+ * Retrieves a single {@link TripTemplate} by its UUID.
+ *
+ * Enforces organisation-scoped access: only members of the owning
+ * organisation may read the template.
+ */
 @Injectable()
 export class FindTripTemplateByIdUseCase {
   constructor(
@@ -13,12 +19,13 @@ export class FindTripTemplateByIdUseCase {
   ) {}
 
   /**
-   * Finds a trip template by its unique ID, scoped to the requesting organization.
+   * Looks up the template and validates org ownership.
+   *
    * @param id - UUID of the trip template
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns TripTemplate found
-   * @throws TripTemplateNotFoundError if trip template does not exist
-   * @throws TripTemplateAccessForbiddenError if template belongs to a different organization
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @returns The matching {@link TripTemplate}
+   * @throws {@link TripTemplateNotFoundError} if the template does not exist
+   * @throws {@link TripTemplateAccessForbiddenError} if the template belongs to a different org
    */
   async execute(id: string, organizationId: string): Promise<TripTemplate> {
     const tripTemplate = await this.tripTemplateRepository.findById(id);

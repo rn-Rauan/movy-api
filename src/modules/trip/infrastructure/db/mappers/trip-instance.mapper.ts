@@ -4,18 +4,17 @@ import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { Money } from 'src/shared';
 
 /**
- * TripInstanceMapper
+ * Bidirectional mapper between the Prisma `TripInstance` model and the {@link TripInstance} domain object.
  *
- * Responsibility:
- * - Map between Prisma TripInstance (persistence) and TripInstance (domain)
- * - Hydrate Money value objects from raw database Decimal values
- * - Convert domain entity to persistence format
+ * Handles `minRevenue` by casting `Prisma.Decimal` to `number` via `Number()` and
+ * reconstructing the {@link Money} Value Object via `Money.restore()`. Contains no business logic.
  */
 export class TripInstanceMapper {
   /**
-   * Map a raw Prisma TripInstance row to a TripInstance domain object.
-   * @param raw - PrismaTripInstance row from database
-   * @returns Hydrated TripInstance domain entity
+   * Converts a raw Prisma `TripInstance` record to a {@link TripInstance} domain object.
+   *
+   * @param raw - Raw `TripInstance` record returned by the Prisma client
+   * @returns A fully hydrated {@link TripInstance} instance
    */
   static toDomain(raw: PrismaTripInstance): TripInstance {
     return TripInstance.restore({
@@ -37,9 +36,11 @@ export class TripInstanceMapper {
   }
 
   /**
-   * Map a TripInstance domain object to a plain object suitable for Prisma persistence.
-   * @param entity - TripInstance domain object
-   * @returns Prisma-compatible persistence payload
+   * Converts a {@link TripInstance} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * @param entity - The {@link TripInstance} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.tripInstance.create({ data })`
    */
   static toPersistence(entity: TripInstance) {
     return {

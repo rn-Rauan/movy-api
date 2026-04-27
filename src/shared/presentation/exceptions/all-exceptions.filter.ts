@@ -9,6 +9,18 @@ import {
 import { Request, Response } from 'express';
 import { DomainError } from '../../domain/errors/domain.error';
 
+/**
+ * Global exception filter that normalises all thrown errors into a consistent
+ * JSON response shape: `{ statusCode, timestamp, path, message, error? }`.
+ *
+ * @remarks
+ * HTTP status is derived from:
+ * - `HttpException` → uses the exception's own status code
+ * - `DomainError` → inferred from `code` suffix (see {@link DomainError} for mapping)
+ * - Everything else → 500 Internal Server Error
+ *
+ * Registered globally in `SharedModule` via `APP_FILTER`.
+ */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);

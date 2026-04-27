@@ -2,10 +2,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 /**
- * @param name - Full name of the user (optional)
- * @param email - Unique email of the user (optional)
- * @param password - Password with a minimum of 8 characters (optional)
- * @param telephone - Phone number of the user (optional)
+ * Input DTO for `PUT /users/me`.
+ *
+ * All fields are optional; only provided fields are applied.
+ * Updating `email` triggers a uniqueness check.
+ * Updating `password` triggers re-hashing via {@link HashProvider}.
  */
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'John Doe' })

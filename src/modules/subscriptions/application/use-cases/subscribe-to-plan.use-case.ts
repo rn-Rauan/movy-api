@@ -12,6 +12,16 @@ import { CreateSubscriptionDto } from '../dtos';
 
 const SUBSCRIPTION_DURATION_DAYS = 30;
 
+/**
+ * Subscribes an organisation to a plan, creating a new 30-day subscription.
+ *
+ * Validates that the plan exists and is active, and that the organisation does not
+ * already have an active subscription before persisting the new entity.
+ *
+ * @remarks
+ * The subscription duration is controlled by the module-level constant
+ * `SUBSCRIPTION_DURATION_DAYS = 30`.
+ */
 @Injectable()
 export class SubscribeToPlanUseCase {
   constructor(
@@ -19,6 +29,17 @@ export class SubscribeToPlanUseCase {
     private readonly planRepository: PlanRepository,
   ) {}
 
+  /**
+   * Validates preconditions and creates a new subscription for the organisation.
+   *
+   * @param dto - Validated input body containing the `planId`
+   * @param organizationId - UUID of the organisation subscribing to the plan
+   * @returns The newly created and persisted {@link SubscriptionEntity}
+   * @throws {@link PlanNotFoundError} if no plan with the given `planId` exists
+   * @throws {@link PlanNotFoundError} if the plan exists but `isActive` is `false`
+   * @throws {@link SubscriptionAlreadyActiveError} if the organisation already has an ACTIVE subscription
+   * @throws {@link SubscriptionCreationFailedError} if the repository fails to persist the entity
+   */
   async execute(dto: CreateSubscriptionDto, organizationId: string) {
     const plan = await this.planRepository.findById(dto.planId);
     if (!plan) {

@@ -12,7 +12,11 @@ import { VehicleStatus } from '../../domain/interfaces/enums/vehicle-status.enum
 import { VehicleType } from '../../domain/interfaces/enums/vehicle-type.enum';
 
 /**
- * DTO for partial update of a vehicle.
+ * Input DTO for `PUT /vehicles/:id`.
+ *
+ * All fields are optional; only provided fields are applied to the vehicle.
+ * Updating `plate` triggers a uniqueness check. Inactive vehicles cannot be
+ * updated until re-activated via `status: ACTIVE`.
  */
 export class UpdateVehicleDto {
   @ApiPropertyOptional({

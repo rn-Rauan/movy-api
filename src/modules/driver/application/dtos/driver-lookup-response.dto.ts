@@ -2,14 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { DriverStatus } from '../../domain/interfaces/enums/driver-status.enum';
 
 /**
- * Response DTO for driver lookup (admin enrollment flow).
- * @param driverId - Driver profile ID
- * @param userId - User ID (needed to create membership)
- * @param userName - User's full name
- * @param userEmail - User's email
- * @param cnhCategory - License category
- * @param cnhExpiresAt - License expiration date
- * @param driverStatus - Current driver status
+ * HTTP response shape for the {@link LookupDriverUseCase} (admin enrollment flow).
+ *
+ * @remarks
+ * Contains enough information for an admin to create a `Membership` linking
+ * the found user to the organization without further lookups.
  */
 export class DriverLookupResponseDto {
   @ApiProperty({

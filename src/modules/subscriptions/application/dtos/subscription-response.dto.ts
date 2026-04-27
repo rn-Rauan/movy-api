@@ -1,6 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { SubscriptionStatus } from '../../domain/interfaces';
 
+/**
+ * HTTP response shape returned by all subscription endpoints.
+ */
 export class SubscriptionResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() organizationId: string;

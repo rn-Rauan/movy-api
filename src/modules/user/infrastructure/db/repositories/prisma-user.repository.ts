@@ -8,13 +8,22 @@ import {
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Prisma-backed implementation of {@link UserRepository}.
+ *
+ * All I/O operations target the `user` table via the Prisma Client.
+ * Uses parallel `$transaction` for paginated list methods to guarantee
+ * consistency between the `findMany` result and the `count`.
+ */
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * @param user - User entity to be persisted
-   * @returns Persisted User entity or null in case of failure
+   * Inserts a new user row via `prisma.user.create`.
+   *
+   * @param user - The {@link User} to persist
+   * @returns The saved entity, or `null` on unexpected failure
    */
   async save(user: User): Promise<User | null> {
     const userData = await this.prisma.user.create({
@@ -25,8 +34,10 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * @param id - UUID of the user to be found
-   * @returns User entity or null if not found
+   * Finds a user by UUID via `prisma.user.findUnique`.
+   *
+   * @param id - UUID of the user
+   * @returns The matching {@link User}, or `null` if not found
    */
   async findById(id: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({
@@ -41,8 +52,10 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * @param email - Email of the user
-   * @returns User entity or null if not found
+   * Finds a user by their unique email address via `prisma.user.findUnique`.
+   *
+   * @param email - The user's email string
+   * @returns The matching {@link User}, or `null` if not found
    */
   async findByEmail(email: string): Promise<User | null> {
     const userData = await this.prisma.user.findUnique({
@@ -57,8 +70,10 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * @param user - User entity with updated data
-   * @returns Updated User entity or null if not found
+   * Updates an existing user row via `prisma.user.update`.
+   *
+   * @param user - The {@link User} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   async update(user: User): Promise<User | null> {
     const userData = await this.prisma.user.update({
@@ -72,8 +87,11 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with active User entities
+   * Returns a paginated list of `ACTIVE` users, ordered by `createdAt` descending.
+   * Uses a parallel transaction.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of active {@link User} items
    */
   async findAllActive(
     options: PaginationOptions,
@@ -109,8 +127,11 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with all User entities
+   * Returns a paginated list of all users regardless of status,
+   * ordered by `createdAt` descending. Uses a parallel transaction.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of all {@link User} items
    */
   async findAll(options: PaginationOptions): Promise<PaginatedResponse<User>> {
     const { page, limit } = options;
@@ -137,7 +158,9 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   /**
-   * @param id - UUID of the user to be deleted
+   * Hard-deletes a user row via `prisma.user.delete`.
+   *
+   * @param id - UUID of the user to delete
    */
   async delete(id: string): Promise<void> {
     await this.prisma.user.delete({

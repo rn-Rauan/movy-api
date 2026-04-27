@@ -10,6 +10,34 @@ import { JwtPayloadService } from '../services/jwt-payload.service';
 import { SetupOrganizationDto } from '../dtos/setup-organization.dto';
 import { TokenResponseDto } from '../dtos';
 
+/**
+ * Creates an organization for an already-authenticated user and links them as `ADMIN`,
+ * then re-issues JWTs with the new organization context.
+ *
+ * @remarks
+ * Requires a valid `JwtAuthGuard` token — `userId` is sourced from the decoded payload.
+ * If membership creation fails after the organization is persisted, the organization
+ * is left without an admin and an error is thrown (manual cleanup required).
+ *
+ * Throws:
+ * - `Error('User not found or inactive')` — user UUID invalid or account inactive
+ * - `OrganizationAlreadyExistsError` — CNPJ already registered
+ * - {@link RoleNotFoundError} — `ADMIN` role missing from seed data
+ */
+/**
+ * Creates an organization for an already-authenticated user and links them as `ADMIN`,
+ * then re-issues JWTs with the new organization context.
+ *
+ * @remarks
+ * Requires a valid `JwtAuthGuard` token — `userId` is sourced from the decoded payload.
+ * If membership creation fails after the organization is persisted, the organization
+ * is left without an admin and an error is thrown (manual cleanup required).
+ *
+ * Throws:
+ * - `Error('User not found or inactive')` — user UUID invalid or account inactive
+ * - `OrganizationAlreadyExistsError` — CNPJ already registered
+ * - {@link RoleNotFoundError} — `ADMIN` role missing from seed data
+ */
 @Injectable()
 export class SetupOrganizationForExistingUserUseCase {
   private readonly logger = new Logger(

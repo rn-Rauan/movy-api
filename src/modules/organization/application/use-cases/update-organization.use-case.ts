@@ -12,6 +12,16 @@ import {
 import { UpdateOrganizationDto } from '../dtos/update-organization.dto';
 import { TenantContextParams } from '../dtos';
 
+/**
+ * Partially updates an existing organization's data.
+ *
+ * @remarks
+ * Validates tenant ownership before mutation.
+ * Throws conflict errors ({@link OrganizationAlreadyExistsError},
+ * {@link OrganizationEmailAlreadyExistsError}, {@link OrganizationSlugAlreadyExistsError})
+ * if any of the updated unique fields conflict with another organization.
+ * Inactive organizations cannot be updated ({@link InactiveOrganizationError}).
+ */
 @Injectable()
 export class UpdateOrganizationUseCase {
   constructor(

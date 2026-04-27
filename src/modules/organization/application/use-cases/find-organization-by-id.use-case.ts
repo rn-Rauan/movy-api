@@ -7,6 +7,14 @@ import {
 import { Organization } from '../../domain/entities';
 import { TenantContextParams } from '../dtos';
 
+/**
+ * Retrieves an active organization by UUID, with optional tenant-context scoping.
+ *
+ * @remarks
+ * Treats `INACTIVE` organizations as non-existent (throws {@link OrganizationNotFoundError}).
+ * When `tenantContext` is provided and the caller is not a dev, enforces that the
+ * requested organization matches the caller's own organization.
+ */
 @Injectable()
 export class FindOrganizationByIdUseCase {
   constructor(

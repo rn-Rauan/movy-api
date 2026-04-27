@@ -10,6 +10,18 @@ import { RolesGuard } from './infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from './infrastructure/guards/tenant-filter.guard';
 import { DevGuard } from './infrastructure/guards/dev.guard';
 
+/**
+ * `@Global()` NestJS module that exports shared infrastructure to every module
+ * in the application without requiring explicit imports.
+ *
+ * @remarks
+ * Provides and exports:
+ * - Guards: `JwtAuthGuard`, `RolesGuard`, `TenantFilterGuard`, `DevGuard`
+ * - Global filter: `AllExceptionsFilter` (via `APP_FILTER`)
+ * - Global interceptor: `LoggingInterceptor` (via `APP_INTERCEPTOR`)
+ * - Provider: `BcryptHashProvider` (implements {@link HashProvider})
+ * - Re-exports `PrismaModule` (exports `PrismaService` + `RoleRepository`)
+ */
 @Global()
 @Module({
   imports: [PrismaModule],

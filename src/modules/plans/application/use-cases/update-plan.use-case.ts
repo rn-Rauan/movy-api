@@ -4,10 +4,24 @@ import { PlanRepository } from '../../domain/interfaces/plan.repository';
 import { PlanNotFoundError } from '../../domain/errors/plan.errors';
 import { UpdatePlanDto } from '../dtos';
 
+/**
+ * Updates the mutable fields of an existing plan (price and operational limits).
+ *
+ * The plan `name` is immutable and cannot be changed through this use case.
+ * Only available in development environments via `DevGuard`.
+ */
 @Injectable()
 export class UpdatePlanUseCase {
   constructor(private readonly planRepository: PlanRepository) {}
 
+  /**
+   * Applies the given partial update to the plan and persists the changes.
+   *
+   * @param id - Numeric primary key of the plan to update
+   * @param dto - Partial fields to update; all fields are optional
+   * @returns The updated {@link PlanEntity} after persistence
+   * @throws {@link PlanNotFoundError} if no plan with the given `id` exists
+   */
   async execute(id: number, dto: UpdatePlanDto) {
     const plan = await this.planRepository.findById(id);
     if (!plan) {

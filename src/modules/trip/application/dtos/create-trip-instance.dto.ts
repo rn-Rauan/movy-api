@@ -11,8 +11,18 @@ import {
 } from 'class-validator';
 
 /**
- * DTO for creating a new trip instance from a trip template.
- * The instance starts as DRAFT — driver and vehicle can be assigned later.
+ * Input DTO for `POST /trip-instances/organization/:organizationId`.
+ *
+ * @remarks
+ * - The instance starts as `DRAFT` — driver and vehicle can be assigned later
+ * - `autoCancelAt` is computed server-side from the template's `autoCancelOffset`
+ * - `minRevenue` defaults to the template value when `autoCancelEnabled = true`;
+ *   pass an explicit value to override it per-instance
+ * @remarks
+ * - The instance starts as `DRAFT` — driver and vehicle can be assigned later
+ * - `autoCancelAt` is computed server-side from the template's `autoCancelOffset`
+ * - `minRevenue` defaults to the template value when `autoCancelEnabled = true`;
+ *   pass an explicit value to override it per-instance
  */
 export class CreateTripInstanceDto {
   @ApiProperty({

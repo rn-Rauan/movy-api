@@ -35,6 +35,15 @@ import {
   UpdatePlanUseCase,
 } from '../../application/use-cases';
 
+/**
+ * HTTP controller for the Plans module.
+ *
+ * Write operations (create, update, deactivate) are protected by `DevGuard`
+ * and are only available in non-production environments.
+ * Read operations are accessible to all authenticated users via `JwtAuthGuard`.
+ *
+ * Base path: `/plans`
+ */
 @ApiTags('plans')
 @Controller('plans')
 @UseGuards(JwtAuthGuard)
@@ -47,6 +56,12 @@ export class PlanController {
     private readonly findAllPlans: FindAllPlansUseCase,
   ) {}
 
+  /**
+   * Creates a new plan. Restricted to development environments.
+   *
+   * @param dto - Validated input body for the new plan
+   * @returns The created plan as a {@link PlanResponseDto}
+   */
   @Post()
   @UseGuards(DevGuard)
   @Dev()
@@ -56,6 +71,14 @@ export class PlanController {
     return PlanPresenter.toHTTP(await this.createPlan.execute(dto));
   }
 
+  /**
+   * Updates the mutable fields of a plan (price and operational limits).
+   * The `name` field is immutable and is excluded from the DTO. Restricted to development.
+   *
+   * @param id - Numeric `id` of the plan to update
+   * @param dto - Partial update payload
+   * @returns The updated plan as a {@link PlanResponseDto}
+   */
   @Patch(':id')
   @UseGuards(DevGuard)
   @Dev()
@@ -69,6 +92,13 @@ export class PlanController {
     return PlanPresenter.toHTTP(await this.updatePlan.execute(id, dto));
   }
 
+  /**
+   * Deactivates a plan, preventing new subscriptions. Restricted to development.
+   * Does **not** cancel existing subscriptions.
+   *
+   * @param id - Numeric `id` of the plan to deactivate
+   * @returns The deactivated plan as a {@link PlanResponseDto}
+   */
   @Patch(':id/deactivate')
   @UseGuards(DevGuard)
   @Dev()
@@ -81,6 +111,13 @@ export class PlanController {
     return PlanPresenter.toHTTP(await this.deactivatePlan.execute(id));
   }
 
+  /**
+   * Returns a paginated list of all plans. Accessible to all authenticated users.
+   *
+   * @param page - Page number (default: 1)
+   * @param limit - Number of items per page (default: 10)
+   * @returns A {@link PaginatedDto} containing {@link PlanResponseDto} items
+   */
   @Get()
   @ApiOperation({ summary: 'List all plans' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -97,6 +134,12 @@ export class PlanController {
     } as PaginatedDto<PlanResponseDto>;
   }
 
+  /**
+   * Retrieves a single plan by its numeric primary key.
+   *
+   * @param id - Numeric `id` of the plan
+   * @returns The matching plan as a {@link PlanResponseDto}
+   */
   @Get(':id')
   @ApiOperation({ summary: 'Find a plan by id' })
   @ApiParam({ name: 'id', type: Number })

@@ -3,7 +3,10 @@ import { EnrollmentType } from '../../domain/interfaces';
 import type { Status } from 'src/shared/domain/types';
 
 /**
- * Response DTO with public booking data.
+ * HTTP response shape returned by all booking endpoints.
+ *
+ * The `recordedPrice` field is serialised as a plain `number` (extracted from the
+ * {@link Money} Value Object by the {@link BookingPresenter}).
  */
 export class BookingResponseDto {
   @ApiProperty({

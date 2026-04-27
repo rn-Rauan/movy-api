@@ -7,6 +7,14 @@ import {
   DriverProfileNotFoundByEmailError,
 } from '../../domain/entities/errors/driver.errors';
 
+/**
+ * Looks up a driver profile by email + CNH for the admin enrollment flow.
+ *
+ * @remarks
+ * Both identifiers must match the same user to succeed — this acts as
+ * identity verification before an admin creates a membership.
+ * Depends on both {@link DriverRepository} and {@link UserRepository}.
+ */
 @Injectable()
 export class LookupDriverUseCase {
   constructor(

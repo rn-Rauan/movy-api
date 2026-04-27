@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { MembershipRepository } from '../../domain/interfaces/membership.repository';
 import { MembershipNotFoundError } from '../../domain/entities';
 
+/**
+ * Restores a previously soft-removed membership by clearing `removedAt`.
+ *
+ * @remarks
+ * Throws {@link MembershipNotFoundError} if no membership exists for the composite key.
+ * Idempotent if the membership is already active (`removedAt === null`).
+ */
 @Injectable()
 export class RestoreMembershipUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}

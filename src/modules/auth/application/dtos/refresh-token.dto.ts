@@ -2,8 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 /**
- * DTO for refreshing JWT tokens.
- * @param refreshToken - The refresh token issued during login
+ * Input DTO for {@link RefreshTokenUseCase} — `POST /auth/refresh`.
  */
 export class RefreshTokenDto {
   @ApiProperty({

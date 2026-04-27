@@ -2,11 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 /**
- * DTO for user registration.
- * @param name - Full name of the user
- * @param email - Unique email address
- * @param password - Password (min 8 characters)
- * @param telephone - User's telephone number
+ * Input DTO for {@link RegisterUseCase} — `POST /auth/register`.
+ *
+ * @remarks
+ * `password` must be at least 8 characters. After registration the user is
+ * automatically logged in and a {@link TokenResponseDto} is returned.
  */
 export class RegisterDto {
   @ApiProperty({ example: 'John Doe', description: 'The name of the user' })

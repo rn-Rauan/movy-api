@@ -8,6 +8,14 @@ import {
 import { Organization } from '../../domain/entities';
 import { TenantContextParams } from '../dtos';
 
+/**
+ * Soft-disables an organization by setting its status to `INACTIVE`.
+ *
+ * @remarks
+ * Validates tenant ownership before mutation.
+ * Throws {@link InactiveOrganizationError} if the organization is already inactive.
+ * Does NOT hard-delete the record.
+ */
 @Injectable()
 export class DisableOrganizationUseCase {
   constructor(

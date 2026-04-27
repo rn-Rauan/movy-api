@@ -1,3 +1,7 @@
+/**
+ * Abstract provider contract for one-way password hashing.
+ * Bound to {@link BcryptHashProvider} in `AuthModule`.
+ */
 export abstract class HashProvider {
   /**
    * @param password - Plain text password to hash

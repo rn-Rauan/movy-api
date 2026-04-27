@@ -37,6 +37,42 @@ import type { TenantContext } from 'src/shared/infrastructure/types/tenant-conte
 import { Dev } from 'src/shared';
 import { DevGuard } from 'src/shared/infrastructure/guards/dev.guard';
 
+/**
+ * HTTP controller for user self-service and developer operations.
+ *
+ * @remarks
+ * Self-service endpoints (no special guards beyond `JwtAuthGuard`):
+ * - `GET /users/me` — get own profile
+ * - `PUT /users/me` — update own profile
+ * - `DELETE /users/me` — disable own account
+ *
+ * Developer-only endpoints (`DevGuard`):
+ * - `POST /users` — create a user
+ * - `GET /users/active` — list all active users (paginated)
+ * - `GET /users/:id` — find by ID (deprecated, use `/users/me`)
+ * - `DELETE /users/:id` — disable by ID (deprecated, use `/users/me`)
+ * - `GET /users` — list all users (paginated)
+ *
+ * Base path: `/users`
+ */
+/**
+ * HTTP controller for user self-service and developer operations.
+ *
+ * @remarks
+ * Self-service endpoints (no special guards beyond `JwtAuthGuard`):
+ * - `GET /users/me` — get own profile
+ * - `PUT /users/me` — update own profile
+ * - `DELETE /users/me` — disable own account
+ *
+ * Developer-only endpoints (`DevGuard`):
+ * - `POST /users` — create a user
+ * - `GET /users/active` — list all active users (paginated)
+ * - `GET /users/:id` — find by ID (deprecated, use `/users/me`)
+ * - `DELETE /users/:id` — disable by ID (deprecated, use `/users/me`)
+ * - `GET /users` — list all users (paginated)
+ *
+ * Base path: `/users`
+ */
 @ApiTags('users')
 @Controller('users')
 @UseGuards(JwtAuthGuard)

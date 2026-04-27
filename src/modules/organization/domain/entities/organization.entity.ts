@@ -2,9 +2,7 @@ import { Status } from 'src/shared/domain/types/status.type';
 import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 import { Cnpj, Slug, OrganizationName, Address } from './value-objects';
 
-/**
- * Interface that defines the properties of the Organization entity.
- */
+/** @internal */
 export interface OrganizationProps {
   readonly id: string;
   name: OrganizationName;
@@ -19,11 +17,14 @@ export interface OrganizationProps {
 }
 
 /**
- * Entity Organization
+ * Aggregate root representing a Movy organization (company/fleet operator).
  *
- * Responsibility:
- * - Manage organization data
- * - Validate data integrity
+ * @remarks
+ * Each organization has a unique `cnpj`, `email`, and `slug`.
+ * All mutable fields expose `set*` mutators that also refresh `updatedAt`.
+ * Status transitions: `ACTIVE` → `INACTIVE` (soft delete via `setStatus`).
+ *
+ * @see {@link OrganizationRepository} for persistence operations
  */
 export class Organization {
   private readonly props: Required<OrganizationProps>;
@@ -40,7 +41,10 @@ export class Organization {
   }
 
   /**
-   * Method to create a new Organization instance.
+   * Creates a new organization with default `ACTIVE` status.
+   *
+   * @param props - Organization properties (omits `createdAt`, `status`, `updatedAt`)
+   * @returns A new {@link Organization} instance
    */
   static create(
     props: Omit<OrganizationProps, 'createdAt' | 'status' | 'updatedAt'>,
@@ -49,7 +53,10 @@ export class Organization {
   }
 
   /**
-   * Method to restore a existing Organization instance.
+   * Restores an organization from persisted data (skips default assignment).
+   *
+   * @param props - Full organization properties from storage
+   * @returns A hydrated {@link Organization} instance
    */
   static restore(props: OrganizationProps): Organization {
     return new Organization(props);

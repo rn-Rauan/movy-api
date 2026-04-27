@@ -9,11 +9,11 @@ import {
 } from 'class-validator';
 
 /**
- * DTO for partial update of a driver profile.
- * @param cnh - Driver license number (optional, must send all CNH fields together)
- * @param cnhCategory - License category (optional)
- * @param cnhExpiresAt - License expiration date (optional)
- * @param status - Driver status: ACTIVE, INACTIVE, SUSPENDED (optional)
+ * Input DTO for the {@link UpdateDriverUseCase} — `PUT /drivers/:id`.
+ *
+ * @remarks
+ * All fields are optional but CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`)
+ * must be provided together — partial CNH updates throw {@link PartialCnhUpdateError}.
  */
 export class UpdateDriverDto {
   @ApiPropertyOptional({

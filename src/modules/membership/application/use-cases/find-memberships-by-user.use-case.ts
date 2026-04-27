@@ -6,6 +6,14 @@ import {
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Returns a paginated list of memberships for a given user,
+ * optionally scoped to a specific organization.
+ *
+ * @remarks
+ * Delegates directly to {@link MembershipRepository.findByUserId}.
+ * When `organizationId` is omitted, returns memberships across all organizations.
+ */
 @Injectable()
 export class FindMembershipsByUserUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}

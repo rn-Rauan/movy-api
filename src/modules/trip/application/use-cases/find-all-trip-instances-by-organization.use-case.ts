@@ -6,6 +6,12 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Returns a paginated list of all {@link TripInstance} items for an organisation.
+ *
+ * Restricted to org administrators via `RolesGuard` + `TenantFilterGuard`.
+ * Results are ordered by `departureTime` ascending.
+ */
 @Injectable()
 export class FindAllTripInstancesByOrganizationUseCase {
   constructor(
@@ -13,10 +19,11 @@ export class FindAllTripInstancesByOrganizationUseCase {
   ) {}
 
   /**
-   * Lists all trip instances belonging to an organization with pagination.
-   * @param organizationId - UUID of the organization from JWT context
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list ordered by departure time
+   * Delegates to the repository for a paginated result ordered by `departureTime` ascending.
+   *
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   async execute(
     organizationId: string,

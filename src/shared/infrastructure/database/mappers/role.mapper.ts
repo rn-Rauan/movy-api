@@ -2,6 +2,9 @@ import { Role as PrismaRole } from 'generated/prisma/client';
 import { Role } from 'src/shared/domain/entities/role.entity';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 
+/**
+ * Maps between the Prisma `Role` record and the {@link Role} domain entity.
+ */
 export class RoleMapper {
   /**
    * @param raw - Prisma Role record

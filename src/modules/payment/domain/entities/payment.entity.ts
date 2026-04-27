@@ -2,6 +2,7 @@ import { Money } from 'src/shared/domain/entities/value-objects';
 import { MethodPayment } from '../interfaces/enums/method-payment.enum';
 import { PaymentStatus } from '../interfaces/enums/payment-status.enum';
 
+/** @internal Internal state bag of a payment entity. Fields without `readonly` can be mutated. */
 interface PaymentState {
   readonly id: string;
   readonly organizationId: string;
@@ -13,6 +14,10 @@ interface PaymentState {
   updatedAt: Date;
 }
 
+/**
+ * Properties required to create a new {@link PaymentEntity}.
+ * All fields are mandatory and validated at the use-case boundary.
+ */
 export interface CreatePaymentProps {
   organizationId: string;
   enrollmentId: string;
@@ -20,6 +25,17 @@ export interface CreatePaymentProps {
   amount: Money;
 }
 
+/**
+ * Domain aggregate root representing a payment transaction.
+ *
+ * A payment is always created with `status = PENDING` and an RFC 4122 UUID
+ * generated via `crypto.randomUUID()` in the domain layer. The `id` is
+ * therefore available before any database interaction.
+ *
+ * @see PaymentStatus
+ * @see MethodPayment
+ * @see CreatePaymentProps
+ */
 export class PaymentEntity {
   private readonly props: PaymentState;
 
@@ -27,6 +43,13 @@ export class PaymentEntity {
     this.props = props;
   }
 
+  /**
+   * Creates a new payment with `status = PENDING`, a UUID from `crypto.randomUUID()`,
+   * and both timestamps set to **now**.
+   *
+   * @param props - Validated data for the payment (organization, enrollment, method, amount)
+   * @returns A new {@link PaymentEntity} ready to be persisted
+   */
   static create(props: CreatePaymentProps): PaymentEntity {
     const now = new Date();
     return new PaymentEntity({
@@ -41,6 +64,15 @@ export class PaymentEntity {
     });
   }
 
+  /**
+   * Reconstructs a payment entity from a persisted database record.
+   *
+   * Intended for **exclusive** use by the infrastructure mapper.
+   * Do not call this method from application or domain code.
+   *
+   * @param props - Complete state as returned by the database
+   * @returns A {@link PaymentEntity} instance that mirrors the stored state
+   */
   static restore(props: PaymentState): PaymentEntity {
     return new PaymentEntity(props);
   }

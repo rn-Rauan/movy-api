@@ -2,6 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { MembershipRepository } from '../../domain/interfaces/membership.repository';
 import { Membership, MembershipNotFoundError } from '../../domain/entities';
 
+/**
+ * Retrieves a single membership by its composite key `(userId, roleId, organizationId)`.
+ *
+ * @remarks
+ * Throws {@link MembershipNotFoundError} when no record matches the key.
+ */
 @Injectable()
 export class FindMembershipByCompositeKeyUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}

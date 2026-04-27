@@ -20,6 +20,17 @@ import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment
 import { PaymentEntity } from 'src/modules/payment/domain/entities/payment.entity';
 import { PaymentCreationFailedError } from 'src/modules/payment/domain/errors/payment.errors';
 
+/**
+ * Creates a new booking (enrollment) for an authenticated user in a trip instance.
+ *
+ * Enforces all pre-booking invariants before persisting:
+ * - Trip instance must exist and be in a bookable status (`SCHEDULED` or `CONFIRMED`)
+ * - Capacity must not be exhausted
+ * - User must not already have an active booking for the same trip instance
+ * - `recordedPrice` is resolved server-side from the `TripTemplate` — never trusted from the client
+ *
+ * Also creates a {@link PaymentEntity} with `status = PENDING` atomically with the booking.
+ */
 @Injectable()
 export class CreateBookingUseCase {
   constructor(

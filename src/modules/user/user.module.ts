@@ -15,6 +15,28 @@ import {
 } from './application/use-cases';
 import { SharedModule } from 'src/shared';
 
+/**
+ * NestJS module managing the {@link User} aggregate.
+ *
+ * @remarks
+ * Exports {@link UserRepository} and several use cases so that
+ * dependent modules ({@link AuthModule}, {@link MembershipModule}) can
+ * resolve and query users without importing the full module.
+ *
+ * {@link HashProvider} is bound to {@link BcryptHashProvider} locally;
+ * it is NOT exported — hashing is an internal concern of this module.
+ */
+/**
+ * NestJS module managing the {@link User} aggregate.
+ *
+ * @remarks
+ * Exports {@link UserRepository} and several use cases so that
+ * dependent modules ({@link AuthModule}, {@link MembershipModule}) can
+ * resolve and query users without importing the full module.
+ *
+ * {@link HashProvider} is bound to {@link BcryptHashProvider} locally;
+ * it is NOT exported — hashing is an internal concern of this module.
+ */
 @Module({
   imports: [PrismaModule, SharedModule],
   controllers: [UserController],

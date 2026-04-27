@@ -5,9 +5,10 @@ import {
 } from 'src/shared/domain/interfaces';
 
 /**
- * @param userId - UUID of the user associated with the membership
- * @param organizationId - UUID of the organization to which the membership belongs
- * @param role - Object containing the name of the role assigned to the user within the organization (e.g., 'ADMIN' or 'DRIVER')
+ * Minimal projection returned by `findFirstActiveByUserId`.
+ * Contains only the data needed to populate a JWT payload.
+ *
+ * @internal
  */
 export interface FirstMembershipDTO {
   userId: string;
@@ -17,19 +18,27 @@ export interface FirstMembershipDTO {
   };
 }
 
+/**
+ * Abstract repository contract for the {@link Membership} aggregate.
+ *
+ * The concrete implementation ({@link PrismaMembershipRepository}) is bound in
+ * {@link MembershipModule} via the NestJS DI token `MembershipRepository`.
+ */
 export abstract class MembershipRepository {
   /**
-   * Save a membership to the database.
-   * @param membership - Membership entity to save
-   * @returns Saved membership entity
+   * Persists a new membership.
+   *
+   * @param membership - {@link Membership} to save
+   * @returns The saved entity
    */
   abstract save(membership: Membership): Promise<Membership>;
   /**
-   * Find a membership by composite composite key.
-   * @param userId - UUID of the user associated with the membership
-   * @param roleId - ID of the role assigned to the user within the organization
-   * @param organizationId - UUID of the organization to which the membership belongs
-   * @returns Membership entity or null if not found
+   * Finds a membership by its composite primary key `(userId, roleId, organizationId)`.
+   *
+   * @param userId - UUID of the user
+   * @param roleId - Numeric role ID
+   * @param organizationId - UUID of the organization
+   * @returns The matching {@link Membership}, or `null` if not found
    */
   abstract findByCompositeKey(
     userId: string,
@@ -37,11 +46,13 @@ export abstract class MembershipRepository {
     organizationId: string,
   ): Promise<Membership | null>;
   /**
-   * Find all memberships for a user with pagination.
-   * @param userId - UUID of the user to find memberships for
-   * @param options - Pagination options for (page, limit)
-   * @param organizationId - Optional UUID of the organization to filter memberships by
-   * @returns Paginated response with membership entities
+   * Returns a paginated list of memberships for a given user,
+   * optionally filtered to a specific organization.
+   *
+   * @param userId - UUID of the user
+   * @param options - Pagination parameters `{ page, limit }`
+   * @param organizationId - Optional UUID to scope the query to one organization
+   * @returns A {@link PaginatedResponse} of {@link Membership} items
    */
   abstract findByUserId(
     userId: string,
@@ -49,37 +60,41 @@ export abstract class MembershipRepository {
     organizationId?: string,
   ): Promise<PaginatedResponse<Membership>>;
   /**
-   * Find all memberships for an organization with pagination.
-   * @param organizationId - UUID of the organization to find memberships for
-   * @param options - Pagination options for (page, limit)
-   * @returns Paginated response with membership entities
+   * Returns a paginated list of all memberships belonging to an organization.
+   *
+   * @param organizationId - UUID of the organization
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Membership} items
    */
   abstract findByOrganizationId(
     organizationId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Membership>>;
   /**
-   * Update a membership in the database.
-   * @param membership - Membership entity to update
-   * @returns Updated membership entity
+   * Updates an existing membership (used for soft-remove and restore operations).
+   *
+   * @param membership - {@link Membership} with updated state
+   * @returns The updated entity
    */
   abstract update(membership: Membership): Promise<Membership>;
   /**
-   * Find a membership by user ID and organization ID.
-   * @param userId - UUID of the user associated with the membership
-   * @param organizationId - UUID of the organization to which the membership belongs
-   * @returns Membership entity or null if not found
+   * Finds the first active membership for a user in a given organization.
+   * Used for role-lookup when no `roleId` is known.
+   *
+   * @param userId - UUID of the user
+   * @param organizationId - UUID of the organization
+   * @returns The matching {@link Membership}, or `null` if not found
    */
   abstract findByUserIdAndOrganizationId(
     userId: string,
     organizationId: string,
   ): Promise<Membership | null>;
   /**
-   * Delete a membership from the database.
-   * @param userId - UUID of the user associated with the membership
-   * @param roleId - ID of the role assigned to the user within the organization
-   * @param organizationId - UUID of the organization to which the membership belongs
-   * @returns void
+   * Hard-deletes a membership record by composite key.
+   *
+   * @param userId - UUID of the user
+   * @param roleId - Numeric role ID
+   * @param organizationId - UUID of the organization
    */
   abstract delete(
     userId: string,
@@ -88,11 +103,11 @@ export abstract class MembershipRepository {
   ): Promise<void>;
 
   /**
-   * Find the first active membership for a user.
-   * Used to populate role + organizationId in JWT
+   * Returns the first active membership for a user, ordered by `assignedAt ASC`.
+   * Used exclusively to populate the JWT payload with `role` and `organizationId`.
    *
    * @param userId - UUID of the user
-   * @returns First active membership or null if none found
+   * @returns A {@link FirstMembershipDTO} or `null` if the user has no active memberships
    */
   abstract findFirstActiveByUserId(
     userId: string,

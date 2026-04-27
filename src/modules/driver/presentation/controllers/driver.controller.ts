@@ -44,6 +44,23 @@ import {
   LookupDriverUseCase,
 } from '../../application/use-cases';
 
+/**
+ * HTTP controller for driver profile management.
+ *
+ * @remarks
+ * Self-service endpoints (authenticated user, any role):
+ * - `POST /drivers` — create own driver profile
+ * - `GET /drivers/me` — get own driver profile
+ *
+ * Admin-only endpoints (`RolesGuard` + `ADMIN` role):
+ * - `GET /drivers/lookup` — look up a driver by email + CNH (enrollment)
+ * - `GET /drivers` — list all org drivers (paginated)
+ * - `GET /drivers/:id` — find by ID (org-scoped)
+ * - `PUT /drivers/:id` — partial update (org-scoped)
+ * - `DELETE /drivers/:id` — soft-delete — sets status to `INACTIVE` (org-scoped)
+ *
+ * Base path: `/drivers`
+ */
 @ApiTags('drivers')
 @Controller('drivers')
 @UseGuards(JwtAuthGuard)

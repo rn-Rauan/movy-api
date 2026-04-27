@@ -43,6 +43,25 @@ import {
 } from '../../application/use-cases';
 import { FindRoleByUserIdAndOrganizationIdUseCase } from '../../application/use-cases/find-role-by-user-and-organization.use-case';
 
+/**
+ * HTTP controller for membership management.
+ *
+ * @remarks
+ * All endpoints require `JwtAuthGuard`. Admin-only endpoints additionally
+ * require `RolesGuard(ADMIN)` + `TenantFilterGuard` to enforce org-scoping.
+ *
+ * Base path: `/memberships`
+ *
+ * | Method | Path | Guard | Use Case |
+ * |--------|------|-------|----------|
+ * | `GET` | `/memberships/me/role/:organizationId` | `RolesGuard(ADMIN, DRIVER)` | `FindRoleByUserIdAndOrganizationIdUseCase` |
+ * | `POST` | `/memberships` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `CreateMembershipUseCase` |
+ * | `GET` | `/memberships/user/:userId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipsByUserUseCase` |
+ * | `GET` | `/memberships/organization/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipsByOrganizationUseCase` |
+ * | `GET` | `/memberships/:userId/:roleId/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipByCompositeKeyUseCase` |
+ * | `PATCH` | `/memberships/:userId/:roleId/:organizationId/restore` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `RestoreMembershipUseCase` |
+ * | `DELETE` | `/memberships/:userId/:roleId/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `RemoveMembershipUseCase` |
+ */
 @ApiTags('memberships')
 @Controller('memberships')
 @UseGuards(JwtAuthGuard)

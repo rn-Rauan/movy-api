@@ -3,6 +3,12 @@ import { VehicleEntity } from '../../domain/entities/vehicle.entity';
 import { VehicleRepository } from '../../domain/interfaces/vehicle.repository';
 import { PaginatedResponse, PaginationOptions } from 'src/shared';
 
+/**
+ * Returns a paginated list of all vehicles belonging to an organisation.
+ *
+ * Delegates entirely to {@link VehicleRepository.findByOrganizationId}.
+ * Results are ordered by `createdAt` descending (repository-defined ordering).
+ */
 @Injectable()
 export class FindAllVehiclesByOrganizationUseCase {
   constructor(private readonly vehicleRepository: VehicleRepository) {}

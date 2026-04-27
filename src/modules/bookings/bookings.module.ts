@@ -18,6 +18,17 @@ import { BookingRepository } from './domain/interfaces';
 import { PrismaBookingRepository } from './infrastructure/db/repositories/prisma-booking.repository';
 import { BookingController } from './presentation/controllers/booking.controller';
 
+/**
+ * NestJS module responsible for managing bookings (passenger enrollments in trip instances).
+ *
+ * Imports:
+ * - `TripModule` — provides `TripInstanceRepository` and `TripTemplateRepository`
+ *   for trip validation and price resolution
+ * - `PaymentModule` — provides `PaymentRepository` for creating the initial `PENDING`
+ *   payment record atomically with each new booking
+ *
+ * Does **not** export `BookingRepository` — no other module queries bookings directly.
+ */
 @Module({
   imports: [PrismaModule, SharedModule, TripModule, PaymentModule],
   controllers: [BookingController],

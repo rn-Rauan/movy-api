@@ -6,6 +6,13 @@ import {
 } from 'src/shared/domain/interfaces';
 import { Organization } from '../../domain/entities';
 
+/**
+ * Returns a paginated list of organizations the authenticated user belongs to.
+ *
+ * @remarks
+ * Delegates to {@link OrganizationRepository.findOrganizationByUserId}.
+ * Filters by active memberships in the repository layer.
+ */
 @Injectable()
 export class FindOrganizationByUserUseCase {
   constructor(

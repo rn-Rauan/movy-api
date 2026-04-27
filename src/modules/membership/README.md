@@ -1,103 +1,118 @@
-# Módulo de Membership (Associações de Membros)
+# Membership Module
 
-## Visão Geral
-O módulo de membership é responsável por gerenciar as associações entre usuários, roles e organizações no sistema Movy API. Ele implementa uma arquitetura limpa (Clean Architecture) com separação clara entre camadas de domínio, aplicação, infraestrutura e apresentação. A tabela central é `OrganizationMembership`, que suporta multi-tenancy e RBAC (Role-Based Access Control).
+Manages the `OrganizationMembership` join aggregate — the source of truth for
+RBAC and multi-tenancy in Movy. Each membership binds a **user**, a **role**,
+and an **organization** via a composite primary key
+`(userId, roleId, organizationId)`. Soft-removal is used: `removedAt` is stamped
+instead of physical deletion.
 
-## Estrutura do Módulo
+---
+
+## Entity
+
+| Field | Type | Notes |
+|---|---|---|
+| `userId` | `string` (UUID v4) | FK → User |
+| `roleId` | `number` | FK → Role (1 = ADMIN, 2 = DRIVER) |
+| `organizationId` | `string` (UUID v4) | FK → Organization |
+| `assignedAt` | `Date` | Defaults to `now` on creation |
+| `removedAt` | `Date \| null` | `null` = active; non-null = soft-removed |
+
+Mutating methods: `remove()` (stamps `removedAt`), `restoreMembership()` (clears it).
+
+---
+
+## Domain Errors
+
+| Class | HTTP | Code |
+|---|---|---|
+| `MembershipNotFoundError` | 404 | `MEMBERSHIP_NOT_FOUND` |
+| `MembershipAlreadyExistsError` | 409 | `MEMBERSHIP_ALREADY_EXISTS` |
+| `UserNotFoundForMembershipError` | 404 | `USER_FOR_MEMBERSHIP_NOT_FOUND` |
+| `MembershipMissingIdentifierError` | 400 | `MEMBERSHIP_MISSING_IDENTIFIER_BAD_REQUEST` |
+| `DriverNotFoundForMembershipError` | 400 | `DRIVER_NOT_FOUND_FOR_MEMBERSHIP_BAD_REQUEST` |
+
+---
+
+## API Endpoints
+
+| Method | Path | Guard | Use Case |
+|---|---|---|---|
+| `GET` | `/memberships/me/role/:organizationId` | `RolesGuard(ADMIN, DRIVER)` | `FindRoleByUserIdAndOrganizationIdUseCase` |
+| `POST` | `/memberships` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `CreateMembershipUseCase` |
+| `GET` | `/memberships/user/:userId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipsByUserUseCase` |
+| `GET` | `/memberships/organization/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipsByOrganizationUseCase` |
+| `GET` | `/memberships/:userId/:roleId/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipByCompositeKeyUseCase` |
+| `PATCH` | `/memberships/:userId/:roleId/:organizationId/restore` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `RestoreMembershipUseCase` |
+| `DELETE` | `/memberships/:userId/:roleId/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `RemoveMembershipUseCase` |
+
+---
+
+## Use Cases
+
+| Class | Description |
+|---|---|
+| `CreateMembershipUseCase` | Resolves user by email; validates DRIVER prerequisites; auto-restores if previously removed; else creates new membership |
+| `FindMembershipByCompositeKeyUseCase` | Finds by `(userId, roleId, organizationId)` — throws if absent |
+| `FindMembershipsByUserUseCase` | Paginated list for a user, optional org filter |
+| `FindMembershipsByOrganizationUseCase` | Paginated list for an organization |
+| `FindRoleByUserIdAndOrganizationIdUseCase` | Returns the `Role` entity for a user in an org |
+| `RemoveMembershipUseCase` | Soft-remove: stamps `removedAt` |
+| `RestoreMembershipUseCase` | Restore: clears `removedAt` |
+
+---
+
+## Module Structure
+
 ```
 src/modules/membership/
-├── README.md                           # Esta documentação
-├── membership.module.ts                # Módulo principal do NestJS
-├── application/                        # Camada de Aplicação
+├── membership.module.ts
+├── application/
 │   ├── dtos/
-│   │   ├── create-membership.dto.ts    # DTO para criação de associação
-│   │   └── membership-response.dto.ts  # DTO para resposta de associação
-│   └── use-cases/                      # Casos de Uso
-│       ├── create-membership.use-case.ts          # Criar associação
-│       ├── find-membership-by-composite-key.use-case.ts  # Buscar por chave composta
-│       ├── find-memberships-by-user.use-case.ts          # Listar por usuário
-│       ├── find-memberships-by-organization.use-case.ts  # Listar por organização
-│       ├── remove-membership.use-case.ts         # Remover (soft delete)
-│       └── restore-membership.use-case.ts        # Restaurar associação
+│   │   ├── create-membership.dto.ts
+│   │   ├── membership-response.dto.ts
+│   │   └── role-response.dto.ts
+│   └── use-cases/
+│       ├── create-membership.use-case.ts
+│       ├── find-membership-by-composite-key.use-case.ts
+│       ├── find-memberships-by-organization.use-case.ts
+│       ├── find-memberships-by-user.use-case.ts
+│       ├── find-role-by-user-and-organization.use-case.ts
+│       ├── remove-membership.use-case.ts
+│       └── restore-membership.use-case.ts
 ├── domain/
 │   ├── entities/
-│   │   ├── index.ts
-│   │   ├── membership.entity.ts         # Entidade Membership
+│   │   ├── membership.entity.ts
 │   │   └── errors/
-│   │       └── membership.errors.ts     # Erros de domínio
+│   │       └── membership.errors.ts
 │   └── interfaces/
-│       └── membership.repository.ts     # Interface do repositório
+│       └── membership.repository.ts
 ├── infrastructure/
-│   ├── db/
-│   │   ├── mappers/
-│   │   │   └── membership.mapper.ts     # Mapper para conversão
-│   │   └── repositories/
-│   │       └── prisma-membership.repository.ts  # Implementação Prisma
-├── presentation/
-│   ├── controllers/
-│   │   └── membership.controller.ts     # Controlador REST
-│   └── mappers/
-│       └── membership.presenter.ts      # Presenter para HTTP
+│   └── db/
+│       ├── mappers/
+│       │   └── membership.mapper.ts         # Prisma ↔ Domain
+│       └── repositories/
+│           └── prisma-membership.repository.ts
+└── presentation/
+    ├── controllers/
+    │   └── membership.controller.ts
+    └── mappers/
+        └── membership.presenter.ts          # MembershipPresenter (DI instance)
 ```
 
-## Funcionalidades Principais
+---
 
-### Endpoints REST
-- **`POST /memberships`**: Criar nova associação (user + role + organization).
-- **`GET /memberships/user/:userId`**: Listar associações de um usuário (paginado).
-- **`GET /memberships/organization/:organizationId`**: Listar associações de uma organização (paginado).
-- **`GET /memberships/:userId/:roleId/:organizationId`**: Buscar associação específica por chave composta.
-- **`PATCH /memberships/:userId/:roleId/:organizationId/restore`**: Restaurar associação removida.
-- **`DELETE /memberships/:userId/:roleId/:organizationId`**: Remover associação (soft delete).
+## Module Dependencies
 
-### Regras de Negócio
-- **Chave Composta Única**: Não permite associações duplicadas (mesmo user, role e org).
-- **Soft Delete**: Remoções marcam `removedAt` em vez de deletar fisicamente.
-- **Validações**: Verifica existência de User, Role e Organization antes de criar.
-- **Paginação**: Suportada em listagens para performance.
-- **Multi-Tenancy**: Associações isoladas por organização.
+**Imports:** `SharedModule`, `forwardRef(() => UserModule)`, `DriverModule`
 
-## Entidades e Value Objects
+**Providers:**
+- `PrismaMembershipRepository` bound to the `MembershipRepository` token
+- `MembershipPresenter` (instance — injected into controller)
+- All 7 use case classes
 
-### Membership Entity
-- **Propriedades**: `userId`, `roleId`, `organizationId`, `assignedAt`, `removedAt`.
-- **Métodos**: `create()`, `restore()`, `remove()` (soft delete).
-- **Imutabilidade**: Propriedades são readonly após criação.
+**Exports:** All use cases + `MembershipRepository` token
 
-### Erros de Domínio
-- `MembershipAlreadyExistsError`: Tentativa de criar associação duplicada.
-- `MembershipNotFoundError`: Associação não encontrada.
-
-## Casos de Uso (Use Cases)
-
-### CreateMembershipUseCase
-- Valida entidades relacionadas.
-- Impede duplicatas.
-- Cria nova associação via repositório.
-
-### FindMembershipByCompositeKeyUseCase
-- Busca por `userId`, `roleId`, `organizationId`.
-- Lança erro se não encontrada.
-
-### FindMembershipsByUserUseCase
-- Lista associações de um usuário com paginação.
-- Retorna dados paginados.
-
-### FindMembershipsByOrganizationUseCase
-- Lista associações de uma organização com paginação.
-
-### RemoveMembershipUseCase
-- Marca `removedAt` (soft delete).
-- Atualiza via repositório.
-
-### RestoreMembershipUseCase
-- Remove `removedAt` para restaurar.
-
-## Infraestrutura
-
-### PrismaMembershipRepository
-- Implementa `MembershipRepository`.
-- Usa `PrismaClient` para operações CRUD.
 - Mapeia entre domínio e persistência via `MembershipMapper`.
 
 ### MembershipMapper

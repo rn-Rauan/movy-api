@@ -7,6 +7,12 @@ import {
 import { BookingRepository } from '../../domain/interfaces';
 import { Booking } from '../../domain/entities';
 
+/**
+ * Confirms a passenger's physical presence for a booking.
+ *
+ * Only organisation members (Admin/Driver) can confirm presence —
+ * the passenger cannot confirm themselves. The booking must be `ACTIVE`.
+ */
 @Injectable()
 export class ConfirmPresenceUseCase {
   constructor(private readonly bookingRepository: BookingRepository) {}

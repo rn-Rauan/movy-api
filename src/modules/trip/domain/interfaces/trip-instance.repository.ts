@@ -4,48 +4,63 @@ import {
 } from 'src/shared/domain/interfaces';
 import { TripInstance } from '../entities';
 
+/**
+ * Repository contract for {@link TripInstance}.
+ *
+ * The concrete implementation lives at
+ * `infrastructure/db/repositories/prisma-trip-instance.repository.ts`.
+ * Registered in the NestJS DI container as an abstract class token.
+ * Exported from {@link TripModule} so that {@link BookingsModule} can consume it.
+ */
 export abstract class TripInstanceRepository {
   /**
    * Persists a new trip instance entity.
-   * @param entity - TripInstance to save
-   * @returns TripInstance persisted or null on failure
+   *
+   * @param entity - The {@link TripInstance} to save
+   * @returns The saved entity, or `null` on unexpected failure
    */
   abstract save(entity: TripInstance): Promise<TripInstance | null>;
 
   /**
    * Updates an existing trip instance entity.
-   * @param entity - TripInstance with updated data
-   * @returns TripInstance updated or null on failure
+   *
+   * @param entity - The {@link TripInstance} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   abstract update(entity: TripInstance): Promise<TripInstance | null>;
 
   /**
-   * Deletes a trip instance by its unique identifier.
-   * @param id - UUID of the trip instance
+   * Hard-deletes a trip instance row by its UUID.
+   *
+   * @param id - UUID of the trip instance to delete
    */
   abstract delete(id: string): Promise<void>;
 
   /**
-   * Finds a trip instance by its unique ID.
+   * Finds a trip instance by its UUID primary key.
+   *
    * @param id - UUID of the trip instance
-   * @returns TripInstance or null if not found
+   * @returns The matching {@link TripInstance}, or `null` if not found
    */
   abstract findById(id: string): Promise<TripInstance | null>;
 
   /**
-   * Lists all trip instances with pagination.
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list
+   * Returns a paginated list of all trip instances, ordered by `departureTime` ascending.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   abstract findAll(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<TripInstance>>;
 
   /**
-   * Lists trip instances belonging to a specific organization.
-   * @param organizationId - UUID of the organization
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list
+   * Returns a paginated list of trip instances for an organisation,
+   * ordered by `departureTime` ascending.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   abstract findByOrganizationId(
     organizationId: string,
@@ -53,10 +68,12 @@ export abstract class TripInstanceRepository {
   ): Promise<PaginatedResponse<TripInstance>>;
 
   /**
-   * Lists trip instances belonging to a specific trip template.
-   * @param templateId - UUID of the trip template
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list
+   * Returns a paginated list of trip instances derived from a specific template,
+   * ordered by `departureTime` ascending.
+   *
+   * @param templateId - UUID of the parent trip template
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   abstract findByTemplateId(
     templateId: string,

@@ -9,6 +9,12 @@ import { BookingRepository } from '../../domain/interfaces';
 import { BookingDetailsResponseDto } from '../dtos/booking-details-response.dto';
 import { BookingPresenter } from '../../presentation/mappers/booking.presenter';
 
+/**
+ * Returns a booking enriched with live trip instance data (departure time, status, available slots).
+ *
+ * Used by `GET /bookings/:id/details` to avoid an extra round-trip from the client.
+ * Access control mirrors {@link FindBookingByIdUseCase}: owner or org member.
+ */
 @Injectable()
 export class FindBookingDetailsUseCase {
   constructor(

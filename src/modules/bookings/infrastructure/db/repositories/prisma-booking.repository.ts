@@ -9,14 +9,23 @@ import type { Status } from 'src/shared/domain/types';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { BookingMapper } from '../mappers/booking.mapper';
 
+/**
+ * Prisma-backed implementation of {@link BookingRepository}.
+ *
+ * All I/O operations target the `enrollment` table via the Prisma Client.
+ * Uses interactive transactions (`$transaction`) for `findAll`, `findByOrganizationId`,
+ * `findByUserId`, and `findByTripInstanceId` to guarantee consistency between
+ * the `findMany` result set and the `count` used for pagination metadata.
+ */
 @Injectable()
 export class PrismaBookingRepository implements BookingRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Persists a new booking entity.
-   * @param entity - Booking to save
-   * @returns Booking persisted or null
+   * Inserts a new booking row via `prisma.enrollment.create`.
+   *
+   * @param entity - The {@link Booking} to persist
+   * @returns The saved entity, or `null` on unexpected failure
    */
   async save(entity: Booking): Promise<Booking | null> {
     const data = await this.prisma.enrollment.create({
@@ -27,9 +36,10 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Updates an existing booking entity.
-   * @param entity - Booking with updated data
-   * @returns Booking updated or null
+   * Updates an existing booking row via `prisma.enrollment.update`.
+   *
+   * @param entity - The {@link Booking} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   async update(entity: Booking): Promise<Booking | null> {
     const data = await this.prisma.enrollment.update({
@@ -41,7 +51,8 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Deletes a booking by its unique identifier.
+   * Hard-deletes a booking row via `prisma.enrollment.delete`.
+   *
    * @param id - UUID of the booking to delete
    */
   async delete(id: string): Promise<void> {
@@ -49,9 +60,10 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Finds a booking by its unique ID.
+   * Finds a single booking by UUID via `prisma.enrollment.findUnique`.
+   *
    * @param id - UUID of the booking
-   * @returns Booking or null if not found
+   * @returns The matching {@link Booking}, or `null` if not found
    */
   async findById(id: string): Promise<Booking | null> {
     const data = await this.prisma.enrollment.findUnique({
@@ -64,9 +76,12 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Lists all bookings with pagination.
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with Booking list
+   * Returns a paginated list of all bookings ordered by `enrollmentDate` descending.
+   *
+   * Uses a Prisma interactive transaction for consistency between `findMany` and `count`.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Booking} items
    */
   async findAll(
     options: PaginationOptions,
@@ -93,10 +108,11 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Lists bookings belonging to a specific organization, ordered by enrollment date.
-   * @param organizationId - UUID of the organization
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with Booking list
+   * Returns a paginated list of bookings for an organisation, ordered by `enrollmentDate` descending.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Booking} items
    */
   async findByOrganizationId(
     organizationId: string,
@@ -125,10 +141,14 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Lists bookings belonging to a specific user, ordered by enrollment date.
+   * Returns a paginated list of bookings for a user, ordered by `enrollmentDate` descending.
+   *
+   * Accepts an optional `status` filter; if omitted, returns all statuses.
+   *
    * @param userId - UUID of the user
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with Booking list
+   * @param options - Pagination parameters `{ page, limit }`
+   * @param status - Optional status filter (`ACTIVE` or `INACTIVE`)
+   * @returns A {@link PaginatedResponse} of {@link Booking} items
    */
   async findByUserId(
     userId: string,
@@ -159,10 +179,11 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Lists bookings belonging to a specific trip instance, ordered by enrollment date.
+   * Returns a paginated list of bookings for a trip instance, ordered by `enrollmentDate` descending.
+   *
    * @param tripInstanceId - UUID of the trip instance
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with Booking list
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Booking} items
    */
   async findByTripInstanceId(
     tripInstanceId: string,
@@ -191,10 +212,13 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   /**
-   * Finds a single booking for a specific user and trip instance combination.
+   * Finds a single booking for the given user-and-trip-instance combination.
+   *
+   * Used to enforce the duplicate-booking invariant.
+   *
    * @param userId - UUID of the user
    * @param tripInstanceId - UUID of the trip instance
-   * @returns Booking if found, or null
+   * @returns The existing {@link Booking} if found, or `null`
    */
   async findByUserAndTripInstance(
     userId: string,

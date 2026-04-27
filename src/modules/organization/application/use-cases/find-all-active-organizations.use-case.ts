@@ -6,6 +6,13 @@ import {
 } from 'src/shared/domain/interfaces';
 import { Organization } from '../../domain/entities';
 
+/**
+ * Returns a paginated list of `ACTIVE` organizations.
+ *
+ * @remarks
+ * Publicly accessible via `GET /organizations/active` (no special guard).
+ * Delegates directly to {@link OrganizationRepository.findAllActive}.
+ */
 @Injectable()
 export class FindAllActiveOrganizationsUseCase {
   constructor(

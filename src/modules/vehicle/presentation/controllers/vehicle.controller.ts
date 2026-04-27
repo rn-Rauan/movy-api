@@ -40,6 +40,21 @@ import {
 } from '../../application/use-cases';
 import { VehiclePresenter } from '../mappers/vehicle.presenter';
 
+/**
+ * HTTP controller for vehicle management.
+ *
+ * All endpoints require authentication (`JwtAuthGuard`) and are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ *
+ * Endpoints:
+ * - `POST /vehicles/organization/:organizationId` — register a new vehicle
+ * - `GET /vehicles/organization/:organizationId` — list all vehicles (paginated)
+ * - `GET /vehicles/:id` — get by ID
+ * - `PUT /vehicles/:id` — partial update
+ * - `DELETE /vehicles/:id` — soft-deactivate
+ *
+ * Base path: `/vehicles`
+ */
 @ApiTags('vehicles')
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)

@@ -1,11 +1,20 @@
 import { DomainError } from 'src/shared/domain/errors/domain.error';
 
-/** Base for all plate validation errors */
+/**
+ * Abstract base for all plate format validation errors.
+ *
+ * @remarks Maps to HTTP 400 Bad Request.
+ */
 export abstract class PlateValidationError extends DomainError {
   abstract code: string;
 }
 
-/** Thrown when the plate string does not pass format validation */
+/**
+ * Thrown when a plate string does not match any valid Brazilian plate format.
+ *
+ * @remarks Maps to HTTP 400 Bad Request. Code: `INVALID_PLATE`.
+ * @see {@link Plate}
+ */
 export class InvalidPlateError extends PlateValidationError {
   code = 'INVALID_PLATE';
 
@@ -17,7 +26,11 @@ export class InvalidPlateError extends PlateValidationError {
   }
 }
 
-/** Thrown when a vehicle with the given ID is not found */
+/**
+ * Thrown when no vehicle record matches the requested ID.
+ *
+ * @remarks Maps to HTTP 404 Not Found. Code: `VEHICLE_NOT_FOUND`.
+ */
 export class VehicleNotFoundError extends DomainError {
   code = 'VEHICLE_NOT_FOUND';
 
@@ -26,7 +39,11 @@ export class VehicleNotFoundError extends DomainError {
   }
 }
 
-/** Thrown when the requester does not own the vehicle */
+/**
+ * Thrown when the requesting organisation does not own the vehicle.
+ *
+ * @remarks Maps to HTTP 403 Forbidden. Code: `VEHICLE_ACCESS_FORBIDDEN`.
+ */
 export class VehicleAccessForbiddenError extends DomainError {
   code = 'VEHICLE_ACCESS_FORBIDDEN';
 
@@ -35,7 +52,11 @@ export class VehicleAccessForbiddenError extends DomainError {
   }
 }
 
-/** Thrown when trying to register a plate that is already in use */
+/**
+ * Thrown when attempting to register or update to a plate that is already in use.
+ *
+ * @remarks Maps to HTTP 409 Conflict. Code: `PLATE_ALREADY_IN_USE`.
+ */
 export class PlateAlreadyInUseError extends DomainError {
   code = 'PLATE_ALREADY_IN_USE';
 
@@ -44,7 +65,11 @@ export class PlateAlreadyInUseError extends DomainError {
   }
 }
 
-/** Thrown when maxCapacity is not a valid positive integer */
+/**
+ * Thrown when `maxCapacity` is not a valid positive integer.
+ *
+ * @remarks Maps to HTTP 400 Bad Request. Code: `INVALID_MAX_CAPACITY`.
+ */
 export class InvalidMaxCapacityError extends DomainError {
   code = 'INVALID_MAX_CAPACITY';
 
@@ -53,7 +78,11 @@ export class InvalidMaxCapacityError extends DomainError {
   }
 }
 
-/** Thrown when persistence fails on vehicle creation */
+/**
+ * Thrown when the persistence layer fails to create a vehicle record.
+ *
+ * @remarks Maps to HTTP 400 Bad Request. Code: `VEHICLE_CREATION_FAILED`.
+ */
 export class VehicleCreationFailedError extends DomainError {
   code = 'VEHICLE_CREATION_FAILED';
 
@@ -62,7 +91,11 @@ export class VehicleCreationFailedError extends DomainError {
   }
 }
 
-/** Thrown when persistence fails on vehicle update */
+/**
+ * Thrown when the persistence layer fails to update a vehicle record.
+ *
+ * @remarks Maps to HTTP 400 Bad Request. Code: `VEHICLE_UPDATE_FAILED`.
+ */
 export class VehicleUpdateFailedError extends DomainError {
   code = 'VEHICLE_UPDATE_FAILED';
 
@@ -71,7 +104,12 @@ export class VehicleUpdateFailedError extends DomainError {
   }
 }
 
-/** Thrown when trying to update a vehicle that has been soft-deleted */
+/**
+ * Thrown when attempting to update a vehicle whose status is `INACTIVE`.
+ *
+ * @remarks Maps to HTTP 400 Bad Request. Code: `VEHICLE_INACTIVE`.
+ * Re-activate the vehicle before applying updates.
+ */
 export class VehicleInactiveError extends DomainError {
   code = 'VEHICLE_INACTIVE';
 

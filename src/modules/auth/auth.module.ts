@@ -20,6 +20,34 @@ import {
 import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 
+/**
+ * NestJS module providing all authentication and JWT infrastructure.
+ *
+ * @remarks
+ * Imports:
+ * - `UserModule` — for user lookup during login/register
+ * - `MembershipModule` — for JWT payload enrichment (first active membership)
+ * - `OrganizationModule` (via `forwardRef`) — for org creation during registration
+ * - `PrismaModule`, `SharedModule` — shared infrastructure
+ * - `PassportModule` (default strategy: `jwt`) + `JwtModule` (async, from `JWT_SECRET` env)
+ *
+ * Exports `JwtStrategy`, `PassportModule`, and `JwtModule` so that guards in
+ * `SharedModule` can validate tokens without circular dependencies.
+ */
+/**
+ * NestJS module providing all authentication and JWT infrastructure.
+ *
+ * @remarks
+ * Imports:
+ * - `UserModule` — for user lookup during login/register
+ * - `MembershipModule` — for JWT payload enrichment (first active membership)
+ * - `OrganizationModule` (via `forwardRef`) — for org creation during registration
+ * - `PrismaModule`, `SharedModule` — shared infrastructure
+ * - `PassportModule` (default strategy: `jwt`) + `JwtModule` (async, from `JWT_SECRET` env)
+ *
+ * Exports `JwtStrategy`, `PassportModule`, and `JwtModule` so that guards in
+ * `SharedModule` can validate tokens without circular dependencies.
+ */
 @Module({
   imports: [
     UserModule,

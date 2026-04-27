@@ -1,8 +1,11 @@
 /**
- * Interface centralizada do contexto de tenancy de uma requisição.
- * Extraído do JWT e injetado em req.context pelo TenantContextMiddleware.
+ * Request-scoped tenant context built from the decoded {@link JwtPayload}.
  *
- * Fonte única de verdade — importar sempre deste arquivo.
+ * @remarks
+ * Populated by `JwtAuthGuard` immediately after token validation and stored
+ * in `req.context`. All downstream guards (`RolesGuard`, `TenantFilterGuard`,
+ * `DevGuard`) and controllers read from this interface — never from `req.user`.
+ * This is the single source of truth for per-request identity.
  */
 export interface TenantContext {
   userId: string;
@@ -13,8 +16,9 @@ export interface TenantContext {
 }
 
 /**
- * Estender Express Request para incluir tipo context.
- * Declaração global única — NÃO duplicar em outros arquivos.
+ * Augments the global Express `Request` type to include the typed
+ * `context` property set by `JwtAuthGuard`.
+ * This declaration must not be duplicated in other files.
  */
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

@@ -9,10 +9,23 @@ import { SubscriptionRepository } from 'src/modules/subscriptions/domain/interfa
 import { SubscriptionStatus } from 'src/modules/subscriptions/domain/interfaces/enums/subscription-status.enum';
 import { SubscriptionMapper } from '../mappers/subscription.mapper';
 
+/**
+ * Prisma-backed implementation of {@link SubscriptionRepository}.
+ *
+ * All I/O operations are performed via the Prisma Client targeting PostgreSQL.
+ * This class is registered in the NestJS DI container as the concrete provider
+ * for the `SubscriptionRepository` abstract token.
+ */
 @Injectable()
 export class PrismaSubscriptionRepository implements SubscriptionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Inserts a new subscription row via `prisma.subscription.create`.
+   *
+   * @param subscription - The {@link SubscriptionEntity} to persist
+   * @returns The saved entity, or `null` on unexpected failure
+   */
   async save(
     subscription: SubscriptionEntity,
   ): Promise<SubscriptionEntity | null> {
@@ -21,6 +34,14 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     return result ? SubscriptionMapper.toDomain(result) : null;
   }
 
+  /**
+   * Patches `status` and `updatedAt` for an existing subscription row.
+   *
+   * Only these two fields are updated — all other fields are immutable after creation.
+   *
+   * @param subscription - The {@link SubscriptionEntity} containing the new `status`
+   * @returns The updated entity, or `null` if the record no longer exists
+   */
   async update(
     subscription: SubscriptionEntity,
   ): Promise<SubscriptionEntity | null> {
@@ -31,11 +52,27 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     return result ? SubscriptionMapper.toDomain(result) : null;
   }
 
+  /**
+   * Finds a single subscription by its UUID via `prisma.subscription.findUnique`.
+   *
+   * @param id - The subscription UUID
+   * @returns The matching {@link SubscriptionEntity}, or `null` if not found
+   */
   async findById(id: string): Promise<SubscriptionEntity | null> {
     const result = await this.prisma.subscription.findUnique({ where: { id } });
     return result ? SubscriptionMapper.toDomain(result) : null;
   }
 
+  /**
+   * Returns the most recent subscription matching the given status for an organisation.
+   *
+   * Uses `findFirst` ordered by `createdAt` descending. Defaults to `ACTIVE` when
+   * `status` is not provided.
+   *
+   * @param organizationId - The organisation UUID
+   * @param status - Optional status filter; defaults to `SubscriptionStatus.ACTIVE`
+   * @returns The most recent matching {@link SubscriptionEntity}, or `null` if none exists
+   */
   async findActiveByOrganizationId(
     organizationId: string,
     status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
@@ -47,6 +84,16 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     return result ? SubscriptionMapper.toDomain(result) : null;
   }
 
+  /**
+   * Returns a paginated list of all subscriptions for an organisation, ordered by `createdAt` descending.
+   *
+   * Uses a Prisma interactive transaction to guarantee consistency between the
+   * `findMany` result set and the `count` used for pagination metadata.
+   *
+   * @param organizationId - The organisation UUID
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} with the page of subscription entities and pagination metadata
+   */
   async findAllByOrganizationId(
     organizationId: string,
     options: PaginationOptions,

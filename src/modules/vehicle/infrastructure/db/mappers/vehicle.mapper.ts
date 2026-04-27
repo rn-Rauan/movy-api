@@ -5,18 +5,17 @@ import { VehicleStatus } from 'src/modules/vehicle/domain/interfaces/enums/vehic
 import { VehicleType } from 'src/modules/vehicle/domain/interfaces/enums/vehicle-type.enum';
 
 /**
- * VehicleMapper
+ * Bidirectional mapper between the Prisma `Vehicle` model and the {@link VehicleEntity} domain object.
  *
- * Responsibility:
- * - Map between Prisma Vehicle (persistence) and VehicleEntity (domain)
- * - Hydrate value objects from raw database values
- * - Convert domain entity to persistence format
+ * Reconstructs the {@link Plate} Value Object from the persisted string via `Plate.restore()`.
+ * Contains no business logic.
  */
 export class VehicleMapper {
   /**
-   * Map a raw Prisma Vehicle row to a VehicleEntity domain object.
-   * @param raw - PrismaVehicle row from database
-   * @returns Hydrated VehicleEntity
+   * Converts a raw Prisma `Vehicle` record to a {@link VehicleEntity} domain object.
+   *
+   * @param raw - Raw `Vehicle` record returned by the Prisma client
+   * @returns A fully hydrated {@link VehicleEntity} instance
    */
   static toDomain(raw: PrismaVehicle): VehicleEntity {
     return VehicleEntity.restore({
@@ -33,9 +32,11 @@ export class VehicleMapper {
   }
 
   /**
-   * Map a VehicleEntity domain object to a plain object suitable for Prisma persistence.
-   * @param entity - VehicleEntity domain object
-   * @returns Prisma-compatible persistence payload
+   * Converts a {@link VehicleEntity} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * @param entity - The {@link VehicleEntity} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.vehicle.create({ data })`
    */
   static toPersistence(entity: VehicleEntity): PrismaVehicle {
     return {

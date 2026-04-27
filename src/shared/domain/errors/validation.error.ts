@@ -1,8 +1,8 @@
 import { DomainError } from './domain.error';
 
 /**
- * Erro genérico de validação
- * Usado para validações que podem ocorrer em múltiplos módulos
+ * Generic validation error — base class for all field-level constraint errors.
+ * Optionally carries the name of the failing `field` property.
  */
 export class ValidationError extends DomainError {
   code = 'VALIDATION_ERROR';
@@ -22,7 +22,7 @@ export class ValidationError extends DomainError {
 }
 
 /**
- * Erro de validação de email
+ * Thrown when an email string fails RFC 5321 format validation.
  */
 export class InvalidEmailError extends ValidationError {
   code = 'INVALID_EMAIL';
@@ -33,7 +33,7 @@ export class InvalidEmailError extends ValidationError {
 }
 
 /**
- * Erro de validação de campo requerido
+ * Thrown when a required field is missing or empty.
  */
 export class RequiredFieldError extends ValidationError {
   code = 'REQUIRED_FIELD';
@@ -44,7 +44,7 @@ export class RequiredFieldError extends ValidationError {
 }
 
 /**
- * Erro de validação de comprimento de string
+ * Thrown when a string field violates minimum or maximum length constraints.
  */
 export class StringLengthError extends ValidationError {
   code = 'STRING_LENGTH_ERROR';
@@ -63,7 +63,8 @@ export class StringLengthError extends ValidationError {
 }
 
 /**
- * Erro de validação de telefone
+ * Thrown when a phone number string fails Brazilian format validation.
+ * Accepted patterns: `(XX) XXXXX-XXXX` or `(XX) XXXX-XXXX` (with optional formatting chars).
  */
 export class InvalidTelephoneError extends ValidationError {
   code = 'INVALID_TELEPHONE';
@@ -73,6 +74,9 @@ export class InvalidTelephoneError extends ValidationError {
   }
 }
 
+/**
+ * Thrown when a numeric monetary value is negative, `NaN`, or `Infinity`.
+ */
 export class InvalidMoneyError extends ValidationError {
   code = 'INVALID_MONEY';
 

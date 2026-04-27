@@ -6,6 +6,13 @@ import {
 } from 'src/shared/domain/interfaces';
 import { Organization } from '../../domain/entities';
 
+/**
+ * Returns a paginated list of all organizations, including inactive ones.
+ *
+ * @remarks
+ * Restricted to dev/admin callers — access control is enforced at the controller layer.
+ * Delegates directly to {@link OrganizationRepository.findAll}.
+ */
 @Injectable()
 export class FindAllOrganizationsUseCase {
   constructor(

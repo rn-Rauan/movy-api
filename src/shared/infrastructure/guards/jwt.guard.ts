@@ -10,17 +10,18 @@ import type { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.int
 import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 
 /**
- * Guard de autenticação JWT que também popula req.context (TenantContext).
+ * JWT authentication guard that validates the bearer token and populates
+ * `req.context` ({@link TenantContext}) for all downstream guards.
  *
- * Pipeline NestJS: Middleware → Guards → Interceptors → Controller
+ * @remarks
+ * NestJS pipeline order: Middleware → **Guards** → Interceptors → Controller
  *
- * Como o middleware roda ANTES dos guards, não tem acesso a req.user
- * (que só é populado pelo Passport dentro deste guard).
- * Por isso a população de req.context é feita aqui, imediatamente
- * após a validação do JWT.
+ * Because middleware runs before guards, `req.user` (set by Passport) is not
+ * yet available there. `JwtAuthGuard` is therefore the correct place to build
+ * `TenantContext`, immediately after token validation.
  *
- * Todos os guards subsequentes (RolesGuard, TenantFilterGuard, DevGuard)
- * podem ler req.context com segurança.
+ * `RolesGuard`, `TenantFilterGuard`, and `DevGuard` all read `req.context`
+ * and must therefore be applied after this guard.
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {

@@ -29,7 +29,7 @@ export interface TripInstanceProps {
 }
 
 /**
- * Internal state for the TripInstance entity.
+ * @internal Internal state for the TripInstance entity.
  */
 interface TripInstanceState {
   readonly id: string;
@@ -49,21 +49,22 @@ interface TripInstanceState {
 }
 
 /**
- * Entity TripInstance
+ * Aggregate root representing a specific scheduled execution of a {@link TripTemplate}.
  *
- * Responsibility:
- * - Represents a specific execution of a TripTemplate
- * - Maintains historical data (snapshot of vehicle capacity and pricing)
- * - Manages trip lifecycle states (Draft -> Scheduled -> Confirmed -> In Progress -> Finished/Canceled)
- * - Validates temporal and status-based invariants
+ * A `TripInstance` is created in `DRAFT` status and progresses through a
+ * defined state machine until it reaches either `FINISHED` or `CANCELED`.
+ * It carries a snapshot of vehicle capacity and pricing at the moment of scheduling.
  *
- * State Machine:
- *   DRAFT       → SCHEDULED (requires driver + vehicle) | CANCELED
- *   SCHEDULED   → CONFIRMED (requires driver + vehicle) | CANCELED
- *   CONFIRMED   → IN_PROGRESS (requires driver + vehicle) | SCHEDULED (revert) | CANCELED
- *   IN_PROGRESS → FINISHED | CANCELED
- *   FINISHED    → terminal
- *   CANCELED    → terminal
+ * State machine:
+ * - `DRAFT` → `SCHEDULED` (requires driver + vehicle) | `CANCELED`
+ * - `SCHEDULED` → `CONFIRMED` | `CANCELED`
+ * - `CONFIRMED` → `IN_PROGRESS` | `SCHEDULED` (revert) | `CANCELED`
+ * - `IN_PROGRESS` → `FINISHED` | `CANCELED`
+ * - `FINISHED` → terminal
+ * - `CANCELED` → terminal
+ *
+ * @see TripTemplate
+ * @see TripStatus
  */
 export class TripInstance {
   private readonly props: TripInstanceState;
@@ -80,12 +81,13 @@ export class TripInstance {
   }
 
   /**
-   * Create a new TripInstance, running domain invariant checks.
-   * Newly created instances start as DRAFT — driver and vehicle must be assigned
-   * before the admin can schedule the trip.
-   * @throws InvalidTripInstanceCapacityError if totalCapacity <= 0
-   * @throws InvalidTripInstanceTimesError if departureTime >= arrivalEstimate
-   * @throws InvalidTripInstanceAutoCancelTimeError if autoCancelAt is after departureTime
+   * Creates a new `TripInstance` in `DRAFT` status, running domain invariant checks.
+   *
+   * @param props - Instance configuration (excludes `tripStatus`, `forceConfirm`, timestamps)
+   * @returns A new {@link TripInstance} with `tripStatus = DRAFT` and `forceConfirm = false`
+   * @throws {@link InvalidTripInstanceCapacityError} if `totalCapacity <= 0`
+   * @throws {@link InvalidTripInstanceTimesError} if `departureTime >= arrivalEstimate`
+   * @throws {@link InvalidTripInstanceAutoCancelTimeError} if `autoCancelAt >= departureTime`
    */
   static create(
     props: Omit<
@@ -111,7 +113,11 @@ export class TripInstance {
   }
 
   /**
-   * Restore an existing TripInstance from persistence (skips domain validation).
+   * Restores a `TripInstance` from persistence without re-running invariant checks.
+   *
+   * @remarks Should only be called from {@link TripInstanceMapper}.
+   * @param props - Raw props as stored in the database
+   * @returns A fully hydrated {@link TripInstance}
    */
   static restore(props: TripInstanceProps): TripInstance {
     return new TripInstance(props);
@@ -183,9 +189,15 @@ export class TripInstance {
   }
 
   /**
-   * Transitions the trip instance to a new status, checking for valid state machine transitions.
-   * @throws InvalidTripStatusTransitionError if the transition is illegal
-   * @throws TripInstanceRequiredFieldError if driver/vehicle is missing when scheduling/confirming
+   * Transitions the trip instance to a new lifecycle status.
+   *
+   * Enforces all state machine rules: only allowed predecessor → successor
+   * transitions are permitted, and scheduling/confirming requires both a driver
+   * and a vehicle to be assigned.
+   *
+   * @param newStatus - The target {@link TripStatus}
+   * @throws {@link InvalidTripStatusTransitionError} if the transition is not permitted
+   * @throws {@link TripInstanceRequiredFieldError} if driver or vehicle is missing when required
    */
   transitionTo(newStatus: TripStatus): void {
     const current = this.props.tripStatus;

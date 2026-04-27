@@ -1,6 +1,4 @@
-/**
- * Interface that defines the properties of the Membership entity.
- */
+/** @internal */
 export interface MembershipProps {
   readonly userId: string;
   readonly roleId: number;
@@ -10,10 +8,16 @@ export interface MembershipProps {
 }
 
 /**
- * Entity Membership (OrganizationMembership)
+ * Aggregate representing a user's role assignment within an organization.
  *
- * Responsibility:
- * - Manage membership data between User, Role and Organization
+ * @remarks
+ * The composite key `(userId, roleId, organizationId)` is unique in the database.
+ * Memberships support soft-removal: calling `remove()` stamps `removedAt`;
+ * calling `restoreMembership()` clears it.
+ * Used as the source of truth for RBAC token population via
+ * `MembershipRepository.findFirstActiveByUserId`.
+ *
+ * @see {@link MembershipRepository} for persistence operations
  */
 export class Membership {
   private readonly props: Required<MembershipProps>;
@@ -29,7 +33,10 @@ export class Membership {
   }
 
   /**
-   * Method to create a new Membership instance.
+   * Creates a new membership with default `assignedAt = now` and `removedAt = null`.
+   *
+   * @param props - Membership properties (omits `assignedAt` and `removedAt`)
+   * @returns A new {@link Membership} instance
    */
   static create(
     props: Omit<MembershipProps, 'assignedAt' | 'removedAt'>,
@@ -38,7 +45,10 @@ export class Membership {
   }
 
   /**
-   * Method to restore an existing Membership instance.
+   * Restores a membership from persisted data (skips default assignment).
+   *
+   * @param props - Full membership properties from storage
+   * @returns A hydrated {@link Membership} instance
    */
   static restore(props: MembershipProps): Membership {
     return new Membership(props);

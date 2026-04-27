@@ -8,13 +8,22 @@ import {
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { VehicleMapper } from '../mappers/vehicle.mapper';
 
+/**
+ * Prisma-backed implementation of {@link VehicleRepository}.
+ *
+ * All I/O operations target the `vehicle` table via the Prisma Client.
+ * Uses a parallel `$transaction` for paginated list queries to guarantee
+ * consistency between the `findMany` result and the `count`.
+ */
 @Injectable()
 export class PrismaVehicleRepository implements VehicleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * @param vehicle - VehicleEntity to persist
-   * @returns VehicleEntity created or null
+   * Inserts a new vehicle row via `prisma.vehicle.create`.
+   *
+   * @param vehicle - The {@link VehicleEntity} to persist
+   * @returns The saved entity, or `null` on unexpected failure
    */
   async save(vehicle: VehicleEntity): Promise<VehicleEntity | null> {
     const vehicleData = await this.prisma.vehicle.create({
@@ -24,8 +33,10 @@ export class PrismaVehicleRepository implements VehicleRepository {
   }
 
   /**
+   * Finds a vehicle by UUID via `prisma.vehicle.findUnique`.
+   *
    * @param id - UUID of the vehicle
-   * @returns VehicleEntity or null if not found
+   * @returns The matching {@link VehicleEntity}, or `null` if not found
    */
   async findById(id: string): Promise<VehicleEntity | null> {
     const vehicleData = await this.prisma.vehicle.findUnique({ where: { id } });
@@ -34,8 +45,10 @@ export class PrismaVehicleRepository implements VehicleRepository {
   }
 
   /**
-   * @param plate - Normalized plate string (e.g. "ABC1234")
-   * @returns VehicleEntity or null if not found
+   * Finds a vehicle by its normalised plate string via `prisma.vehicle.findUnique`.
+   *
+   * @param plate - Normalised plate string (e.g. `"ABC1234"`)
+   * @returns The matching {@link VehicleEntity}, or `null` if not found
    */
   async findByPlate(plate: string): Promise<VehicleEntity | null> {
     const vehicleData = await this.prisma.vehicle.findUnique({
@@ -46,9 +59,12 @@ export class PrismaVehicleRepository implements VehicleRepository {
   }
 
   /**
-   * @param organizationId - UUID of the organization
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with VehicleEntity list
+   * Returns a paginated list of vehicles for an organisation,
+   * ordered by `createdAt` descending. Uses a parallel transaction.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link VehicleEntity} items
    */
   async findByOrganizationId(
     organizationId: string,
@@ -77,8 +93,10 @@ export class PrismaVehicleRepository implements VehicleRepository {
   }
 
   /**
-   * @param vehicle - VehicleEntity with updated data
-   * @returns VehicleEntity updated or null
+   * Updates an existing vehicle row via `prisma.vehicle.update`.
+   *
+   * @param vehicle - The {@link VehicleEntity} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   async update(vehicle: VehicleEntity): Promise<VehicleEntity | null> {
     const vehicleData = await this.prisma.vehicle.update({
@@ -89,6 +107,8 @@ export class PrismaVehicleRepository implements VehicleRepository {
   }
 
   /**
+   * Hard-deletes a vehicle row via `prisma.vehicle.delete`.
+   *
    * @param id - UUID of the vehicle to delete
    */
   async delete(id: string): Promise<void> {

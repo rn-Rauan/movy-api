@@ -13,6 +13,15 @@ import {
 } from 'src/modules/trip/domain/interfaces';
 import { Booking } from '../../domain/entities';
 
+/**
+ * Soft-cancels a booking by setting its `status` to `INACTIVE`.
+ *
+ * Access control: the booking owner **or** an org member (Admin/Driver) with matching
+ * `organizationId` can cancel. Cancellation is blocked when:
+ * - The booking is already `INACTIVE`
+ * - The linked trip instance is `IN_PROGRESS` or `FINISHED`
+ * - The departure time is within 30 minutes from now
+ */
 @Injectable()
 export class CancelBookingUseCase {
   private readonly CANCELLATION_DEADLINE_MINUTES = 30;

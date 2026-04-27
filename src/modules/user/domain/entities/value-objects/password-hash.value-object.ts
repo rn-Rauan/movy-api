@@ -2,12 +2,15 @@ import { InvalidPasswordError } from '../errors';
 import { StringLengthError } from 'src/shared/domain/errors';
 
 /**
- * PasswordHash Value Object
+ * Immutable Value Object wrapping a bcrypt password hash string.
  *
- * Responsibility:
- * - Encapsulate password hash validation logic
- * - Guarantee password hash invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * - Validates that the hash is non-empty and at least 8 characters long
+ * - The raw plaintext password is hashed by {@link HashProvider} before being
+ *   passed to `create()` — this VO never stores or receives a plaintext password
+ * - Equality is checked by direct string comparison of the stored hash
+ *
+ * @see {@link InvalidPasswordError}
  */
 export class PasswordHash {
   private readonly value: string;
@@ -17,10 +20,11 @@ export class PasswordHash {
   }
 
   /**
-   * Create a new PasswordHash instance
-   * @param passwordHash Password hash string to validate
-   * @throws InvalidPasswordError if password hash is empty
-   * @throws StringLengthError if password hash length is invalid
+   * Creates a new {@link PasswordHash} instance after validating the hash string.
+   *
+   * @returns A new immutable {@link PasswordHash} instance
+   * @throws {@link InvalidPasswordError} if the hash string is empty
+   * @throws {@link StringLengthError} if the hash is shorter than 8 characters
    */
   static create(passwordHash: string): PasswordHash {
     if (!passwordHash || passwordHash.trim().length === 0) {

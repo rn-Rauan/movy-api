@@ -2,9 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 /**
- * DTO for user login.
- * @param email - User's email address
- * @param password - User's password
+ * Input DTO for {@link LoginUseCase} — `POST /auth/login`.
  */
 export class LoginDto {
   @ApiProperty({

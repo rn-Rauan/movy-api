@@ -11,6 +11,21 @@ import { JwtPayloadService } from '../services/jwt-payload.service';
 import { RegisterOrganizationWithAdminDto } from '../dtos/register-organization.dto';
 import { TokenResponseDto } from '../dtos';
 
+/**
+ * Atomically registers a new user, an organization, and an `ADMIN` membership
+ * linking them, then returns enriched JWT tokens.
+ *
+ * @remarks
+ * Compensation pattern:
+ * - If organization creation fails → the user row is deleted.
+ * - If membership creation fails → the user row is deleted.
+ * - The organization is NOT deleted on membership failure (manual cleanup needed).
+ *
+ * Throws:
+ * - `UserEmailAlreadyExistsError` — email already taken
+ * - `OrganizationAlreadyExistsError` — CNPJ already registered
+ * - {@link RoleNotFoundError} — `ADMIN` role missing from seed data
+ */
 @Injectable()
 export class RegisterOrganizationWithAdminUseCase {
   private readonly logger = new Logger(

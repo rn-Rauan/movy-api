@@ -4,9 +4,12 @@ import { EnrollmentType } from '../../domain/interfaces';
 import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 
 /**
- * DTO for creating a new booking (enrollment) in a trip instance.
- * organizationId and userId are extracted from the JWT — never sent in body.
- * recordedPrice is resolved server-side from the TripTemplate — never trusted from client.
+ * Input DTO for the `POST /bookings` endpoint.
+ *
+ * @remarks
+ * - `organizationId` and `userId` are extracted from the JWT — never included in the body
+ * - `recordedPrice` is resolved server-side from the `TripTemplate` — never trusted from the client
+ * - The `paymentMethod` field is used to create the associated {@link PaymentEntity}
  */
 export class CreateBookingDto {
   @ApiProperty({

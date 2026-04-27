@@ -5,18 +5,20 @@ import { Money } from 'src/shared';
 import type { Status } from 'src/shared/domain/types';
 
 /**
- * BookingMapper
+ * Bidirectional mapper between the Prisma `Enrollment` model and the {@link Booking} domain object.
  *
- * Responsibility:
- * - Map between Prisma Enrollment (persistence) and Booking (domain)
- * - Hydrate Money value objects from raw database Decimal values
- * - Convert domain entity to persistence format
+ * Handles the `recordedPrice` field by casting `Prisma.Decimal` to `number` via `Number()`
+ * and reconstructing the {@link Money} Value Object. Contains no business logic.
  */
 export class BookingMapper {
   /**
-   * Map a raw Prisma Enrollment row to a Booking domain object.
-   * @param raw - PrismaEnrollment row from database
-   * @returns Hydrated Booking domain entity
+   * Converts a raw Prisma `Enrollment` record to a {@link Booking} domain object.
+   *
+   * Casts `recordedPrice` from `Prisma.Decimal` to `number` via `Number()` and
+   * reconstructs the {@link Money} Value Object from that value.
+   *
+   * @param raw - Raw `Enrollment` record returned by the Prisma client
+   * @returns A fully hydrated {@link Booking} instance
    */
   static toDomain(raw: PrismaEnrollment): Booking {
     return Booking.restore({
@@ -37,9 +39,14 @@ export class BookingMapper {
   }
 
   /**
-   * Map a Booking domain object to a plain object suitable for Prisma persistence.
-   * @param entity - Booking domain object
-   * @returns Prisma-compatible persistence payload
+   * Converts a {@link Booking} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * The return type is intentionally left untyped to avoid an explicit `Prisma.Decimal` cast;
+   * passing a plain `number` to `recordedPrice` is accepted by the Prisma client at runtime.
+   *
+   * @param entity - The {@link Booking} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.enrollment.create({ data })`
    */
   static toPersistence(entity: Booking) {
     return {

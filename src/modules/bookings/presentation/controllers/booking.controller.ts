@@ -44,6 +44,25 @@ import {
 } from '../../application/use-cases';
 import { BookingPresenter } from '../mappers/booking.presenter';
 
+/**
+ * HTTP controller for the Bookings module.
+ *
+ * Exposes 9 endpoints spanning booking creation, cancellation, presence confirmation,
+ * availability check, and various paginated list queries.
+ *
+ * Access control varies per endpoint:
+ * - `POST /bookings` — any authenticated user (B2C or org member)
+ * - `GET /bookings/organization/:organizationId` — org `ADMIN` only, scoped by `TenantFilterGuard`
+ * - `GET /bookings/user` — any authenticated user (returns own bookings)
+ * - `GET /bookings/trip-instance/:tripInstanceId` — org member of the owning org
+ * - `GET /bookings/availability/:tripInstanceId` — any authenticated user
+ * - `GET /bookings/:id` — owner or org member
+ * - `GET /bookings/:id/details` — owner or org member
+ * - `PATCH /bookings/:id/cancel` — owner or org member
+ * - `PATCH /bookings/:id/confirm-presence` — org member only
+ *
+ * Base path: `/bookings`
+ */
 @ApiTags('bookings')
 @Controller('bookings')
 @UseGuards(JwtAuthGuard)

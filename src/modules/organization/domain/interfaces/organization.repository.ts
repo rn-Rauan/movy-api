@@ -3,25 +3,42 @@ import {
   PaginationOptions,
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
+/**
+ * Abstract repository contract for the {@link Organization} aggregate.
+ *
+ * The concrete implementation ({@link PrismaOrganizationRepository}) is bound in
+ * {@link OrganizationModule} via the NestJS DI token `OrganizationRepository`.
+ */
+/**
+ * Abstract repository contract for the {@link Organization} aggregate.
+ *
+ * The concrete implementation ({@link PrismaOrganizationRepository}) is bound in
+ * {@link OrganizationModule} via the NestJS DI token `OrganizationRepository`.
+ */
 export abstract class OrganizationRepository {
   /**
-   * Persists a new organization in the database.
-   * @param organization - Organization entity to be saved
-   * @returns Persisted Organization entity or null in case of failure
+   * Persists a new organization.
+   *
+   * @param organization - {@link Organization} to save
+   * @returns The saved entity, or `null` on unexpected failure
    */
   abstract save(organization: Organization): Promise<Organization | null>;
 
   /**
-   * Finds an organization by ID in the database.
+   * Finds an organization by its UUID.
+   *
    * @param id - UUID of the organization
-   * @returns Organization entity or null if not found
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   abstract findById(id: string): Promise<Organization | null>;
 
   /**
-   * Finds an organization by user ID in the database.
+   * Returns a paginated list of organizations the given user belongs to
+   * via their memberships.
+   *
    * @param userId - UUID of the user
-   * @returns Paginated response with Organization entities or null if not found
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Organization} items
    */
   abstract findOrganizationByUserId(
     userId: string,
@@ -29,46 +46,54 @@ export abstract class OrganizationRepository {
   ): Promise<PaginatedResponse<Organization>>;
 
   /**
-   * Finds an organization by CNPJ in the database.
-   * @param cnpj - CNPJ of the organization
-   * @returns Organization entity or null if not found
+   * Finds an organization by its unique CNPJ.
+   *
+   * @param cnpj - Formatted CNPJ string
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   abstract findByCnpj(cnpj: string): Promise<Organization | null>;
 
   /**
-   * Finds an organization by slug in the database.
-   * @param slug - Unique slug of the organization
-   * @returns Organization entity or null if not found
+   * Finds an organization by its unique URL slug.
+   *
+   * @param slug - The organization's slug
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   abstract findBySlug(slug: string): Promise<Organization | null>;
 
   /**
-   * Finds an organization by email in the database.
-   * @param email - Email of the organization
-   * @returns Organization entity or null if not found
+   * Finds an organization by its unique contact email.
+   *
+   * @param email - Email address of the organization
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   abstract findByEmail(email: string): Promise<Organization | null>;
 
   /**
-   * Updates an existing organization in the database.
-   * @param organization - Organization entity with updated data
-   * @returns Organization entity or null if update failed
+   * Updates an existing organization entity.
+   *
+   * @param organization - {@link Organization} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   abstract update(organization: Organization): Promise<Organization | null>;
 
   /**
-   * Lists all organizations with pagination (including inactive ones).
-   * @param options - Pagination options for (page, limit)
-   * @returns Paginated response with all Organization entities
+   * Returns a paginated list of all organizations regardless of status,
+   * ordered by `createdAt` descending.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of all {@link Organization} items
    */
   abstract findAll(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<Organization>>;
 
   /**
-   * Lists all active organizations with pagination.
-   * @param options - Pagination options for (page, limit)
-   * @returns Paginated response with active Organization entities
+   * Returns a paginated list of `ACTIVE` organizations,
+   * ordered by `createdAt` descending.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of active {@link Organization} items
    */
   abstract findAllActive(
     options: PaginationOptions,

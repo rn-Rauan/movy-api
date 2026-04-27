@@ -9,6 +9,18 @@ import {
 import { UpdateUserDto } from '../dtos/update-user.dto';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 
+/**
+ * Partially updates a user's profile fields.
+ *
+ * @remarks
+ * Only provided fields are applied. Email uniqueness is re-checked when
+ * a new email is supplied. Password updates are hashed via {@link HashProvider}
+ * before being stored. Inactive users cannot be updated.
+ *
+ * @see {@link UserNotFoundError}
+ * @see {@link InactiveUserError}
+ * @see {@link UserEmailAlreadyExistsError}
+ */
 @Injectable()
 export class UpdateUserUseCase {
   constructor(

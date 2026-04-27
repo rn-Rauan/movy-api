@@ -2,7 +2,9 @@ import { DomainError } from 'src/shared/domain/errors/domain.error';
 import { TripStatus } from '../../interfaces';
 
 /**
- * Error thrown when a TripInstance's capacity is invalid (must be >= 0).
+ * Thrown when a `TripInstance` is created with `totalCapacity <= 0`.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
  */
 export class InvalidTripInstanceCapacityError extends DomainError {
   readonly code = 'TRIP_INSTANCE_CAPACITY_BAD_REQUEST';
@@ -14,7 +16,9 @@ export class InvalidTripInstanceCapacityError extends DomainError {
 }
 
 /**
- * Error thrown when arrival time is not after departure time.
+ * Thrown when `arrivalEstimate` is not strictly after `departureTime`.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
  */
 export class InvalidTripInstanceTimesError extends DomainError {
   readonly code = 'TRIP_INSTANCE_TIMES_BAD_REQUEST';
@@ -24,7 +28,9 @@ export class InvalidTripInstanceTimesError extends DomainError {
 }
 
 /**
- * Error thrown when auto-cancel time is not before departure time.
+ * Thrown when `autoCancelAt` is not strictly before `departureTime`.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
  */
 export class InvalidTripInstanceAutoCancelTimeError extends DomainError {
   readonly code = 'TRIP_INSTANCE_AUTO_CANCEL_BAD_REQUEST';
@@ -34,7 +40,10 @@ export class InvalidTripInstanceAutoCancelTimeError extends DomainError {
 }
 
 /**
- * Error thrown when trying to perform an invalid state transition.
+ * Thrown when the requested status transition is not allowed by the state machine.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ * @see TripStatus
  */
 export class InvalidTripStatusTransitionError extends DomainError {
   readonly code = 'TRIP_INSTANCE_STATUS_TRANSITION_BAD_REQUEST';
@@ -44,7 +53,10 @@ export class InvalidTripStatusTransitionError extends DomainError {
 }
 
 /**
- * Error thrown when a required field is missing for a specific status.
+ * Thrown when a field required for a specific status (e.g. `driverId` for `SCHEDULED`)
+ * is `null` at the time of transition.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
  */
 export class TripInstanceRequiredFieldError extends DomainError {
   readonly code = 'TRIP_INSTANCE_REQUIRED_FIELD_BAD_REQUEST';
@@ -55,7 +67,11 @@ export class TripInstanceRequiredFieldError extends DomainError {
   }
 }
 
-/** Thrown when a TripInstance with the given ID is not found */
+/**
+ * Thrown when a `TripInstance` cannot be found by the provided UUID.
+ *
+ * @remarks Maps to HTTP `404 Not Found`.
+ */
 export class TripInstanceNotFoundError extends DomainError {
   code = 'TRIP_INSTANCE_NOT_FOUND';
 
@@ -64,7 +80,11 @@ export class TripInstanceNotFoundError extends DomainError {
   }
 }
 
-/** Thrown when the requester does not own the TripInstance */
+/**
+ * Thrown when the calling organisation does not own the requested `TripInstance`.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
 export class TripInstanceAccessForbiddenError extends DomainError {
   code = 'TRIP_INSTANCE_ACCESS_FORBIDDEN';
 
@@ -73,7 +93,11 @@ export class TripInstanceAccessForbiddenError extends DomainError {
   }
 }
 
-/** Thrown when persistence fails during trip instance creation */
+/**
+ * Thrown when the `TripInstance` row cannot be persisted due to an unexpected repository error.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class TripInstanceCreationFailedError extends DomainError {
   code = 'TRIP_INSTANCE_CREATION_FAILED_BAD_REQUEST';
 

@@ -3,6 +3,24 @@ import { CreateUserUseCase } from '../../../user/application/use-cases';
 import { RegisterDto, TokenResponseDto } from '../dtos';
 import { LoginUseCase } from './login.use-case';
 
+/**
+ * Registers a new user account and immediately authenticates them.
+ *
+ * @remarks
+ * Delegates user creation to {@link CreateUserUseCase}, then delegates
+ * authentication to {@link LoginUseCase}. The returned tokens are identical
+ * to what a normal login would produce.
+ * Throws `UserEmailAlreadyExistsError` if the email is already taken.
+ */
+/**
+ * Registers a new user account and immediately authenticates them.
+ *
+ * @remarks
+ * Delegates user creation to {@link CreateUserUseCase}, then delegates
+ * authentication to {@link LoginUseCase}. The returned tokens are identical
+ * to what a normal login would produce.
+ * Throws `UserEmailAlreadyExistsError` if the email is already taken.
+ */
 @Injectable()
 export class RegisterUseCase {
   constructor(

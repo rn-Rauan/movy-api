@@ -16,12 +16,12 @@ import { DayOfWeek } from '../../domain/interfaces/enums/day-of-week.enum';
 import { Shift } from '../../domain/interfaces/enums/shift.enum';
 
 /**
- * DTO for creating a new trip template.
- * @param departurePoint - Starting location of the trip
- * @param destination - Final destination of the trip
- * @param stops - Ordered list of intermediate stops (min 2)
- * @param shift - Time-of-day classification (MORNING, AFTERNOON, EVENING)
- * @param frequency - Days of the week when the trip recurs
+ * Input DTO for `POST /trip-templates/organization/:organizationId`.
+ *
+ * @remarks
+ * - At least one of `priceOneWay`, `priceReturn`, or `priceRoundTrip` must be provided
+ * - When `isRecurring = true`, `frequency` must include at least one {@link DayOfWeek}
+ * - When `autoCancelEnabled = true`, both `minRevenue` and `autoCancelOffset` are required `autoCancelOffset` are required
  */
 export class CreateTripTemplateDto {
   @ApiProperty({

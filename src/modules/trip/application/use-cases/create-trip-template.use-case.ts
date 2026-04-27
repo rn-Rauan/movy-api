@@ -6,6 +6,12 @@ import { TripTemplateCreationFailedError } from '../../domain/entities/errors/tr
 import { TripTemplateRepository } from '../../domain/interfaces';
 import { CreateTripTemplateDto } from '../dtos';
 
+/**
+ * Creates and persists a new {@link TripTemplate} for the requesting organisation.
+ *
+ * All domain invariants (route, stops, pricing, recurrence, auto-cancel) are
+ * validated by {@link TripTemplate.create} before the repository is called.
+ */
 @Injectable()
 export class CreateTripTemplateUseCase {
   constructor(
@@ -13,17 +19,19 @@ export class CreateTripTemplateUseCase {
   ) {}
 
   /**
-   * Creates a new trip template for the given organization.
+   * Creates a new trip template for the given organisation.
+   *
    * Domain entity validates route, stops, pricing, recurrence, and auto-cancel invariants.
+   *
    * @param input - Trip template creation data
-   * @param organizationId - UUID of the owning organization (from JWT context)
-   * @returns TripTemplate created and persisted
-   * @throws InvalidTripRoutePointsError if route is invalid
-   * @throws InvalidTripStopsError if stops are invalid
-   * @throws InvalidTripPriceConfigurationError if no price is provided
-   * @throws InvalidTripFrequencyError if recurring with no days
-   * @throws InvalidTripAutoCancelConfigurationError if auto-cancel config is incomplete
-   * @throws TripTemplateCreationFailedError if persistence fails
+   * @param organizationId - UUID of the owning organisation (from JWT)
+   * @returns The newly created and persisted {@link TripTemplate}
+   * @throws {@link InvalidTripRoutePointsError} if route is invalid
+   * @throws {@link InvalidTripStopsError} if stops are invalid
+   * @throws {@link InvalidTripPriceConfigurationError} if no price is provided
+   * @throws {@link InvalidTripFrequencyError} if recurring with no days
+   * @throws {@link InvalidTripAutoCancelConfigurationError} if auto-cancel config is incomplete
+   * @throws {@link TripTemplateCreationFailedError} if persistence fails
    */
   async execute(
     input: CreateTripTemplateDto,

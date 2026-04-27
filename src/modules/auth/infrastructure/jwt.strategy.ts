@@ -5,19 +5,16 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
 
 /**
- * JWT Strategy usando Passport
+ * Passport JWT strategy for validating bearer tokens on every protected request.
  *
- * ✅ RESPONSABILIDADE: Apenas VALIDAR o JWT já enriquecido
+ * @remarks
+ * Responsibility: **validate only** — no database queries.
+ * The payload was enriched with `organizationId`, `role`, `isDev`, and `userStatus`
+ * at login/refresh time by {@link JwtPayloadService}. `validate()` simply returns
+ * the decoded payload as `req.user` (`TenantContext`).
  *
- * ✅ O enriquecimento do JWT (organizationId, role, isDev) é feito:
- * - Login: JwtPayloadService.enrichPayload() -> LoginUseCase gera JWT enriquecido
- * - Refresh: JwtPayloadService.enrichPayload() -> RefreshTokenUseCase gera JWT enriquecido
- * - Validação: JwtStrategy apenas retorna o payload já enriquecido
- *
- * Este padrão garante:
- * - Separação de responsabilidades (enrich vs validate)
- * - Sem N+1 queries (porque validação não busca no BD)
- * - Zero duplication (enrich logic em um só lugar)
+ * This design avoids N+1 DB queries on every authenticated request and keeps
+ * enrichment logic in a single place.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -34,17 +31,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   /**
-   * Valida o JWT já enriquecido
-   * Chamado automaticamente pelo Passport quando um JWT é recebido
+   * Called automatically by Passport after verifying the token signature.
+   * Returns the decoded payload verbatim as `req.user`.
    *
-   * ✅ Retorna JwtPayload (tipado para req.user via Express.User)
-   *
-   * O payload já contém:
-   * - sub, id, email (identificação)
-   * - organizationId (multi-tenant context)
-   * - role (authorization level)
-   * - isDev (developer bypass)
-   * - userStatus (conta ativa/inativa)
+   * @param payload - The decoded and verified {@link JwtPayload}
+   * @returns The same payload, cast to `TenantContext` by `GetUser` decorator
    */
   validate(payload: JwtPayload): JwtPayload {
     // Trust the JWT payload to avoid DB query on every request.

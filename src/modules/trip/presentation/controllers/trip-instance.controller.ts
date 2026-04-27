@@ -42,6 +42,40 @@ import {
 } from '../../application/use-cases';
 import { TripInstancePresenter } from '../mappers/trip-instance.presenter';
 
+/**
+ * HTTP controller for the Trip Instances sub-resource.
+ *
+ * All endpoints require authentication (`JwtAuthGuard`) and are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ *
+ * Endpoints:
+ * - `POST /trip-instances/organization/:organizationId` — create instance from template
+ * - `GET /trip-instances/organization/:organizationId` — list by org (paginated)
+ * - `GET /trip-instances/template/:templateId` — list by template (paginated)
+ * - `GET /trip-instances/:id` — get by ID
+ * - `PATCH /trip-instances/:id/status` — transition lifecycle status
+ * - `PUT /trip-instances/:id/driver` — assign / unassign driver
+ * - `PUT /trip-instances/:id/vehicle` — assign / unassign vehicle
+ *
+ * Base path: `/trip-instances`
+ */
+/**
+ * HTTP controller for the Trip Instances sub-resource.
+ *
+ * All endpoints require authentication (`JwtAuthGuard`) and are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ *
+ * Endpoints:
+ * - `POST /trip-instances/organization/:organizationId` — create instance from template
+ * - `GET /trip-instances/organization/:organizationId` — list by org (paginated)
+ * - `GET /trip-instances/template/:templateId` — list by template (paginated)
+ * - `GET /trip-instances/:id` — get by ID
+ * - `PATCH /trip-instances/:id/status` — transition lifecycle status
+ * - `PUT /trip-instances/:id/driver` — assign / unassign driver
+ * - `PUT /trip-instances/:id/vehicle` — assign / unassign vehicle
+ *
+ * Base path: `/trip-instances`
+ */
 @ApiTags('trip-instances')
 @Controller('trip-instances')
 @UseGuards(JwtAuthGuard)

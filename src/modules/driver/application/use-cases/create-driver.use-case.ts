@@ -9,6 +9,15 @@ import {
   DriverAlreadyExistsError,
 } from '../../domain/entities/errors/driver.errors';
 
+/**
+ * Creates a new driver profile for the requesting user.
+ *
+ * @remarks
+ * Enforces uniqueness: a user may only have one driver profile.
+ * All three CNH fields are required and validated through Value Objects.
+ * Throws {@link DriverAlreadyExistsError} if a profile already exists,
+ * and {@link DriverCreationFailedError} if persistence fails.
+ */
 @Injectable()
 export class CreateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}

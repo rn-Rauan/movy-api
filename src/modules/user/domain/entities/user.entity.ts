@@ -3,15 +3,8 @@ import { PasswordHash, UserName } from './value-objects';
 import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 
 /**
- * Interface that defines the properties of the User entity.
- * @property {string} id - Unique identifier for the user.
- * @property {UserName} name - User's name.
- * @property {Email} email - User's email address.
- * @property {PasswordHash} passwordHash - Hashed password for authentication.
- * @property {Telephone} telephone - User's telephone number.
- * @property {Date} createdAt - Timestamp of when the user was created.
- * @property {Date} updatedAt - Timestamp of the last update to the user's data.
- * @property {Status} status - Current status of the user (e.g., ACTIVE, INACTIVE).
+ * Internal property bag for the {@link User} aggregate.
+ * @internal
  */
 export interface UserProps {
   readonly id: string;
@@ -24,12 +17,18 @@ export interface UserProps {
   status?: Status;
 }
 /**
- * Entity User
+ * Aggregate root representing a registered user of the Movy platform.
  *
- * Responsibility:
- * - Manage user data
- * - Validate data integrity
+ * @remarks
+ * - `name` is a {@link UserName} Value Object; length must be 3–255 characters
+ * - `email` is an {@link Email} Value Object enforcing valid email format; unique in the system
+ * - `passwordHash` is a {@link PasswordHash} Value Object; the raw password is never stored
+ * - `telephone` is a {@link Telephone} Value Object
+ * - `status` defaults to `ACTIVE` on creation; set to `INACTIVE` for soft-delete
+ * - All mutating setters (`setName`, `setEmail`, etc.) refresh `updatedAt` automatically
  *
+ * @see {@link UserName}
+ * @see {@link PasswordHash}
  */
 export class User {
   private readonly props: Required<UserProps>;
@@ -46,7 +45,10 @@ export class User {
   }
 
   /**
-   * Method to create a new User instance.
+   * Creates a new {@link User} with status `ACTIVE` and current timestamps.
+   *
+   * @param props - User data excluding audit timestamps and status
+   * @returns A new {@link User} instance
    */
   static create(
     props: Omit<UserProps, 'createdAt' | 'status' | 'updatedAt'>,
@@ -55,7 +57,13 @@ export class User {
   }
 
   /**
-   * Method to restore a existing User instance.
+   * Reconstructs a {@link User} from a persistence record.
+   *
+   * Skips all domain invariant checks — the data is assumed valid since
+   * it was originally written through the domain layer.
+   *
+   * @param props - Full property snapshot from the database
+   * @returns A fully hydrated {@link User} instance
    */
   static restore(props: UserProps): User {
     return new User(props);

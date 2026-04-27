@@ -6,6 +6,15 @@ import {
   DriverNotFoundError,
 } from '../../domain/entities/errors/driver.errors';
 
+/**
+ * Retrieves a driver profile by UUID, scoped to the requesting organization.
+ *
+ * @remarks
+ * Validates organization ownership via {@link DriverRepository.belongsToOrganization}
+ * to prevent cross-tenant data leaks.
+ * Throws {@link DriverNotFoundError} if absent or {@link DriverAccessForbiddenError}
+ * if the driver belongs to a different organization.
+ */
 @Injectable()
 export class FindDriverByIdUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}

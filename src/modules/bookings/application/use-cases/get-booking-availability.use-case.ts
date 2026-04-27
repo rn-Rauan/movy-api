@@ -9,6 +9,13 @@ import { BookingAvailabilityResponseDto } from '../dtos/booking-availability-res
 
 const BOOKABLE_STATUSES = new Set([TripStatus.SCHEDULED, TripStatus.CONFIRMED]);
 
+/**
+ * Returns availability information for a trip instance.
+ *
+ * Any authenticated user can call this endpoint before attempting to create a booking.
+ * No org role is required. Computes `availableSlots` and the `isBookable` flag
+ * based on the instance's `totalCapacity` and current active booking count.
+ */
 @Injectable()
 export class GetBookingAvailabilityUseCase {
   constructor(

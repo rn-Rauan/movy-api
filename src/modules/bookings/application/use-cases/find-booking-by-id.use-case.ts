@@ -6,26 +6,25 @@ import {
 import { BookingRepository } from '../../domain/interfaces';
 import { Booking } from '../../domain/entities';
 
+/**
+ * Retrieves a single booking by its UUID.
+ *
+ * Access control: the booking owner **or** an org member with matching
+ * `organizationId` can access the booking.
+ */
 @Injectable()
 export class FindBookingByIdUseCase {
   constructor(private readonly bookingRepository: BookingRepository) {}
 
   /**
-   * Finds a booking by its unique ID, scoped to the requesting organization.
-   * @param id - UUID of the booking
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns BookingResponseDto found
-   * @throws BookingNotFoundError if the booking does not exist
-   * @throws BookingAccessForbiddenError if the booking belongs to a different organization
-   */
-  /**
-   * Finds a booking by ID. Org members or the booking owner can access it.
+   * Looks up the booking and enforces access control.
+   *
    * @param id - UUID of the booking
    * @param userId - UUID of the authenticated user (from JWT)
-   * @param organizationId - UUID of the organization (from JWT, optional for B2C users)
-   * @returns BookingResponseDto found
-   * @throws BookingNotFoundError if the booking does not exist
-   * @throws BookingAccessForbiddenError if caller is not the owner and not from the same org
+   * @param organizationId - UUID of the organisation (from JWT; optional for B2C users)
+   * @returns The matching {@link Booking}
+   * @throws {@link BookingNotFoundError} if no booking with the given `id` exists
+   * @throws {@link BookingAccessForbiddenError} if the caller is neither the owner nor an org member
    */
   async execute(
     id: string,

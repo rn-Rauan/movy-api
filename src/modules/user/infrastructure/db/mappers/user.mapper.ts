@@ -6,11 +6,18 @@ import {
 } from 'src/modules/user/domain/entities/value-objects';
 import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
 
+/**
+ * Bidirectional mapper between the Prisma `User` model and the {@link User} domain object.
+ *
+ * Reconstructs all Value Objects (`UserName`, `Email`, `PasswordHash`, `Telephone`)
+ * from their persisted string representations. Contains no business logic.
+ */
 export class UserMapper {
   /**
-   * Map PrismaUser to User domain entity
-   * @param raw PrismaUser entity
-   * @returns User domain entity
+   * Converts a raw Prisma `User` record to a {@link User} domain object.
+   *
+   * @param raw - Raw `User` record returned by the Prisma client
+   * @returns A fully hydrated {@link User} instance
    */
   static toDomain(raw: PrismaUser): User {
     return User.restore({
@@ -26,9 +33,11 @@ export class UserMapper {
   }
 
   /**
-   * Map User domain entity to PrismaUser entity
-   * @param user User domain entity
-   * @returns PrismaUser entity
+   * Converts a {@link User} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * @param user - The {@link User} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.user.create({ data })`
    */
   static toPersistence(user: User): PrismaUser {
     return {

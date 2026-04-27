@@ -11,6 +11,13 @@ import {
 } from '../../domain/entities';
 import { Telephone, Email } from 'src/shared/domain/entities/value-objects';
 
+/**
+ * Creates a new organization in the system.
+ *
+ * @remarks
+ * Enforces uniqueness on `cnpj` and `slug` before persisting.
+ * Throws {@link OrganizationAlreadyExistsError} on either conflict.
+ */
 @Injectable()
 export class CreateOrganizationUseCase {
   constructor(

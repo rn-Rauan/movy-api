@@ -11,13 +11,22 @@ import { PrismaService } from 'src/shared/infrastructure/database/prisma.service
 import { MembershipMapper } from '../mappers/membership.mapper';
 import { Injectable } from '@nestjs/common';
 
+/**
+ * Prisma-backed implementation of {@link MembershipRepository}.
+ *
+ * All I/O targets the `OrganizationMembership` table via the Prisma Client.
+ * Paginated list methods use a parallel `$transaction([findMany, count])`
+ * for consistency.
+ */
 @Injectable()
 export class PrismaMembershipRepository implements MembershipRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * @param membership - Membership entity to persist
-   * @returns Membership entity created
+   * Inserts a new membership row via `prisma.organizationMembership.create`.
+   *
+   * @param membership - The {@link Membership} to persist
+   * @returns The saved entity
    */
   async save(membership: Membership): Promise<Membership> {
     const membershipData = await this.prisma.organizationMembership.create({
@@ -27,10 +36,12 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   /**
+   * Finds a membership by its composite primary key via `findUnique`.
+   *
    * @param userId - UUID of the user
-   * @param roleId - Role ID
+   * @param roleId - Numeric role ID
    * @param organizationId - UUID of the organization
-   * @returns Membership entity or null if not found
+   * @returns The matching {@link Membership}, or `null` if not found
    */
   async findByCompositeKey(
     userId: string,
@@ -51,10 +62,13 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   /**
+   * Returns a paginated list of memberships for the given user,
+   * optionally filtered by organization. Uses a parallel `$transaction`.
+   *
    * @param userId - UUID of the user
-   * @param options - Pagination options (page, limit)
-   * @param organizationId - Optional organization UUID filter
-   * @returns Paginated response with membership entities
+   * @param options - Pagination parameters `{ page, limit }`
+   * @param organizationId - Optional UUID to scope the query
+   * @returns A {@link PaginatedResponse} of {@link Membership} items
    */
   async findByUserId(
     userId: string,
@@ -84,9 +98,12 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   /**
+   * Returns a paginated list of all memberships for the given organization.
+   * Uses a parallel `$transaction`.
+   *
    * @param organizationId - UUID of the organization
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with membership entities
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Membership} items
    */
   async findByOrganizationId(
     organizationId: string,
@@ -116,8 +133,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   /**
-   * @param membership - Membership entity with updated data
-   * @returns Membership entity updated
+   * Updates an existing membership row via `prisma.organizationMembership.update`.
+   * Used for soft-remove and restore operations.
+   *
+   * @param membership - The {@link Membership} with updated state
+   * @returns The updated entity
    */
   async update(membership: Membership): Promise<Membership> {
     const membershipData = await this.prisma.organizationMembership.update({
@@ -134,9 +154,12 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   /**
+   * Finds the first active membership (`removedAt = null`) for the given user
+   * and organization via `findFirst`.
+   *
    * @param userId - UUID of the user
    * @param organizationId - UUID of the organization
-   * @returns Membership entity or null if not found
+   * @returns The matching {@link Membership}, or `null` if not found
    */
   async findByUserIdAndOrganizationId(
     userId: string,
@@ -154,8 +177,10 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   /**
+   * Hard-deletes a membership record by composite key.
+   *
    * @param userId - UUID of the user
-   * @param roleId - Role ID
+   * @param roleId - Numeric role ID
    * @param organizationId - UUID of the organization
    */
   async delete(
@@ -179,8 +204,11 @@ export class PrismaMembershipRepository implements MembershipRepository {
   // ============================================
 
   /**
+   * Returns the first active membership for the user ordered by `assignedAt ASC`.
+   * Includes the `role` relation for JWT payload population.
+   *
    * @param userId - UUID of the user
-   * @returns First active membership DTO or null
+   * @returns A {@link FirstMembershipDTO} or `null` if the user has no active memberships
    */
   async findFirstActiveByUserId(
     userId: string,

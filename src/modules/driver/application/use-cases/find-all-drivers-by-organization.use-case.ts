@@ -3,6 +3,13 @@ import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
 import { PaginatedResponse, PaginationOptions } from 'src/shared';
 
+/**
+ * Returns a paginated list of drivers linked to the requesting organization.
+ *
+ * @remarks
+ * Delegates directly to {@link DriverRepository.findByOrganizationId}.
+ * Drivers are filtered by active `DRIVER` role membership in the organization.
+ */
 @Injectable()
 export class FindAllDriversByOrganizationUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}

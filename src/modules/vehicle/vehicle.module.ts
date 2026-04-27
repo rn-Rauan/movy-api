@@ -12,6 +12,12 @@ import {
 import { VehicleRepository } from './domain/interfaces';
 import { PrismaVehicleRepository } from './infrastructure/db/repositories/prisma-vehicle.repository';
 
+/**
+ * NestJS module managing the {@link VehicleEntity} aggregate.
+ *
+ * Exports {@link VehicleRepository} so that {@link TripModule} can validate
+ * vehicle assignment in `AssignVehicleToTripInstanceUseCase`.
+ */
 @Module({
   imports: [PrismaModule, SharedModule],
   controllers: [VehicleController],

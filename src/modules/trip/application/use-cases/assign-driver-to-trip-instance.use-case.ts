@@ -8,6 +8,13 @@ import { TripInstanceRepository } from '../../domain/interfaces';
 import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
 import { DriverNotFoundError } from 'src/modules/driver/domain/entities/errors/driver.errors';
 
+/**
+ * Assigns or unassigns a driver from a {@link TripInstance}.
+ *
+ * Passing `null` as `driverId` unassigns the current driver.
+ * The driver must belong to the same database scope (no cross-org validation here —
+ * driver existence is checked via {@link DriverRepository}).
+ */
 @Injectable()
 export class AssignDriverToTripInstanceUseCase {
   constructor(
@@ -16,14 +23,15 @@ export class AssignDriverToTripInstanceUseCase {
   ) {}
 
   /**
-   * Assigns or removes a driver from a trip instance.
-   * Passing null unassigns the current driver.
+   * Validates instance ownership, optionally validates driver existence, then persists.
+   *
    * @param id - UUID of the trip instance
-   * @param driverId - UUID of the driver to assign, or null to unassign
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns TripInstance with updated driver assignment
-   * @throws TripInstanceNotFoundError if the trip instance does not exist
-   * @throws TripInstanceAccessForbiddenError if the instance belongs to a different organization
+   * @param driverId - UUID of the driver to assign, or `null` to unassign
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @returns The updated {@link TripInstance}
+   * @throws {@link TripInstanceNotFoundError} if the instance does not exist
+   * @throws {@link TripInstanceAccessForbiddenError} if the instance belongs to a different org
+   * @throws {@link DriverNotFoundError} if `driverId` is provided but the driver does not exist
    */
   async execute(
     id: string,

@@ -36,7 +36,7 @@ export interface TripTemplateProps {
 }
 
 /**
- * Resolved internal state — all fields are non-optional after construction.
+ * @internal Resolved internal state — all fields are non-optional after construction.
  */
 interface TripTemplateState {
   readonly id: string;
@@ -60,12 +60,20 @@ interface TripTemplateState {
 }
 
 /**
- * Entity TripTemplate
+ * Aggregate root representing a reusable route/schedule blueprint for trips.
  *
- * Responsibility:
- * - Define a reusable route/schedule blueprint for trips
- * - Validate route, pricing, recurrence, and auto-cancel invariants
- * - Encapsulate lifecycle (activate/deactivate) and configuration mutations
+ * A `TripTemplate` defines the static configuration shared across multiple
+ * {@link TripInstance} executions: route points, stops, pricing tiers, recurrence
+ * frequency, shift classification, and auto-cancel rules.
+ *
+ * Invariants enforced at creation time:
+ * - `departurePoint` and `destination` must be non-empty and distinct
+ * - `stops` must contain at least 2 valid (non-empty) items
+ * - At least one price tier (`priceOneWay`, `priceReturn`, `priceRoundTrip`) must be set
+ * - A recurring template must define at least one `DayOfWeek` in `frequency`
+ * - Auto-cancel requires both `minRevenue` and a positive `autoCancelOffset`
+ *
+ * @see TripInstance
  */
 export class TripTemplate {
   private readonly props: TripTemplateState;
@@ -96,13 +104,16 @@ export class TripTemplate {
   }
 
   /**
-   * Create a new TripTemplate, running all domain invariant checks.
-   * @throws RequiredFieldError if departurePoint or destination is empty
-   * @throws InvalidTripRoutePointsError if both points are equal
-   * @throws InvalidTripStopsError if stops has fewer than 2 valid items
-   * @throws InvalidTripPriceConfigurationError if no price is provided
-   * @throws InvalidTripFrequencyError if recurring with no days
-   * @throws InvalidTripAutoCancelConfigurationError if auto-cancel config is incomplete
+   * Creates a new `TripTemplate`, running all domain invariant checks.
+   *
+   * @param props - Template configuration (excludes `createdAt`, `updatedAt`, `status`)
+   * @returns A new {@link TripTemplate} with `status = ACTIVE`
+   * @throws {@link RequiredFieldError} if `departurePoint` or `destination` is empty
+   * @throws {@link InvalidTripRoutePointsError} if both route points are equal
+   * @throws {@link InvalidTripStopsError} if `stops` has fewer than 2 valid items
+   * @throws {@link InvalidTripPriceConfigurationError} if no price tier is provided
+   * @throws {@link InvalidTripFrequencyError} if recurring but `frequency` is empty
+   * @throws {@link InvalidTripAutoCancelConfigurationError} if auto-cancel config is incomplete
    */
   static create(
     props: Omit<TripTemplateProps, 'createdAt' | 'updatedAt' | 'status'>,
@@ -128,7 +139,11 @@ export class TripTemplate {
   }
 
   /**
-   * Restore an existing TripTemplate from persistence (skips invariant checks).
+   * Restores a `TripTemplate` from persistence without re-running invariant checks.
+   *
+   * @remarks Should only be called from {@link TripTemplateMapper}.
+   * @param props - Raw props as stored in the database
+   * @returns A fully hydrated {@link TripTemplate}
    */
   static restore(props: TripTemplateProps): TripTemplate {
     return new TripTemplate(props);

@@ -5,6 +5,13 @@ export interface RoleProps {
   name: RoleName;
 }
 
+/**
+ * Domain entity representing a user role (e.g. `ADMIN`, `DRIVER`).
+ *
+ * Roles are seeded at startup and never created at runtime.
+ * They are referenced by `MembershipEntity` to define access level
+ * within an organization.
+ */
 export class Role {
   private readonly props: RoleProps;
 

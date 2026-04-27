@@ -6,6 +6,13 @@ import {
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Returns a paginated list of all memberships belonging to a given organization.
+ *
+ * @remarks
+ * Delegates directly to {@link MembershipRepository.findByOrganizationId}.
+ * Includes both active and soft-removed memberships.
+ */
 @Injectable()
 export class FindMembershipsByOrganizationUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}

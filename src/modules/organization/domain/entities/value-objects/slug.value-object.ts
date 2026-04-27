@@ -1,12 +1,12 @@
 import { InvalidSlugError } from '../errors';
 
 /**
- * Slug Value Object
+ * Value Object representing a URL-safe slug for an organization.
  *
- * Responsibility:
- * - Encapsulate slug validation logic
- * - Guarantee slug invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * Only lowercase letters, digits, and hyphens are accepted.
+ * Must follow the pattern `/^[a-z0-9]+(?:-[a-z0-9]+)*$/` — no leading/trailing
+ * hyphens and no consecutive hyphens.
  */
 export class Slug {
   private readonly value: string;
@@ -16,9 +16,11 @@ export class Slug {
   }
 
   /**
-   * Create a new Slug instance
-   * @param slug Slug string to validate
-   * @throws InvalidSlugError if slug format is invalid
+   * Validates and creates a new {@link Slug} instance.
+   *
+   * @param slug - Raw slug string (lowercase, digits, hyphens)
+   * @returns A valid {@link Slug} Value Object
+   * @throws {@link InvalidSlugError} if the string does not match the slug pattern
    */
   static create(slug: string): Slug {
     const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

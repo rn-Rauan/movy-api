@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { HashProvider } from '../interfaces/hash.interface';
 import * as bcrypt from 'bcrypt';
 
+/**
+ * bcrypt implementation of {@link HashProvider}.
+ * Uses 10 salt rounds for `generateHash` — a safe default balancing security and CPU cost.
+ */
 @Injectable()
 export class BcryptHashProvider implements HashProvider {
   /**

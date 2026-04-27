@@ -1,11 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
- * @param data - Array of paginated items
- * @param total - Total number of items
- * @param page - Current page number
- * @param limit - Items per page
- * @param totalPages - Total number of pages
+ * Generic HTTP response DTO for paginated list endpoints.
+ * Wraps a typed item array with pagination metadata serialised for Swagger.
+ *
+ * @typeParam T - The type of items in the `data` array
  */
 export class PaginatedDto<T> {
   @ApiProperty({ isArray: true })

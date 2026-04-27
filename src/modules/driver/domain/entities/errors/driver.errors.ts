@@ -1,14 +1,16 @@
 import { DomainError } from 'src/shared/domain/errors/domain.error';
 
 /**
- * Erro genérico de validação do Driver
+ * Base class for all Driver domain validation errors.
+ * Maps to HTTP 400 Bad Request unless a subclass specifies otherwise.
  */
 export abstract class DriverValidationError extends DomainError {
   abstract code: string;
 }
 
 /**
- * Erro de CNH inválida
+ * Thrown when a CNH string does not match the expected format (9–12 alphanumeric chars).
+ * HTTP 400 — code: `INVALID_CNH`
  */
 export class InvalidCnhError extends DriverValidationError {
   code = 'INVALID_CNH';
@@ -22,7 +24,8 @@ export class InvalidCnhError extends DriverValidationError {
 }
 
 /**
- * Erro de categoria de CNH inválida
+ * Thrown when a CNH category is not one of the allowed values (A, B, C, D, E).
+ * HTTP 400 — code: `INVALID_CNH_CATEGORY`
  */
 export class InvalidCnhCategoryError extends DriverValidationError {
   code = 'INVALID_CNH_CATEGORY';
@@ -35,7 +38,8 @@ export class InvalidCnhCategoryError extends DriverValidationError {
 }
 
 /**
- * Erro de data de expiração da CNH inválida
+ * Thrown when the CNH expiration date is in the past.
+ * HTTP 400 — code: `INVALID_CNH_EXPIRATION`
  */
 export class InvalidCnhExpirationError extends DriverValidationError {
   code = 'INVALID_CNH_EXPIRATION';
@@ -48,7 +52,8 @@ export class InvalidCnhExpirationError extends DriverValidationError {
 }
 
 /**
- * Erro de CNH expirada
+ * Thrown when a driver attempts an operation with an already-expired CNH.
+ * HTTP 400 — code: `EXPIRED_CNH`
  */
 export class ExpiredCnhError extends DriverValidationError {
   code = 'EXPIRED_CNH';
@@ -61,7 +66,8 @@ export class ExpiredCnhError extends DriverValidationError {
 }
 
 /**
- * Erro de status inválido
+ * Thrown when an unrecognised driver status string is provided.
+ * HTTP 400 — code: `INVALID_DRIVER_STATUS`
  */
 export class InvalidDriverStatusError extends DriverValidationError {
   code = 'INVALID_DRIVER_STATUS';
@@ -74,7 +80,8 @@ export class InvalidDriverStatusError extends DriverValidationError {
 }
 
 /**
- * Erro de driver não encontrado
+ * Thrown when no driver matches the provided identifier (id, userId, or CNH).
+ * HTTP 404 — code: `DRIVER_NOT_FOUND_BAD_REQUEST`
  */
 export class DriverNotFoundError extends DriverValidationError {
   code = 'DRIVER_NOT_FOUND_BAD_REQUEST';
@@ -88,7 +95,8 @@ export class DriverNotFoundError extends DriverValidationError {
 }
 
 /**
- * Erro: nenhum perfil de motorista associado ao e-mail informado
+ * Thrown during driver lookup when no user exists with the provided email.
+ * HTTP 404 — code: `DRIVER_PROFILE_NOT_FOUND_BAD_REQUEST`
  */
 export class DriverProfileNotFoundByEmailError extends DriverValidationError {
   code = 'DRIVER_PROFILE_NOT_FOUND_BAD_REQUEST';
@@ -99,7 +107,8 @@ export class DriverProfileNotFoundByEmailError extends DriverValidationError {
 }
 
 /**
- * Erro de falha ao criar driver
+ * Thrown when the persistence layer fails to save a new driver.
+ * HTTP 500 — code: `DRIVER_CREATION_FAILED`
  */
 export class DriverCreationFailedError extends DomainError {
   code = 'DRIVER_CREATION_FAILED';
@@ -110,7 +119,8 @@ export class DriverCreationFailedError extends DomainError {
 }
 
 /**
- * Erro de falha ao atualizar driver
+ * Thrown when the persistence layer fails to update an existing driver.
+ * HTTP 500 — code: `DRIVER_UPDATE_FAILED`
  */
 export class DriverUpdateFailedError extends DomainError {
   code = 'DRIVER_UPDATE_FAILED';
@@ -121,7 +131,8 @@ export class DriverUpdateFailedError extends DomainError {
 }
 
 /**
- * Erro: usuário já possui perfil de motorista
+ * Thrown when attempting to create a driver profile for a user who already has one.
+ * HTTP 409 — code: `DRIVER_ALREADY_EXISTS_CONFLICT`
  */
 export class DriverAlreadyExistsError extends DriverValidationError {
   code = 'DRIVER_ALREADY_EXISTS_CONFLICT';
@@ -131,6 +142,10 @@ export class DriverAlreadyExistsError extends DriverValidationError {
   }
 }
 
+/**
+ * Thrown when only some CNH-related fields are provided on update (all-or-nothing rule).
+ * HTTP 400 — code: `INVALID_PARTIAL_CNH_UPDATE_BAD_REQUEST`
+ */
 export class PartialCnhUpdateError extends DriverValidationError {
   code = 'INVALID_PARTIAL_CNH_UPDATE_BAD_REQUEST';
 
@@ -141,7 +156,10 @@ export class PartialCnhUpdateError extends DriverValidationError {
   }
 }
 
-/** Thrown when the requester does not own the driver profile */
+/**
+ * Thrown when the requesting organization does not own the target driver profile.
+ * HTTP 403 — code: `DRIVER_ACCESS_FORBIDDEN`
+ */
 export class DriverAccessForbiddenError extends DomainError {
   code = 'DRIVER_ACCESS_FORBIDDEN';
 

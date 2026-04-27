@@ -6,6 +6,13 @@ import {
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Returns a paginated list of all users regardless of status.
+ *
+ * @remarks
+ * This use case is restricted to developer endpoints (`DevGuard`) and should
+ * not be called from user-facing flows.
+ */
 @Injectable()
 export class FindAllUsersUseCase {
   constructor(private readonly userRepository: UserRepository) {}

@@ -14,6 +14,18 @@ import { OrganizationRepository } from './domain/interfaces/organization.reposit
 import { OrganizationPresenter } from './presentation/mappers/organization.mapper';
 import { SharedModule } from 'src/shared';
 
+/**
+ * NestJS module managing the {@link Organization} aggregate.
+ *
+ * @remarks
+ * Self-contained: only imports {@link SharedModule} (guards, decorators).
+ * Exports all use cases and {@link OrganizationRepository} so that dependent
+ * modules (e.g., `AuthModule`, `MembershipModule`, `BookingModule`) can resolve
+ * organizations without importing the full module.
+ *
+ * {@link OrganizationPresenter} is provided as an injectable class instance
+ * because it is injected into the controller via NestJS DI.
+ */
 @Module({
   imports: [SharedModule],
   controllers: [OrganizationController],

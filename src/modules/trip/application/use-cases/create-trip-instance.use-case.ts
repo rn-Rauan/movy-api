@@ -14,6 +14,12 @@ import {
 } from '../../domain/interfaces';
 import { CreateTripInstanceDto } from '../dtos';
 
+/**
+ * Creates a new {@link TripInstance} (in `DRAFT` status) from an existing active {@link TripTemplate}.
+ *
+ * Auto-cancel fields are derived from the template when the feature is enabled,
+ * unless overridden in the DTO. Driver and vehicle assignment is optional at this stage.
+ */
 @Injectable()
 export class CreateTripInstanceUseCase {
   constructor(
@@ -22,19 +28,18 @@ export class CreateTripInstanceUseCase {
   ) {}
 
   /**
-   * Creates a new trip instance (DRAFT) based on an existing trip template.
-   * Auto-cancel fields are derived from the template when enabled, unless overridden in the DTO.
-   * Driver and vehicle are optional at this stage.
+   * Creates a new trip instance based on an existing active trip template.
+   *
    * @param input - Trip instance creation data
-   * @param organizationId - UUID of the owning organization (from JWT context)
-   * @returns TripInstance created and persisted
-   * @throws TripTemplateNotFoundError if the template does not exist
-   * @throws TripTemplateAccessForbiddenError if the template belongs to a different organization
-   * @throws TripTemplateInactiveError if the template is inactive
-   * @throws InvalidTripInstanceCapacityError if totalCapacity <= 0
-   * @throws InvalidTripInstanceTimesError if departureTime >= arrivalEstimate
-   * @throws InvalidTripInstanceAutoCancelTimeError if autoCancelAt is not before departureTime
-   * @throws TripInstanceCreationFailedError if persistence fails
+   * @param organizationId - UUID of the owning organisation (from JWT)
+   * @returns The newly created and persisted {@link TripInstance}
+   * @throws {@link TripTemplateNotFoundError} if the template does not exist
+   * @throws {@link TripTemplateAccessForbiddenError} if the template belongs to a different org
+   * @throws {@link TripTemplateInactiveError} if the template is inactive
+   * @throws {@link InvalidTripInstanceCapacityError} if `totalCapacity <= 0`
+   * @throws {@link InvalidTripInstanceTimesError} if `departureTime >= arrivalEstimate`
+   * @throws {@link InvalidTripInstanceAutoCancelTimeError} if `autoCancelAt >= departureTime`
+   * @throws {@link TripInstanceCreationFailedError} if persistence fails
    */
   async execute(
     input: CreateTripInstanceDto,
@@ -94,8 +99,9 @@ export class CreateTripInstanceUseCase {
   }
 
   /**
-   * Calculates autoCancelAt by subtracting autoCancelOffset (minutes) from departureTime.
-   * Returns null if auto-cancel is not enabled or offset is not set.
+   * Calculates `autoCancelAt` by subtracting `autoCancelOffset` minutes from `departureTime`.
+   *
+   * @returns `null` if auto-cancel is disabled or no offset is configured
    */
   private resolveAutoCancelAt(
     autoCancelEnabled: boolean,
@@ -111,8 +117,8 @@ export class CreateTripInstanceUseCase {
   }
 
   /**
-   * Resolves minRevenue: uses DTO override if provided, falls back to template value when
-   * auto-cancel is enabled, or returns null.
+   * Resolves `minRevenue`: uses DTO override if provided, falls back to the template
+   * value when auto-cancel is enabled, or returns `null`.
    */
   private resolveMinRevenue(
     dtoMinRevenue: number | null | undefined,

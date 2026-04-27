@@ -2,12 +2,12 @@ import { InvalidOrganizationNameError } from '../errors';
 import { StringLengthError } from 'src/shared/domain/errors';
 
 /**
- * OrganizationName Value Object
+ * Value Object representing an organization's display name.
  *
- * Responsibility:
- * - Encapsulate organization name validation logic
- * - Guarantee organization name invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * Accepts 2–255 characters (trimmed). Throws distinct errors for empty
+ * input ({@link InvalidOrganizationNameError}) and length violations
+ * ({@link StringLengthError}).
  */
 export class OrganizationName {
   private readonly value: string;
@@ -17,10 +17,12 @@ export class OrganizationName {
   }
 
   /**
-   * Create a new OrganizationName instance
-   * @param name Name string to validate
-   * @throws InvalidOrganizationNameError if name is empty
-   * @throws StringLengthError if name length is invalid
+   * Validates and creates a new {@link OrganizationName} instance.
+   *
+   * @param name - Raw name string (2–255 chars, trimmed)
+   * @returns A valid {@link OrganizationName} Value Object
+   * @throws {@link InvalidOrganizationNameError} if the string is empty
+   * @throws {@link StringLengthError} if the trimmed length is outside 2–255
    */
   static create(name: string): OrganizationName {
     if (!name || name.trim().length === 0) {

@@ -2,8 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 
 /**
- * @param id - Numeric ID of the role
- * @param name - Name of the role (e.g. ADMIN, DRIVER)
+ * HTTP response shape for a role lookup.
+ *
+ * Returned by `GET /memberships/me/role/:organizationId`.
  */
 export class RoleResponseDto {
   @ApiProperty({ example: 1 })

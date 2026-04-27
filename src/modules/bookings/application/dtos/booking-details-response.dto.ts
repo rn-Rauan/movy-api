@@ -3,8 +3,11 @@ import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { BookingResponseDto } from './booking-response.dto';
 
 /**
- * Extended response DTO that includes trip instance data alongside booking info.
- * Used by GET /bookings/:id/details to avoid a second round-trip from the client.
+ * Extended HTTP response shape that includes live trip instance data alongside booking info.
+ *
+ * Used by `GET /bookings/:id/details` to avoid an extra round-trip from the client.
+ * Extends {@link BookingResponseDto} with departure time, estimated arrival, trip status,
+ * total capacity, and available slot count.
  */
 export class BookingDetailsResponseDto extends BookingResponseDto {
   @ApiProperty({

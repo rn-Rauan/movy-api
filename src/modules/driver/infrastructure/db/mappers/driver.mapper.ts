@@ -8,18 +8,17 @@ import { CnhCategoryType } from 'src/modules/driver/domain/entities/value-object
 import { DriverStatus } from 'src/modules/driver/domain/interfaces/enums/driver-status.enum';
 
 /**
- * Driver Mapper
+ * Bidirectional mapper between the Prisma `Driver` model and the {@link DriverEntity} domain object.
  *
- * Responsibility:
- * - Map between Prisma Driver (persistence) and DriverEntity (domain)
- * - Hydrate value objects from raw database values
- * - Convert domain entity to persistence format
+ * Reconstructs Value Objects (`Cnh`, `CnhCategory`) from their persisted string
+ * representations and casts the `driverStatus` enum. Contains no business logic.
  */
 export class DriverMapper {
   /**
-   * Map PrismaDriver to DriverEntity domain entity
-   * @param raw PrismaDriver entity from database
-   * @returns DriverEntity domain entity
+   * Converts a raw Prisma `Driver` record to a {@link DriverEntity} domain object.
+   *
+   * @param raw - Raw `Driver` record returned by the Prisma client
+   * @returns A fully hydrated {@link DriverEntity} instance
    */
   static toDomain(raw: PrismaDriver): DriverEntity {
     return DriverEntity.restore({
@@ -35,9 +34,11 @@ export class DriverMapper {
   }
 
   /**
-   * Map DriverEntity domain entity to PrismaDriver for persistence
-   * @param driver DriverEntity domain entity
-   * @returns PrismaDriver persistence entity
+   * Converts a {@link DriverEntity} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * @param driver - The {@link DriverEntity} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.driver.create({ data })`
    */
   static toPersistence(driver: DriverEntity): PrismaDriver {
     return {

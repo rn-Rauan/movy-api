@@ -1,11 +1,18 @@
 import { TripInstance } from '../../domain/entities';
 import { TripInstanceResponseDto } from '../../application/dtos/trip-instance-response.dto';
 
+/**
+ * Serialises a {@link TripInstance} domain object into the HTTP response shape {@link TripInstanceResponseDto}.
+ *
+ * Responsible for unwrapping the `minRevenue` {@link Money} Value Object into a plain `number`.
+ * Should be called exclusively from controller methods, never from use cases.
+ */
 export class TripInstancePresenter {
   /**
-   * Converts a TripInstance entity to the HTTP response DTO.
-   * @param entity - TripInstance from domain
-   * @returns TripInstanceResponseDto formatted for the API
+   * Maps a single entity to its HTTP response DTO.
+   *
+   * @param entity - The {@link TripInstance} to serialise
+   * @returns A {@link TripInstanceResponseDto} safe to include in an HTTP response
    */
   static toHTTP(entity: TripInstance): TripInstanceResponseDto {
     return new TripInstanceResponseDto({
@@ -27,9 +34,10 @@ export class TripInstancePresenter {
   }
 
   /**
-   * Converts a list of TripInstance entities to HTTP response DTOs.
-   * @param entities - Array of TripInstance
-   * @returns Array of TripInstanceResponseDto formatted for the API
+   * Maps a collection of entities to an array of HTTP response DTOs.
+   *
+   * @param entities - Array of {@link TripInstance} instances to serialise
+   * @returns Array of {@link TripInstanceResponseDto} objects
    */
   static toHTTPList(entities: TripInstance[]): TripInstanceResponseDto[] {
     return entities.map((e) => this.toHTTP(e));

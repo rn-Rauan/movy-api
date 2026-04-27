@@ -7,11 +7,18 @@ import {
   Address,
 } from 'src/modules/organization/domain/entities/value-objects';
 import { Telephone, Email } from 'src/shared/domain/entities/value-objects';
+/**
+ * Bidirectional mapper between the Prisma `Organization` model and the {@link Organization} domain object.
+ *
+ * Reconstructs all Value Objects (`OrganizationName`, `Cnpj`, `Email`, `Telephone`,
+ * `Slug`, `Address`) from their persisted string representations. Contains no business logic.
+ */
 export class OrganizationMapper {
   /**
-   * Map PrismaOrganization to Organization domain entity
-   * @param raw PrismaOrganization entity
-   * @returns Organization domain entity
+   * Converts a raw Prisma `Organization` record to an {@link Organization} domain object.
+   *
+   * @param raw - Raw `Organization` record returned by the Prisma client
+   * @returns A fully hydrated {@link Organization} instance
    */
   static toDomain(raw: PrismaOrganization): Organization {
     return Organization.restore({
@@ -29,9 +36,11 @@ export class OrganizationMapper {
   }
 
   /**
-   * Map Organization domain entity to PrismaOrganization entity
-   * @param organization Organization domain entity
-   * @returns PrismaOrganization entity
+   * Converts an {@link Organization} domain object to the plain object expected by Prisma's
+   * `create` and `update` methods.
+   *
+   * @param organization - The {@link Organization} instance to serialise
+   * @returns A plain persistence-layer object compatible with `prisma.organization.create({ data })`
    */
   static toPersistence(organization: Organization): PrismaOrganization {
     return {

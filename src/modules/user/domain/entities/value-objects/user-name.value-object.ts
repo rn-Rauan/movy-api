@@ -2,12 +2,13 @@ import { InvalidUserNameError } from '../errors';
 import { StringLengthError } from 'src/shared/domain/errors';
 
 /**
- * Name Value Object
+ * Immutable Value Object representing a user's display name.
  *
- * Responsibility:
- * - Encapsulate name validation logic
- * - Guarantee name invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * - Name is trimmed before storage and must be 3–255 characters after trimming
+ * - Equality is checked by direct string comparison
+ *
+ * @see {@link InvalidUserNameError}
  */
 export class UserName {
   private readonly value: string;
@@ -17,10 +18,12 @@ export class UserName {
   }
 
   /**
-   * Create a new Name instance
-   * @param name Name string to validate
-   * @throws InvalidUserNameError if name is empty
-   * @throws StringLengthError if name length is invalid
+   * Creates a new {@link UserName} instance after trimming and validating the name.
+   *
+   * @param name - Raw name string
+   * @returns A new trimmed, immutable {@link UserName} instance
+   * @throws {@link InvalidUserNameError} if the name is empty or blank
+   * @throws {@link StringLengthError} if the trimmed name is shorter than 3 or longer than 255 characters
    */
   static create(name: string): UserName {
     if (!name || name.trim().length === 0) {

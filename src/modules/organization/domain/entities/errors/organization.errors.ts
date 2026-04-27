@@ -1,14 +1,16 @@
 import { DomainError } from 'src/shared/domain/errors/domain.error';
 
 /**
- * Erro genérico de validação da Organization
+ * Base class for all Organization domain validation errors.
+ * Maps to HTTP 400 Bad Request unless a subclass specifies otherwise.
  */
 export abstract class OrganizationValidationError extends DomainError {
   abstract code: string;
 }
 
 /**
- * Erro de nome inválido
+ * Thrown when an organization name is empty or exceeds the allowed length (2–255 chars).
+ * HTTP 400 — code: `INVALID_ORGANIZATION_NAME`
  */
 export class InvalidOrganizationNameError extends OrganizationValidationError {
   code = 'INVALID_ORGANIZATION_NAME';
@@ -22,7 +24,8 @@ export class InvalidOrganizationNameError extends OrganizationValidationError {
 }
 
 /**
- * Erro de CNPJ inválido
+ * Thrown when a CNPJ string does not match the expected Brazilian format or fails digit validation.
+ * HTTP 400 — code: `INVALID_CNPJ`
  */
 export class InvalidCnpjError extends OrganizationValidationError {
   code = 'INVALID_CNPJ';
@@ -33,7 +36,8 @@ export class InvalidCnpjError extends OrganizationValidationError {
 }
 
 /**
- * Erro de Slug inválido
+ * Thrown when a slug string does not match the required format (lowercase, digits, hyphens).
+ * HTTP 400 — code: `INVALID_SLUG`
  */
 export class InvalidSlugError extends OrganizationValidationError {
   code = 'INVALID_SLUG';
@@ -46,7 +50,8 @@ export class InvalidSlugError extends OrganizationValidationError {
 }
 
 /**
- * Erro de Organização não encontrada
+ * Thrown when no organization is found for the given identifier, or when it is inactive.
+ * HTTP 404 — code: `ORGANIZATION_NOT_FOUND`
  */
 export class OrganizationNotFoundError extends DomainError {
   code = 'ORGANIZATION_NOT_FOUND';
@@ -60,7 +65,8 @@ export class OrganizationNotFoundError extends DomainError {
 }
 
 /**
- * Erro de endereço inválido
+ * Thrown when an address string is empty or exceeds 255 characters.
+ * HTTP 400 — code: `INVALID_ADDRESS`
  */
 export class InvalidAddressError extends OrganizationValidationError {
   code = 'INVALID_ADDRESS';
@@ -71,7 +77,8 @@ export class InvalidAddressError extends OrganizationValidationError {
 }
 
 /**
- *
+ * Thrown when attempting to create an organization with a CNPJ that already exists.
+ * HTTP 409 — code: `ORGANIZATION_ALREADY_EXISTS`
  */
 export class OrganizationAlreadyExistsError extends DomainError {
   code = 'ORGANIZATION_ALREADY_EXISTS';
@@ -81,6 +88,14 @@ export class OrganizationAlreadyExistsError extends DomainError {
   }
 }
 
+/**
+ * Thrown when attempting to use an email address already registered to another organization.
+ * HTTP 409 — code: `ORGANIZATION_EMAIL_ALREADY_EXISTS`
+ */
+/**
+ * Thrown when attempting to use an email address already registered to another organization.
+ * HTTP 409 — code: `ORGANIZATION_EMAIL_ALREADY_EXISTS`
+ */
 export class OrganizationEmailAlreadyExistsError extends DomainError {
   code = 'ORGANIZATION_EMAIL_ALREADY_EXISTS';
 
@@ -89,6 +104,14 @@ export class OrganizationEmailAlreadyExistsError extends DomainError {
   }
 }
 
+/**
+ * Thrown when attempting to use a slug already registered to another organization.
+ * HTTP 409 — code: `ORGANIZATION_SLUG_ALREADY_EXISTS`
+ */
+/**
+ * Thrown when attempting to use a slug already registered to another organization.
+ * HTTP 409 — code: `ORGANIZATION_SLUG_ALREADY_EXISTS`
+ */
 export class OrganizationSlugAlreadyExistsError extends DomainError {
   code = 'ORGANIZATION_SLUG_ALREADY_EXISTS';
 
@@ -98,7 +121,8 @@ export class OrganizationSlugAlreadyExistsError extends DomainError {
 }
 
 /**
- * Erro de Organização inativa
+ * Thrown when attempting to mutate an organization that is already `INACTIVE`.
+ * HTTP 400 — code: `INACTIVE_ORGANIZATION`
  */
 export class InactiveOrganizationError extends DomainError {
   code = 'INACTIVE_ORGANIZATION';
@@ -108,6 +132,14 @@ export class InactiveOrganizationError extends DomainError {
   }
 }
 
+/**
+ * Thrown when the requesting tenant does not have access to the target organization.
+ * HTTP 403 — code: `ORGANIZATION_ACCESS_FORBIDDEN`
+ */
+/**
+ * Thrown when the requesting tenant does not have access to the target organization.
+ * HTTP 403 — code: `ORGANIZATION_ACCESS_FORBIDDEN`
+ */
 export class OrganizationForbiddenError extends DomainError {
   code = 'ORGANIZATION_ACCESS_FORBIDDEN';
 

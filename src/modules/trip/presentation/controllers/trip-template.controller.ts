@@ -40,6 +40,36 @@ import {
 } from '../../application/use-cases';
 import { TripTemplatePresenter } from '../mappers/trip-template.presenter';
 
+/**
+ * HTTP controller for the Trip Templates sub-resource.
+ *
+ * All endpoints require authentication (`JwtAuthGuard`) and are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ *
+ * Endpoints:
+ * - `POST /trip-templates/organization/:organizationId` — create template
+ * - `GET /trip-templates/organization/:organizationId` — list all templates (paginated)
+ * - `GET /trip-templates/:id` — get by ID
+ * - `PUT /trip-templates/:id` — partial update
+ * - `DELETE /trip-templates/:id` — soft-deactivate
+ *
+ * Base path: `/trip-templates`
+ */
+/**
+ * HTTP controller for the Trip Templates sub-resource.
+ *
+ * All endpoints require authentication (`JwtAuthGuard`) and are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ *
+ * Endpoints:
+ * - `POST /trip-templates/organization/:organizationId` — create template
+ * - `GET /trip-templates/organization/:organizationId` — list all templates (paginated)
+ * - `GET /trip-templates/:id` — get by ID
+ * - `PUT /trip-templates/:id` — partial update
+ * - `DELETE /trip-templates/:id` — soft-deactivate
+ *
+ * Base path: `/trip-templates`
+ */
 @ApiTags('trip-templates')
 @Controller('trip-templates')
 @UseGuards(JwtAuthGuard)

@@ -9,15 +9,16 @@ import {
 import { Request } from 'express';
 
 /**
- * Guard que valida que recursos pertencem ao tenant do usuário
+ * Guard that enforces tenant isolation by validating the `:organizationId`
+ * route parameter against the organization in the user's JWT.
  *
- * Valida:
- * 1. :organizationId param bate com JWT organizationId
- * 2. Impede que B2C users acessem recursos de organizações
- * 3. Developers (isDev=true) fazem bypass
- *
- * Uso: @UseGuards(TenantFilterGuard)
- *      @Get('/organizations/:organizationId/vehicles')
+ * @remarks
+ * Validation steps:
+ * 1. Checks that `req.context` is populated (requires `JwtAuthGuard` to run first).
+ * 2. Developer accounts (`isDev = true`) bypass all checks.
+ * 3. If `:organizationId` (or `:orgId`) is present in route params, it must match
+ *    `req.context.organizationId` — otherwise `ForbiddenException` is thrown.
+ * 4. B2C users (no `organizationId` in JWT) cannot access organization-scoped routes.
  */
 @Injectable()
 export class TenantFilterGuard implements CanActivate {

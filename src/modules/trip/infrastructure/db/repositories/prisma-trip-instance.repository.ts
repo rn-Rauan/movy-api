@@ -8,14 +8,22 @@ import {
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { TripInstanceMapper } from '../mappers/trip-instance.mapper';
 
+/**
+ * Prisma-backed implementation of {@link TripInstanceRepository}.
+ *
+ * All I/O operations target the `tripInstance` table via the Prisma Client.
+ * Uses interactive transactions (`$transaction`) for paginated list methods
+ * to guarantee consistency between the `findMany` result and the `count`.
+ */
 @Injectable()
 export class PrismaTripInstanceRepository implements TripInstanceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Persists a new trip instance entity.
-   * @param entity - TripInstance to save
-   * @returns TripInstance persisted or null
+   * Inserts a new instance row via `prisma.tripInstance.create`.
+   *
+   * @param entity - The {@link TripInstance} to persist
+   * @returns The saved entity, or `null` on unexpected failure
    */
   async save(entity: TripInstance): Promise<TripInstance | null> {
     const data = await this.prisma.tripInstance.create({
@@ -26,9 +34,10 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Updates an existing trip instance entity.
-   * @param entity - TripInstance with updated data
-   * @returns TripInstance updated or null
+   * Updates an existing instance row via `prisma.tripInstance.update`.
+   *
+   * @param entity - The {@link TripInstance} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   async update(entity: TripInstance): Promise<TripInstance | null> {
     const data = await this.prisma.tripInstance.update({
@@ -40,7 +49,8 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Deletes a trip instance by its unique identifier.
+   * Hard-deletes an instance row via `prisma.tripInstance.delete`.
+   *
    * @param id - UUID of the trip instance to delete
    */
   async delete(id: string): Promise<void> {
@@ -48,9 +58,10 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Finds a trip instance by its unique ID.
+   * Finds an instance by UUID via `prisma.tripInstance.findUnique`.
+   *
    * @param id - UUID of the trip instance
-   * @returns TripInstance or null if not found
+   * @returns The matching {@link TripInstance}, or `null` if not found
    */
   async findById(id: string): Promise<TripInstance | null> {
     const data = await this.prisma.tripInstance.findUnique({
@@ -63,9 +74,12 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Lists all trip instances with pagination.
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list
+   * Returns a paginated list of all instances ordered by `departureTime` ascending.
+   *
+   * Uses an interactive transaction for count consistency.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   async findAll(
     options: PaginationOptions,
@@ -92,10 +106,12 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Lists trip instances belonging to a specific organization, ordered by departure time.
-   * @param organizationId - UUID of the organization
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list
+   * Returns a paginated list of instances for an organisation,
+   * ordered by `departureTime` ascending.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   async findByOrganizationId(
     organizationId: string,
@@ -124,10 +140,12 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Lists trip instances belonging to a specific trip template, ordered by departure time.
-   * @param templateId - UUID of the trip template
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list
+   * Returns a paginated list of instances for a specific template,
+   * ordered by `departureTime` ascending.
+   *
+   * @param templateId - UUID of the parent trip template
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items
    */
   async findByTemplateId(
     templateId: string,

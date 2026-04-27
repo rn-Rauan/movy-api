@@ -5,15 +5,19 @@ import { MembershipRepository } from 'src/modules/membership/domain/interfaces/m
 import { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
 
 /**
- * SERVICE: JWT PAYLOAD ENRICHMENT
+ * Builds the enriched {@link JwtPayload} that is embedded in every access and refresh token.
  *
- * Responsável por enriquecer o payload do JWT com:
- * - organizationId (do primeiro membership ativo)
- * - role (role naquela organização)
- * - isDev (detectado da whitelist DEV_EMAILS)
- * - userStatus
+ * @remarks
+ * Resolution order:
+ * 1. Loads the user by UUID — throws if absent or `INACTIVE`.
+ * 2. Checks `DEV_EMAILS` env var to set `isDev = true` for developer accounts
+ *    (bypasses membership lookup).
+ * 3. For non-dev users, queries `MembershipRepository.findFirstActiveByUserId`
+ *    to obtain `organizationId` and `role` (B2C users get `null` for both).
+ * 4. Validates that a `role` is never set without an `organizationId`.
  *
- * Usado pelos use-cases de Login e Register
+ * This service is the single source of truth for JWT payload enrichment.
+ * `JwtStrategy.validate()` trusts the signed payload and performs no DB queries.
  */
 @Injectable()
 export class JwtPayloadService {
@@ -26,12 +30,12 @@ export class JwtPayloadService {
   ) {}
 
   /**
-   * Enriquece payload do JWT com contexto multi-tenant e RBAC
+   * Produces a {@link JwtPayload} enriched with multi-tenant and RBAC context.
    *
-   * @param userId ID do usuário
-   * @returns JwtPayload enriquecido pronto para assinar
-   *
-   * @throws Error se usuário não existir ou estiver inativo
+   * @param userId - UUID of the authenticated user
+   * @returns A fully populated {@link JwtPayload} ready to be signed by `JwtService`
+   * @throws `Error('User not found or inactive')` if the user does not exist or is `INACTIVE`
+   * @throws `Error('Invalid user context: ...')` if a role is present without an `organizationId`
    */
   async enrichPayload(userId: string): Promise<JwtPayload> {
     this.logger.debug(`[Enriching JWT Payload] userId=${userId}`);

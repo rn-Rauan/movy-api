@@ -6,11 +6,14 @@ import {
 import { Request } from 'express';
 
 /**
- * Decorator para injetar apenas o tenantId do contexto
- * Uso: @GetTenantId() tenantId: string
+ * Parameter decorator that extracts `organizationId` from the request's
+ * {@link TenantContext} (`req.context`).
  *
- * Útil em rotas onde você quer apenas o organizationId
- * Lança ForbiddenException se user é B2C (sem organizationId)
+ * @remarks
+ * Use this when a controller action only needs the tenant ID and not the full
+ * user context. Throws `BadRequestException` for B2C users (no `organizationId`).
+ *
+ * Usage: `@GetTenantId() tenantId: string`
  */
 export const GetTenantId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string => {

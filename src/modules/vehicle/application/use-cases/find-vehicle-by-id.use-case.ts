@@ -6,6 +6,12 @@ import {
 import { VehicleEntity } from '../../domain/entities/vehicle.entity';
 import { VehicleRepository } from '../../domain/interfaces/vehicle.repository';
 
+/**
+ * Retrieves a single vehicle by ID, scoped to the requesting organisation.
+ *
+ * @see {@link VehicleNotFoundError}
+ * @see {@link VehicleAccessForbiddenError}
+ */
 @Injectable()
 export class FindVehicleByIdUseCase {
   constructor(private readonly vehicleRepository: VehicleRepository) {}

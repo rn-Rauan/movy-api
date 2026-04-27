@@ -1,5 +1,9 @@
 import { Role } from '../entities/role.entity';
 
+/**
+ * Abstract repository contract for {@link Role} lookup.
+ * Seeded roles are never created at runtime — only queried.
+ */
 export abstract class RoleRepository {
   /**
    * @param id - Numeric ID of the role

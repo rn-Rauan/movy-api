@@ -1,11 +1,18 @@
 import { TripTemplate } from '../../domain/entities';
 import { TripTemplateResponseDto } from '../../application/dtos/trip-template-response.dto';
 
+/**
+ * Serialises a {@link TripTemplate} domain object into the HTTP response shape {@link TripTemplateResponseDto}.
+ *
+ * Responsible for unwrapping {@link Money} Value Objects into plain `number` values.
+ * Should be called exclusively from controller methods, never from use cases.
+ */
 export class TripTemplatePresenter {
   /**
-   * Converts a TripTemplate entity to the HTTP response DTO.
-   * @param entity - TripTemplate from domain
-   * @returns TripTemplateResponseDto formatted for the API
+   * Maps a single entity to its HTTP response DTO.
+   *
+   * @param entity - The {@link TripTemplate} to serialise
+   * @returns A {@link TripTemplateResponseDto} safe to include in an HTTP response
    */
   static toHTTP(entity: TripTemplate): TripTemplateResponseDto {
     return new TripTemplateResponseDto({
@@ -31,9 +38,10 @@ export class TripTemplatePresenter {
   }
 
   /**
-   * Converts a list of TripTemplate entities to HTTP response DTOs.
-   * @param entities - Array of TripTemplate
-   * @returns Array of TripTemplateResponseDto formatted for the API
+   * Maps a collection of entities to an array of HTTP response DTOs.
+   *
+   * @param entities - Array of {@link TripTemplate} instances to serialise
+   * @returns Array of {@link TripTemplateResponseDto} objects
    */
   static toHTTPList(entities: TripTemplate[]): TripTemplateResponseDto[] {
     return entities.map((e) => this.toHTTP(e));

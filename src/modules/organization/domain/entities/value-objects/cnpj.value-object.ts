@@ -1,12 +1,13 @@
 import { InvalidCnpjError } from '../errors';
 
 /**
- * CNPJ Value Object
+ * Value Object representing a Brazilian CNPJ (company tax ID).
  *
- * Responsibility:
- * - Encapsulate CNPJ validation logic
- * - Guarantee CNPJ invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * Accepts the raw 14-digit string or the masked `XX.XXX.XXX/XXXX-XX` format.
+ * The stored value is always formatted as `XX.XXX.XXX/XXXX-XX`.
+ * Use {@link Cnpj.create} for new input; there is no `restore()` because the
+ * formatted value always passes validation.
  */
 export class Cnpj {
   private readonly value: string;
@@ -16,9 +17,11 @@ export class Cnpj {
   }
 
   /**
-   * Create a new CNPJ instance
-   * @param cnpj CNPJ string to validate
-   * @throws InvalidCnpjError if CNPJ format is invalid
+   * Validates, normalises, and formats a CNPJ string.
+   *
+   * @param cnpj - Raw CNPJ string (digits or masked)
+   * @returns A valid {@link Cnpj} Value Object (stored as `XX.XXX.XXX/XXXX-XX`)
+   * @throws {@link InvalidCnpjError} if the digit verification fails
    */
   static create(cnpj: string): Cnpj {
     // 1. normalization: remove máscara e espaços para validação

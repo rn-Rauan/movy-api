@@ -1,5 +1,10 @@
 import { DomainError } from 'src/shared/domain/errors';
 
+/**
+ * Thrown when a subscription cannot be found by the provided UUID.
+ *
+ * @remarks Maps to HTTP `404 Not Found`.
+ */
 export class SubscriptionNotFoundError extends DomainError {
   readonly code = 'SUBSCRIPTION_NOT_FOUND';
 
@@ -8,6 +13,11 @@ export class SubscriptionNotFoundError extends DomainError {
   }
 }
 
+/**
+ * Thrown when attempting to subscribe an organisation that already has an ACTIVE subscription.
+ *
+ * @remarks Maps to HTTP `409 Conflict`.
+ */
 export class SubscriptionAlreadyActiveError extends DomainError {
   readonly code = 'SUBSCRIPTION_ALREADY_EXISTS';
 
@@ -18,6 +28,11 @@ export class SubscriptionAlreadyActiveError extends DomainError {
   }
 }
 
+/**
+ * Thrown when the subscription record fails to be persisted due to an unexpected repository error.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class SubscriptionCreationFailedError extends DomainError {
   readonly code = 'SUBSCRIPTION_CREATION_FAILED_BAD_REQUEST';
 
@@ -26,6 +41,12 @@ export class SubscriptionCreationFailedError extends DomainError {
   }
 }
 
+/**
+ * Thrown when an organisation admin attempts to cancel a subscription that belongs
+ * to a different organisation.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
 export class SubscriptionForbiddenError extends DomainError {
   readonly code = 'SUBSCRIPTION_ACCESS_FORBIDDEN';
 

@@ -10,6 +10,14 @@ import {
   PartialCnhUpdateError,
 } from '../../domain/entities/errors/driver.errors';
 
+/**
+ * Partially updates a driver profile, scoped to the requesting organization.
+ *
+ * @remarks
+ * CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`) follow an all-or-nothing rule:
+ * providing only some of them throws {@link PartialCnhUpdateError}.
+ * Organization ownership is verified before any mutation.
+ */
 @Injectable()
 export class UpdateDriverUseCase {
   constructor(private readonly driverRepository: DriverRepository) {}

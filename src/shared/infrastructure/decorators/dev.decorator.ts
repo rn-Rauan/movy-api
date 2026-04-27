@@ -1,25 +1,22 @@
 import { SetMetadata } from '@nestjs/common';
 
-/**
- * Chave de metadata para o DevGuard
- */
+/** Metadata key read by {@link DevGuard} to detect dev-only routes. */
 export const DEV_ONLY_KEY = 'devOnly';
 
 /**
- * Decorator que marca uma rota como acessível apenas para desenvolvedores.
+ * Marks a route as accessible only to developer accounts (`isDev = true` in JWT).
  *
- * Devs são identificados pela flag isDev no JWT, que é definida
- * com base na whitelist de emails na variável de ambiente DEV_EMAILS.
+ * @remarks
+ * Developers are identified by the `DEV_EMAILS` env-var whitelist, set at login time.
+ * Apply alongside `JwtAuthGuard` and `DevGuard`:
  *
- * Uso:
- *   @UseGuards(JwtAuthGuard, DevGuard)
- *   @Dev()
- *   @Get('/admin/debug')
- *   async debugEndpoint() { ... }
+ * ```typescript
+ * @UseGuards(JwtAuthGuard, DevGuard)
+ * @Dev()
+ * @Get('/admin/debug')
+ * async debugInfo() { ... }
+ * ```
  *
- * Também pode ser combinado com @Roles() no RolesGuard:
- *   @UseGuards(JwtAuthGuard, RolesGuard)
- *   @Roles('ADMIN')
- *   @Dev()  // Devs TAMBÉM passam (bypass de roles)
+ * Can also be combined with `@Roles()` — dev users bypass role checks implicitly.
  */
 export const Dev = () => SetMetadata(DEV_ONLY_KEY, true);

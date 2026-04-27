@@ -6,6 +6,16 @@ import { UserEmailAlreadyExistsError } from '../../domain/entities/errors/user.e
 import { UserRepository } from '../../domain/interfaces/user.repository';
 import { PasswordHash, UserName } from '../../domain/entities/value-objects';
 import { Email, Telephone } from 'src/shared/domain/entities/value-objects';
+/**
+ * Registers a new user in the system.
+ *
+ * @remarks
+ * Checks email uniqueness before persisting. The raw `password` from the DTO
+ * is hashed via {@link HashProvider} before being wrapped in a {@link PasswordHash}
+ * Value Object — the plaintext is never stored.
+ *
+ * @see {@link UserEmailAlreadyExistsError}
+ */
 @Injectable()
 export class CreateUserUseCase {
   constructor(

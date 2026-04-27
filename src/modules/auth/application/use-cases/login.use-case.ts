@@ -6,6 +6,32 @@ import { JwtPayloadService } from '../services/jwt-payload.service';
 import { LoginDto, TokenResponseDto } from '../dtos';
 import { UserNotFoundError } from '../../../user/domain/entities/errors/user.errors';
 
+/**
+ * Authenticates a user by email and password, returning enriched JWT tokens.
+ *
+ * @remarks
+ * Validation order:
+ * 1. Resolves user by email — throws {@link UserNotFoundError} if absent.
+ * 2. Rejects `INACTIVE` users with `UnauthorizedException`.
+ * 3. Compares the supplied password against the stored bcrypt hash.
+ * 4. Calls {@link JwtPayloadService.enrichPayload} to embed `organizationId`,
+ *    `role`, and `isDev` into the JWT payload before signing.
+ *
+ * Access token expires in 1 h; refresh token in 7 d.
+ */
+/**
+ * Authenticates a user by email and password, returning enriched JWT tokens.
+ *
+ * @remarks
+ * Validation order:
+ * 1. Resolves user by email — throws {@link UserNotFoundError} if absent.
+ * 2. Rejects `INACTIVE` users with `UnauthorizedException`.
+ * 3. Compares the supplied password against the stored bcrypt hash.
+ * 4. Calls {@link JwtPayloadService.enrichPayload} to embed `organizationId`,
+ *    `role`, and `isDev` into the JWT payload before signing.
+ *
+ * Access token expires in 1 h; refresh token in 7 d.
+ */
 @Injectable()
 export class LoginUseCase {
   private readonly logger = new Logger(LoginUseCase.name);

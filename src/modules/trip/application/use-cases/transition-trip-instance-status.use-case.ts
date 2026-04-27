@@ -7,6 +7,13 @@ import {
 import { TripInstanceRepository } from '../../domain/interfaces';
 import { TransitionTripInstanceStatusDto } from '../dtos';
 
+/**
+ * Transitions a {@link TripInstance} to a new lifecycle status.
+ *
+ * All state machine rules and prerequisite checks (driver/vehicle required for
+ * `SCHEDULED` and beyond) are delegated to {@link TripInstance.transitionTo}.
+ * Only org administrators may call this endpoint.
+ */
 @Injectable()
 export class TransitionTripInstanceStatusUseCase {
   constructor(
@@ -14,17 +21,16 @@ export class TransitionTripInstanceStatusUseCase {
   ) {}
 
   /**
-   * Transitions a trip instance to a new lifecycle status.
-   * All state machine rules and prerequisites (driver/vehicle for SCHEDULED+) are enforced
-   * by the domain entity.
+   * Validates org ownership, applies the status transition, and persists.
+   *
    * @param id - UUID of the trip instance
    * @param input - DTO containing the target status
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns TripInstance with updated status
-   * @throws TripInstanceNotFoundError if the trip instance does not exist
-   * @throws TripInstanceAccessForbiddenError if the instance belongs to a different organization
-   * @throws InvalidTripStatusTransitionError if the transition is not allowed by the state machine
-   * @throws TripInstanceRequiredFieldError if driver or vehicle is missing for SCHEDULED/CONFIRMED/IN_PROGRESS
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @returns The updated {@link TripInstance}
+   * @throws {@link TripInstanceNotFoundError} if the instance does not exist
+   * @throws {@link TripInstanceAccessForbiddenError} if the instance belongs to a different org
+   * @throws {@link InvalidTripStatusTransitionError} if the transition is not allowed
+   * @throws {@link TripInstanceRequiredFieldError} if driver or vehicle is missing when required
    */
   async execute(
     id: string,

@@ -1,166 +1,137 @@
 # Driver Module
 
-## Overview
+Manages the `Driver` aggregate — driver profiles linked to platform users,
+including CNH (Brazilian driver license) management and organization-scoped operations.
 
-The Driver Module handles all driver-related operations in the Movy API. It extends the User entity with driver-specific information like CNH (driver's license) and organizational affiliations.
+---
 
-## Architecture
+## Domain Entity
 
-This module follows Clean Architecture and SOLID principles with clear separation of concerns:
+### DriverEntity
 
-```
-application/     → Use Cases and DTOs
-domain/          → Business Logic, Entities, Interfaces
-infrastructure/  → Database Implementation (Prisma)
-presentation/    → Controllers, Presenters
-```
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Primary key |
+| `userId` | `string` (UUID) | Reference to the owning `User`; one-to-one |
+| `cnh` | `Cnh` | CNH number Value Object (9–12 alphanumeric chars) |
+| `cnhCategory` | `CnhCategory` | License category Value Object (A–E) |
+| `cnhExpiresAt` | `Date` | CNH expiration date |
+| `driverStatus` | `DriverStatus` | `ACTIVE`, `INACTIVE`, or `SUSPENDED` |
+| `createdAt` | `Date` | Creation timestamp |
+| `updatedAt` | `Date` | Last update timestamp |
 
-## Features
+### Value Objects
 
-- ✅ Create, Read, Update, Delete (CRUD) operations for drivers
-- ✅ Multi-tenant Driver Management
-- ✅ RBAC (Role-Based Access Control) via Guards
-- ✅ CNH (Driver License) Management
-- ✅ Driver Status Management (ACTIVE, INACTIVE, SUSPENDED)
-- ✅ Pagination Support
-- ✅ Swagger/OpenAPI Documentation
+| VO | Validation Rules |
+|---|---|
+| `Cnh` | 9–12 alphanumeric characters (trimmed); use `restore()` to skip validation from persistence |
+| `CnhCategory` | Exactly one of `A`, `B`, `C`, `D`, `E` (case-insensitive on input, stored uppercase) |
 
-## API Endpoints
+### Business Rules
 
-### Public Endpoints
+- A user may only have **one** driver profile — `CreateDriverUseCase` enforces uniqueness.
+- CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`) follow an **all-or-nothing** update rule; sending only some fields throws `PartialCnhUpdateError`.
+- `DELETE /drivers/:id` performs a **soft delete** — status is set to `INACTIVE`, the row is not removed.
+- All `GET/PUT/DELETE /drivers/:id` endpoints validate that the driver belongs to the requesting organization via `DriverRepository.belongsToOrganization`.
 
-- `GET /drivers/me` - Get current driver profile (authenticated driver only)
-
-### Admin Endpoints (ADMIN role required + RBAC Guards)
-
-- `POST /drivers` - Create a new driver
-- `GET /drivers/:id` - Find driver by ID
-- `GET /drivers/organization/:organizationId` - List all drivers in organization (with pagination)
-- `PUT /drivers/:id` - Update driver information
-- `DELETE /drivers/:id` - Delete/remove driver record
-
-## DTOs
-
-### CreateDriverDto
-
-```typescript
-{
-  userId: string (UUID);
-  organizationId: string (UUID);
-  cnh: string (9-12 chars);
-  cnhCategory: enum ('A' | 'B' | 'C' | 'D' | 'E');
-  cnhExpiresAt: ISO date;
-}
-```
-
-### UpdateDriverDto
-
-All fields are optional:
-
-```typescript
-{
-  cnh?: string;
-  cnhCategory?: enum;
-  cnhExpiresAt?: ISO date;
-  status?: enum ('ACTIVE' | 'INACTIVE' | 'SUSPENDED');
-}
-```
-
-### DriverResponseDto
-
-```typescript
-{
-  id: string;
-  userId: string;
-  organizationId: string;
-  cnh: string;
-  cnhCategory: string;
-  cnhExpiresAt: Date;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-## Domain Errors
-
-The module includes custom domain errors for better error handling:
-
-- `InvalidCnhError` - Invalid CNH format
-- `InvalidCnhCategoryError` - Invalid license category
-- `InvalidCnhExpirationError` - Invalid expiration date
-- `ExpiredCnhError` - Driver license has expired
-- `InvalidDriverStatusError` - Invalid driver status
-- `DriverNotFoundError` - Driver not found
+---
 
 ## Use Cases
 
-1. **CreateDriverUseCase** - Create a new driver with CNH validation
-2. **FindDriverByIdUseCase** - Retrieve driver by ID
-3. **FindDriverByUserIdUseCase** - Retrieve driver for specific user
-4. **UpdateDriverUseCase** - Update driver information
-5. **RemoveDriverUseCase** - Remove driver from database
-6. **FindAllDriversByOrganizationUseCase** - List all drivers with pagination
+| Use Case | Endpoint | Access |
+|---|---|---|
+| `CreateDriverUseCase` | `POST /drivers` | Authenticated user (self) |
+| `FindDriverByUserIdUseCase` | `GET /drivers/me` | Authenticated user (self) |
+| `LookupDriverUseCase` | `GET /drivers/lookup?email&cnh` | Admin (`RolesGuard`) |
+| `FindAllDriversByOrganizationUseCase` | `GET /drivers` | Admin |
+| `FindDriverByIdUseCase` | `GET /drivers/:id` | Admin |
+| `UpdateDriverUseCase` | `PUT /drivers/:id` | Admin |
+| `RemoveDriverUseCase` | `DELETE /drivers/:id` | Admin — soft delete |
 
-## Security
+---
 
-- JWT Authentication required for all endpoints
-- Role-based access control (RBAC) for admin operations
-- Tenant filtering to prevent unauthorized access
-- Multi-tenant isolation at database level
+## Domain Errors
 
-## Example Usage
+| Error Class | HTTP | Code |
+|---|---|---|
+| `InvalidCnhError` | 400 | `INVALID_CNH` |
+| `InvalidCnhCategoryError` | 400 | `INVALID_CNH_CATEGORY` |
+| `InvalidCnhExpirationError` | 400 | `INVALID_CNH_EXPIRATION` |
+| `ExpiredCnhError` | 400 | `EXPIRED_CNH` |
+| `InvalidDriverStatusError` | 400 | `INVALID_DRIVER_STATUS` |
+| `PartialCnhUpdateError` | 400 | `INVALID_PARTIAL_CNH_UPDATE_BAD_REQUEST` |
+| `DriverNotFoundError` | 404 | `DRIVER_NOT_FOUND_BAD_REQUEST` |
+| `DriverProfileNotFoundByEmailError` | 404 | `DRIVER_PROFILE_NOT_FOUND_BAD_REQUEST` |
+| `DriverAlreadyExistsError` | 409 | `DRIVER_ALREADY_EXISTS_CONFLICT` |
+| `DriverAccessForbiddenError` | 403 | `DRIVER_ACCESS_FORBIDDEN` |
+| `DriverCreationFailedError` | 500 | `DRIVER_CREATION_FAILED` |
+| `DriverUpdateFailedError` | 500 | `DRIVER_UPDATE_FAILED` |
 
-### Create a Driver (Admin)
+---
 
-```bash
-POST /drivers
-Authorization: Bearer <token>
-Content-Type: application/json
+## Module Dependencies
 
-{
-  "userId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "organizationId": "550e8400-e29b-41d4-a716-446655440000",
-  "cnh": "123456789",
-  "cnhCategory": "B",
-  "cnhExpiresAt": "2028-12-31"
-}
+```
+DriverModule
+  ├── PrismaModule    (PrismaService)
+  ├── SharedModule    (guards, decorators, exception filters)
+  └── UserModule      (UserRepository — consumed by LookupDriverUseCase)
+
+Exports:
+  DriverRepository
+  CreateDriverUseCase
+  FindDriverByIdUseCase
+  FindDriverByUserIdUseCase
+  UpdateDriverUseCase
+  RemoveDriverUseCase
+  FindAllDriversByOrganizationUseCase
+  LookupDriverUseCase
 ```
 
-### Get Driver Profile
+---
 
-```bash
-GET /drivers/me
-Authorization: Bearer <token>
+## Architecture
+
+```
+driver/
+  domain/
+    entities/
+      driver.entity.ts                    # DriverEntity aggregate root
+      errors/
+        driver.errors.ts                  # Domain errors → HTTP codes
+      value-objects/
+        cnh.value-object.ts               # Cnh VO (9–12 alphanumeric)
+        cnh-category.value-object.ts      # CnhCategory VO (A–E)
+    interfaces/
+      driver.repository.ts                # Abstract repository contract
+      enums/
+        driver-status.enum.ts             # ACTIVE | INACTIVE | SUSPENDED
+  application/
+    use-cases/                            # One file per use case
+    dtos/
+      create-driver.dto.ts                # POST /drivers input
+      update-driver.dto.ts                # PUT /drivers/:id input (all optional)
+      driver-response.dto.ts              # Shared output DTO
+      driver-lookup-response.dto.ts       # GET /drivers/lookup output
+  infrastructure/
+    db/
+      mappers/
+        driver.mapper.ts                  # PrismaDriver ↔ DriverEntity
+      repositories/
+        prisma-driver.repository.ts       # Prisma implementation
+  presentation/
+    controllers/
+      driver.controller.ts                # Base path: /drivers
+    mappers/
+      driver.presenter.ts                 # DriverEntity → DriverResponseDto
+  driver.module.ts
 ```
 
-## Database Schema
+---
 
-```prisma
-model Driver {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  organizationId String
-  cnh            String   @unique
-  cnhCategory    String
-  cnhExpiresAt   DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+## Guards & Access Control
 
-  // Relations
-  user           User     @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation("DriverOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
-  tripInstances  TripInstance[] @relation("TripDriver")
-
-  @@index([organizationId])
-  @@map("driver")
-}
-```
-
-## Testing
-
-Run tests with:
-
-```bash
-npm run test -- src/modules/driver
-```
+| Endpoint | Guards |
+|---|---|
+| `POST /drivers`, `GET /drivers/me` | `JwtAuthGuard` only |
+| `GET /drivers/lookup`, `GET /drivers`, `GET /drivers/:id`, `PUT /drivers/:id`, `DELETE /drivers/:id` | `JwtAuthGuard` + `RolesGuard` (`ADMIN`) + `TenantFilterGuard` |

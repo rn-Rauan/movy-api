@@ -8,13 +8,22 @@ import {
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Prisma-backed implementation of {@link DriverRepository}.
+ *
+ * All I/O operations target the `driver` table via the Prisma Client.
+ * `findByOrganizationId` and `belongsToOrganization` join through the
+ * `userRoles` relation to enforce organization scoping.
+ */
 @Injectable()
 export class PrismaDriverRepository implements DriverRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * @param driver - DriverEntity to persist
-   * @returns DriverEntity created or null
+   * Inserts a new driver row via `prisma.driver.create`.
+   *
+   * @param driver - The {@link DriverEntity} to persist
+   * @returns The saved entity, or `null` on unexpected failure
    */
   async save(driver: DriverEntity): Promise<DriverEntity | null> {
     const driverData = await this.prisma.driver.create({
@@ -24,8 +33,10 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
+   * Finds a driver by UUID via `prisma.driver.findUnique`.
+   *
    * @param id - UUID of the driver
-   * @returns DriverEntity or null if not found
+   * @returns The matching {@link DriverEntity}, or `null` if not found
    */
   async findById(id: string): Promise<DriverEntity | null> {
     const driverData = await this.prisma.driver.findUnique({ where: { id } });
@@ -34,8 +45,10 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
+   * Finds a driver by the associated user UUID via `prisma.driver.findUnique`.
+   *
    * @param userId - UUID of the user
-   * @returns DriverEntity or null if not found
+   * @returns The matching {@link DriverEntity}, or `null` if not found
    */
   async findByUserId(userId: string): Promise<DriverEntity | null> {
     const driverData = await this.prisma.driver.findUnique({
@@ -46,8 +59,10 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
-   * @param cnh - Driver license number
-   * @returns DriverEntity or null if not found
+   * Finds a driver by CNH number via `prisma.driver.findUnique`.
+   *
+   * @param cnh - Driver license number string
+   * @returns The matching {@link DriverEntity}, or `null` if not found
    */
   async findByCnh(cnh: string): Promise<DriverEntity | null> {
     const driverData = await this.prisma.driver.findUnique({
@@ -58,9 +73,12 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
+   * Returns a paginated list of drivers linked to the given organization
+   * via an active `DRIVER` role membership. Uses a parallel `$transaction`.
+   *
    * @param organizationId - UUID of the organization
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with drivers linked to the organization
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link DriverEntity} items
    */
   async findByOrganizationId(
     organizationId: string,
@@ -111,8 +129,10 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
-   * @param driver - DriverEntity with updated data
-   * @returns DriverEntity updated or null
+   * Updates an existing driver row via `prisma.driver.update`.
+   *
+   * @param driver - The {@link DriverEntity} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   async update(driver: DriverEntity): Promise<DriverEntity | null> {
     const driverData = await this.prisma.driver.update({
@@ -123,6 +143,8 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
+   * Hard-deletes a driver row via `prisma.driver.delete`.
+   *
    * @param id - UUID of the driver to delete
    */
   async delete(id: string): Promise<void> {
@@ -130,9 +152,12 @@ export class PrismaDriverRepository implements DriverRepository {
   }
 
   /**
+   * Queries whether a driver holds an active membership in the given organization
+   * via the `userRoles` join table.
+   *
    * @param driverId - UUID of the driver
    * @param organizationId - UUID of the organization
-   * @returns true if driver has an active membership in the organization
+   * @returns `true` if the driver has an active role in that organization
    */
   async belongsToOrganization(
     driverId: string,

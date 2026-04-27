@@ -37,6 +37,14 @@ import {
   SubscribeToPlanUseCase,
 } from '../../application/use-cases';
 
+/**
+ * HTTP controller for the Subscriptions module.
+ *
+ * All endpoints require the `ADMIN` role and are scoped to the requesting
+ * user's organisation via `TenantFilterGuard`.
+ *
+ * Base path: `/organizations/:organizationId/subscriptions`
+ */
 @ApiTags('subscriptions')
 @Controller('organizations/:organizationId/subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -48,10 +56,16 @@ export class SubscriptionController {
     private readonly findSubscriptionsByOrganization: FindSubscriptionsByOrganizationUseCase,
   ) {}
 
+  /**
+   * Creates a new subscription for the organisation.
+   * Only one ACTIVE subscription is allowed per organisation at a time.
+   *
+   * @param dto - Validated request body containing `planId`
+   * @returns The newly created subscription as a {@link SubscriptionResponseDto}
+   */
   @Post()
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Subscribe organization to a plan' })
   @ApiParam({ name: 'organizationId' })
   @ApiResponse({ status: 201, type: SubscriptionResponseDto })
   async subscribe(
@@ -63,6 +77,12 @@ export class SubscriptionController {
     );
   }
 
+  /**
+   * Cancels an existing subscription. Only the owning organisation's admin can cancel.
+   *
+   * @param id - UUID of the subscription to cancel
+   * @returns The cancelled subscription as a {@link SubscriptionResponseDto}
+   */
   @Patch(':id/cancel')
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
@@ -81,10 +101,14 @@ export class SubscriptionController {
     );
   }
 
+  /**
+   * Returns the currently active subscription for the organisation, or `null` if none exists.
+   *
+   * @returns The active {@link SubscriptionResponseDto}, or HTTP `200` with `null` body
+   */
   @Get('active')
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Get active subscription for organization' })
   @ApiParam({ name: 'organizationId' })
   @ApiResponse({ status: 200, type: SubscriptionResponseDto })
   async findActive(

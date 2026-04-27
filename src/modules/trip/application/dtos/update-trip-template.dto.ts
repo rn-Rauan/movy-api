@@ -15,7 +15,15 @@ import { DayOfWeek } from '../../domain/interfaces/enums/day-of-week.enum';
 import { Shift } from '../../domain/interfaces/enums/shift.enum';
 
 /**
- * DTO for partial update of a trip template.
+ * Input DTO for `PUT /trip-templates/:id`.
+ *
+ * All fields are optional; only provided fields are applied to the template.
+ * Partial pricing updates are merged with the template's existing prices,
+ * and all domain invariants are re-validated after the merg
+ *
+ * All fields are optional; only provided fields are applied to the template.
+ * Partial pricing updates are merged with the template's existing prices,
+ * and all domain invariants are re-validated after the merge.
  */
 export class UpdateTripTemplateDto {
   @ApiPropertyOptional({

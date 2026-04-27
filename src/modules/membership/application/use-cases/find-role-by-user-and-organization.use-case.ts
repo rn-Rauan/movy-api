@@ -10,6 +10,16 @@ interface Input {
   organizationId: string;
 }
 
+/**
+ * Looks up the {@link Role} assigned to a user within a given organization.
+ *
+ * @remarks
+ * 1. Finds the first active membership for `(userId, organizationId)` via
+ *    {@link MembershipRepository.findByUserIdAndOrganizationId}.
+ * 2. Resolves the full `Role` entity by `roleId`.
+ * Throws {@link MembershipNotFoundError} or {@link RoleNotFoundError} on failure.
+ * Used internally by `GET /memberships/me/role/:organizationId`.
+ */
 @Injectable()
 export class FindRoleByUserIdAndOrganizationIdUseCase {
   constructor(

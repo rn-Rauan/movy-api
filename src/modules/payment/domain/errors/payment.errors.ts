@@ -1,5 +1,10 @@
 import { DomainError } from 'src/shared/domain/errors';
 
+/**
+ * Thrown when a payment cannot be found by the provided UUID or numeric id.
+ *
+ * @remarks Maps to HTTP `404 Not Found`.
+ */
 export class PaymentNotFoundError extends DomainError {
   readonly code = 'PAYMENT_NOT_FOUND';
 
@@ -8,6 +13,11 @@ export class PaymentNotFoundError extends DomainError {
   }
 }
 
+/**
+ * Thrown when the payment record fails to be persisted due to an unexpected repository error.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
 export class PaymentCreationFailedError extends DomainError {
   readonly code = 'PAYMENT_CREATION_FAILED_BAD_REQUEST';
 

@@ -1,89 +1,140 @@
-# Módulo de Organização (Organization Module)
+# Organization Module
 
-## Visão Geral
+Manages the `Organization` aggregate — the top-level tenant entity in Movy.
+Each organization has unique `cnpj`, `email`, and `slug` fields and can
+have multiple user memberships. Soft-delete is used: organizations are marked
+`INACTIVE` rather than physically removed.
 
-O módulo de organização é responsável por gerenciar as operações relacionadas às organizações do sistema Movy API. Ele implementa uma arquitetura limpa (Clean Architecture) com separação clara entre camadas de domínio, aplicação, infraestrutura e apresentação. As organizações representam entidades como empresas ou instituições que podem ter usuários associados.
+---
 
-## Funcionalidades
+## Entity
 
-- **CRUD Completo**: Criar, listar, buscar por ID, atualizar e desabilitar organizações
-- **Soft-Delete**: Organizações são marcadas como INACTIVE ao invés de serem excluídas
-- **Validações de Domínio**: CNPJ único, nome válido, endereço obrigatório
-- **Value Objects**: CNPJ, Nome da Organização, Slug, Endereço
-- **Integração com Usuários**: Base para funcionalidades de membros (futuro)
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `string` (UUID v4) | Primary key |
+| `name` | `OrganizationName` | 2–255 chars |
+| `cnpj` | `Cnpj` | Unique, stored as `XX.XXX.XXX/XXXX-XX` |
+| `email` | `Email` | Unique contact e-mail (shared VO) |
+| `telephone` | `Telephone` | Contact phone (shared VO) |
+| `slug` | `Slug` | Unique URL-safe identifier |
+| `address` | `Address` | Free-form, 1–255 chars |
+| `status` | `ACTIVE \| INACTIVE` | `ACTIVE` on creation |
+| `createdAt` | `Date` | Set once on creation |
+| `updatedAt` | `Date` | Refreshed on every mutation |
 
-## Estrutura do Módulo
+---
+
+## Value Objects
+
+| VO | Constraint | Error thrown |
+|---|---|---|
+| `OrganizationName` | 2–255 chars (trimmed) | `InvalidOrganizationNameError` / `StringLengthError` |
+| `Cnpj` | Valid Brazilian CNPJ (digits or masked) | `InvalidCnpjError` |
+| `Slug` | `/^[a-z0-9]+(?:-[a-z0-9]+)*$/` | `InvalidSlugError` |
+| `Address` | 1–255 chars | `InvalidAddressError` |
+| `Email` | RFC-compliant (shared VO) | `InvalidEmailError` |
+| `Telephone` | Numeric string (shared VO) | `InvalidTelephoneError` |
+
+---
+
+## Domain Errors
+
+| Class | HTTP | Code |
+|---|---|---|
+| `OrganizationValidationError` | 400 | _(abstract base)_ |
+| `InvalidOrganizationNameError` | 400 | `INVALID_ORGANIZATION_NAME` |
+| `InvalidCnpjError` | 400 | `INVALID_CNPJ` |
+| `InvalidSlugError` | 400 | `INVALID_SLUG` |
+| `InvalidAddressError` | 400 | `INVALID_ADDRESS` |
+| `InactiveOrganizationError` | 400 | `INACTIVE_ORGANIZATION` |
+| `OrganizationNotFoundError` | 404 | `ORGANIZATION_NOT_FOUND` |
+| `OrganizationAlreadyExistsError` | 409 | `ORGANIZATION_ALREADY_EXISTS` |
+| `OrganizationEmailAlreadyExistsError` | 409 | `ORGANIZATION_EMAIL_ALREADY_EXISTS` |
+| `OrganizationSlugAlreadyExistsError` | 409 | `ORGANIZATION_SLUG_ALREADY_EXISTS` |
+| `OrganizationForbiddenError` | 403 | `ORGANIZATION_ACCESS_FORBIDDEN` |
+
+---
+
+## API Endpoints
+
+| Method | Path | Guard | Use Case |
+|---|---|---|---|
+| `POST` | `/organizations` | `DevGuard` | `CreateOrganizationUseCase` |
+| `GET` | `/organizations` | `DevGuard` | `FindAllOrganizationsUseCase` |
+| `GET` | `/organizations/me` | `JwtAuthGuard` + `RolesGuard(ADMIN, DRIVER)` | `FindOrganizationByUserUseCase` |
+| `GET` | `/organizations/active` | `JwtAuthGuard` | `FindAllActiveOrganizationsUseCase` |
+| `GET` | `/organizations/:id` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindOrganizationByIdUseCase` |
+| `PUT` | `/organizations/:id` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `UpdateOrganizationUseCase` |
+| `DELETE` | `/organizations/:id` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `DisableOrganizationUseCase` |
+
+---
+
+## Use Cases
+
+| Class | Description |
+|---|---|
+| `CreateOrganizationUseCase` | Enforces CNPJ and slug uniqueness; stores `ACTIVE` organization |
+| `FindOrganizationByIdUseCase` | Returns active org by UUID; tenant-scoped via `TenantContextParams` |
+| `FindOrganizationByUserUseCase` | Paginated list of orgs the user belongs to |
+| `FindAllOrganizationsUseCase` | Dev-only: all orgs including `INACTIVE` |
+| `FindAllActiveOrganizationsUseCase` | Public: paginated list of `ACTIVE` orgs |
+| `UpdateOrganizationUseCase` | Partial update; checks uniqueness conflicts; blocks `INACTIVE` orgs |
+| `DisableOrganizationUseCase` | Soft-delete: sets status to `INACTIVE`; tenant-scoped |
+
+---
+
+## Module Structure
 
 ```
 src/modules/organization/
-├── README.md                           # Esta documentação
-├── organization.module.ts              # Módulo principal do NestJS
-├── application/                        # Camada de Aplicação
-│   ├── dtos/                           # Data Transfer Objects
-│   │   ├── create-organization.dto.ts  # DTO para criação de organização
-│   │   ├── organization-response.dto.ts # DTO para resposta de organização
-│   │   └── update-organization.dto.ts  # DTO para atualização de organização
-│   └── use-cases/                      # Casos de Uso
-│       ├── create-organization.use-case.ts     # Caso de uso: Criar organização
-│       ├── disable-organization.use-case.ts    # Caso de uso: Desabilitar organização
-│       ├── find-all-active-organizations.use-case.ts # Caso de uso: Buscar organizações ativas
-│       ├── find-all-organizations.use-case.ts  # Caso de uso: Buscar todas as organizações
-│       ├── find-organization-by-id.use-case.ts # Caso de uso: Buscar organização por ID
-│       └── update-organization.use-case.ts     # Caso de uso: Atualizar organização
-├── domain/                             # Camada de Domínio
-│   ├── entities/                       # Entidades de Domínio
-│   │   ├── index.ts                    # Exportações das entidades
-│   │   └── organization.entity.ts      # Entidade Organization
-│   ├── errors/                         # Erros de Domínio
-│   │   ├── index.ts                    # Exportações dos erros
-│   │   └── organization.errors.ts      # Erros específicos da organização
-│   ├── value-objects/                  # Value Objects
-│   │   ├── address.value-object.ts     # Value Object: Endereço
-│   │   ├── cnpj.value-object.ts        # Value Object: CNPJ
-│   │   ├── index.ts                    # Exportações dos VOs
-│   │   ├── organization-name.value-object.ts # Value Object: Nome da organização
-│   │   └── slug.value-object.ts        # Value Object: Slug
-│   └── interfaces/                     # Interfaces de Domínio
-│       └── organization.repository.ts  # Interface do repositório de organização
-├── infrastructure/                     # Camada de Infraestrutura
-│   └── db/                             # Acesso a Dados
-│       ├── mappers/                    # Mappers para conversão
-│       │   └── organization.mapper.ts  # Mapper Organization (Domínio ↔ Prisma)
-│       └── repositories/               # Implementações de Repositórios
-│           └── prisma-organization.repository.ts # Repositório Prisma para Organization
-└── presentation/                       # Camada de Apresentação
-    ├── controllers/                    # Controladores HTTP
-    │   └── organization.controller.ts  # Controller REST para organizações
-    └── mappers/                        # Mappers de Apresentação
-        └── organization.mapper.ts      # Presenter para respostas HTTP
+├── organization.module.ts
+├── application/
+│   ├── dtos/
+│   │   ├── create-organization.dto.ts
+│   │   ├── update-organization.dto.ts
+│   │   └── organization-response.dto.ts
+│   └── use-cases/
+│       ├── create-organization.use-case.ts
+│       ├── find-organization-by-id.use-case.ts
+│       ├── find-organization-by-user.use-case.ts
+│       ├── find-all-organizations.use-case.ts
+│       ├── find-all-active-organizations.use-case.ts
+│       ├── update-organization.use-case.ts
+│       └── disable-organization.use-case.ts
+├── domain/
+│   ├── entities/
+│   │   └── organization.entity.ts
+│   ├── entities/errors/
+│   │   └── organization.errors.ts
+│   ├── entities/value-objects/
+│   │   ├── cnpj.value-object.ts
+│   │   ├── address.value-object.ts
+│   │   ├── organization-name.value-object.ts
+│   │   └── slug.value-object.ts
+│   └── interfaces/
+│       └── organization.repository.ts
+├── infrastructure/
+│   └── db/
+│       ├── mappers/
+│       │   └── organization.mapper.ts       # Prisma ↔ Domain
+│       └── repositories/
+│           └── prisma-organization.repository.ts
+└── presentation/
+    ├── controllers/
+    │   └── organization.controller.ts
+    └── mappers/
+        └── organization.mapper.ts           # OrganizationPresenter (DI instance)
 ```
 
-## Endpoints da API
+---
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| POST | `/organizations` | Criar nova organização |
-| GET | `/organizations` | Listar organizações ativas |
-| GET | `/organizations/:id` | Buscar organização por ID |
-| PUT | `/organizations/:id` | Atualizar organização |
-| DELETE | `/organizations/:id` | Desabilitar organização (soft-delete) |
+## Module Dependencies
 
-## Regras de Negócio
+**Imports:** `SharedModule` (re-exports `PrismaModule`, guards, decorators)
 
-- **CNPJ Único**: Não é possível criar duas organizações com o mesmo CNPJ
-- **Soft-Delete**: Organizações desabilitadas mantêm seus dados mas ficam invisíveis nas listagens ativas
-- **Validações**: Nome, CNPJ e endereço são obrigatórios e seguem formatos específicos
-- **Slug**: Gerado automaticamente a partir do nome da organização
+**Providers:**
+- `PrismaOrganizationRepository` bound to the `OrganizationRepository` token
+- `OrganizationPresenter` (instance — injected into controller)
+- All 7 use case classes
 
-## Dependências
-
-- **Prisma**: Para acesso ao banco de dados PostgreSQL
-- **NestJS**: Framework principal
-- **Shared Module**: Value objects compartilhados (Email, Telephone)
-
-## Próximos Passos
-
-- Implementar testes unitários (80%+ cobertura)
-- Adicionar funcionalidades de membros (associar usuários às organizações)
-- Implementar permissões (apenas admins podem gerenciar organizações)
-- Adicionar documentação Swagger
+**Exports:** All use cases + `OrganizationRepository` token

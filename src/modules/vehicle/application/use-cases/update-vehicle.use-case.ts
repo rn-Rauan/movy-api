@@ -12,6 +12,19 @@ import { VehicleRepository } from '../../domain/interfaces/vehicle.repository';
 import { UpdateVehicleDto } from '../dtos';
 import { VehicleStatus } from '../../domain/interfaces';
 
+/**
+ * Partially updates a vehicle's fields, scoped to the requesting organisation.
+ *
+ * @remarks
+ * Only provided fields are applied. Plate uniqueness is re-checked when a new
+ * plate is supplied. Inactive vehicles cannot be updated — re-activate first.
+ *
+ * @see {@link VehicleNotFoundError}
+ * @see {@link VehicleAccessForbiddenError}
+ * @see {@link VehicleInactiveError}
+ * @see {@link PlateAlreadyInUseError}
+ * @see {@link VehicleUpdateFailedError}
+ */
 @Injectable()
 export class UpdateVehicleUseCase {
   constructor(private readonly vehicleRepository: VehicleRepository) {}

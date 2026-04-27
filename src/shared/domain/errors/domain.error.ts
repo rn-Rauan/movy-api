@@ -1,6 +1,14 @@
 /**
- * Classe base para erros de domínio
- * Todos os erros de negócio devem herdar desta classe
+ * Abstract base class for all domain errors.
+ *
+ * @remarks
+ * Every domain-specific error must extend this class.
+ * The `code` string suffix drives HTTP status mapping in `AllExceptionsFilter`:
+ * - `_NOT_FOUND` → 404
+ * - `_ALREADY_EXISTS` → 409
+ * - `INVALID_` / `_BAD_REQUEST` → 400
+ * - `_FORBIDDEN` → 403
+ * - `_UNAUTHORIZED` → 401
  */
 export abstract class DomainError extends Error {
   abstract code: string;

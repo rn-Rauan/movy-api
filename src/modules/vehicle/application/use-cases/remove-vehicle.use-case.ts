@@ -5,6 +5,17 @@ import {
 } from '../../domain/entities/errors/vehicle.errors';
 import { VehicleRepository } from '../../domain/interfaces/vehicle.repository';
 
+/**
+ * Soft-deletes a vehicle by transitioning its status to {@link VehicleStatus.INACTIVE}.
+ *
+ * @remarks
+ * The vehicle record is NOT hard-deleted so that historical trip assignment
+ * references remain intact. A hard-delete would violate the `onDelete: Restrict`
+ * constraint on the `tripInstance` table.
+ *
+ * @see {@link VehicleNotFoundError}
+ * @see {@link VehicleAccessForbiddenError}
+ */
 @Injectable()
 export class RemoveVehicleUseCase {
   constructor(private readonly vehicleRepository: VehicleRepository) {}

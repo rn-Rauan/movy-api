@@ -1,6 +1,6 @@
 /**
- * @param page - Page number (1-based)
- * @param limit - Maximum items per page
+ * Query parameters for paginated list requests.
+ * `page` is 1-based; default values are enforced at the controller/DTO layer.
  */
 export interface PaginationOptions {
   page: number;

@@ -8,14 +8,22 @@ import { PrismaService } from 'src/shared/infrastructure/database/prisma.service
 import { OrganizationMapper } from '../mappers/organization.mapper';
 import { Injectable } from '@nestjs/common';
 
+/**
+ * Prisma-backed implementation of {@link OrganizationRepository}.
+ *
+ * All I/O operations target the `organization` table via the Prisma Client.
+ * Uses parallel `$transaction` for paginated list methods to guarantee
+ * consistency between `findMany` and `count`.
+ */
 @Injectable()
 export class PrismaOrganizationRepository implements OrganizationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Saves an Organization entity to the database.
-   * @param organization - Organization entity to persist
-   * @returns Organization entity created or null if creation failed
+   * Inserts a new organization row via `prisma.organization.create`.
+   *
+   * @param organization - The {@link Organization} to persist
+   * @returns The saved entity, or `null` on unexpected failure
    */
   async save(organization: Organization): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.create({
@@ -25,9 +33,10 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Finds an Organization entity by its ID.
-   * @param id - UUID of the organization to find
-   * @returns Organization entity or null if not found
+   * Finds an organization by UUID via `prisma.organization.findUnique`.
+   *
+   * @param id - UUID of the organization
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   async findById(id: string): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.findUnique({
@@ -39,6 +48,14 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
     return OrganizationMapper.toDomain(organizationData);
   }
 
+  /**
+   * Returns a paginated list of organizations the given user belongs to,
+   * filtered through the `memberships` relation. Uses a parallel `$transaction`.
+   *
+   * @param userId - UUID of the user
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link Organization} items
+   */
   async findOrganizationByUserId(
     userId: string,
     options: PaginationOptions,
@@ -76,9 +93,10 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Finds an Organization entity by its CNPJ.
-   * @param cnpj - CNPJ of the organization to find
-   * @returns Organization entity or null if not found
+   * Finds an organization by its unique CNPJ via `prisma.organization.findUnique`.
+   *
+   * @param cnpj - Formatted CNPJ string
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   async findByCnpj(cnpj: string): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.findUnique({
@@ -91,9 +109,10 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Finds an Organization entity by its slug.
-   * @param slug - Unique slug of the organization to find
-   * @returns Organization entity or null if not found
+   * Finds an organization by its unique slug via `prisma.organization.findUnique`.
+   *
+   * @param slug - The organization's URL slug
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   async findBySlug(slug: string): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.findUnique({
@@ -106,9 +125,10 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Finds an Organization entity by its email.
-   * @param email - Email of the organization to find
-   * @returns Organization entity or null if not found
+   * Finds an organization by its unique email via `prisma.organization.findUnique`.
+   *
+   * @param email - Email address of the organization
+   * @returns The matching {@link Organization}, or `null` if not found
    */
   async findByEmail(email: string): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.findUnique({
@@ -121,9 +141,10 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Updates an Organization entity in the database.
-   * @param organization - Organization entity to update
-   * @returns Organization entity updated or null if update failed or
+   * Updates an existing organization row via `prisma.organization.update`.
+   *
+   * @param organization - The {@link Organization} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
    */
   async update(organization: Organization): Promise<Organization | null> {
     const organizationData = await this.prisma.organization.update({
@@ -136,9 +157,11 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Lists all organizations with pagination (including inactive ones).
-   * @param options - Pagination options for (page, limit)
-   * @returns Paginated response with all Organization entities
+   * Returns a paginated list of all organizations regardless of status,
+   * ordered by `createdAt` descending. Uses a parallel `$transaction`.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of all {@link Organization} items
    */
   async findAll(
     options: PaginationOptions,
@@ -167,9 +190,11 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
   }
 
   /**
-   * Lists all active organizations with pagination.
-   * @param options - Pagination options for (page, limit)
-   * @returns Paginated response with all active Organization entities
+   * Returns a paginated list of `ACTIVE` organizations,
+   * ordered by `createdAt` descending. Uses a parallel `$transaction`.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of active {@link Organization} items
    */
   async findAllActive(
     options: PaginationOptions,

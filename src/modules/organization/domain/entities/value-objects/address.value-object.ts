@@ -1,12 +1,11 @@
 import { InvalidAddressError } from '../errors';
 
 /**
- * Address Value Object
+ * Value Object representing a free-form address string.
  *
- * Responsibility:
- * - Encapsulate address validation logic
- * - Guarantee address invariants at type level
- * - Be immutable and comparable
+ * @remarks
+ * Accepts any non-empty string up to 255 characters.
+ * Used for the organization's physical address field.
  */
 export class Address {
   private readonly value: string;
@@ -16,9 +15,11 @@ export class Address {
   }
 
   /**
-   * Create a new Address instance
-   * @param address Address string to validate
-   * @throws InvalidAddressError if address is empty or exceeds length limits
+   * Validates and creates a new {@link Address} instance.
+   *
+   * @param address - Raw address string (non-empty, max 255 chars)
+   * @returns A valid {@link Address} Value Object
+   * @throws {@link InvalidAddressError} if the string is empty or exceeds 255 characters
    */
   static create(address: string): Address {
     if (!address || address.trim().length === 0) {

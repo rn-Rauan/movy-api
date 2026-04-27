@@ -1,178 +1,136 @@
-# Módulo de Usuário (User Module)
+# User Module
 
-## Visão Geral
-
-O módulo de usuário é responsável por gerenciar as operações relacionadas aos usuários do sistema Movy API. Ele implementa uma arquitetura limpa (Clean Architecture) com separação clara entre camadas de domínio, aplicação, infraestrutura e apresentação.
-
-## Estrutura do Módulo
-
-```
-src/modules/user/
-├── README.md                           # Esta documentação
-├── user.module.ts                      # Módulo principal do NestJS
-├── application/                        # Camada de Aplicação
-│   ├── dto/                            # Data Transfer Objects
-│   │   ├── create-user.dto.ts          # DTO para criação de usuário
-│   │   ├── update-user.dto.ts          # DTO para atualização de usuário
-│   │   └── user-response.dto.ts        # DTO para resposta de usuário
-│   └── use-cases/                      # Casos de Uso
-│       ├── create-user.use-case.ts     # Caso de uso: Criar usuário
-│       ├── disable-user.use-case.ts    # Caso de uso: Desabilitar usuário
-│       ├── find-all-users.use-case.ts  # Caso de uso: Buscar todos os usuários
-│       ├── find-user-by-id.use-case.ts # Caso de uso: Buscar usuário por ID
-│       └── update-user.use-case.ts     # Caso de uso: Atualizar usuário
-├── domain/                             # Camada de Domínio
-│   ├── entities/                       # Entidades de Domínio
-│   │   ├── index.ts                    # Exportações das entidades
-│   │   └── user.entity.ts              # Entidade User
-│   ├── errors/                         # Erros de Domínio
-│   │   ├── index.ts                    # Exportações dos erros
-│   │   └── user.errors.ts              # Erros específicos do usuário
-│   ├── value-objects/                  # Value Objects
-│   │   ├── email.value-object.ts       # Value Object: Email
-│   │   ├── index.ts                    # Exportações dos VOs
-│   │   ├── password-hash.value-object.ts # Value Object: Hash da senha
-│   │   ├── telephone.value-object.ts   # Value Object: Telefone
-│   │   └── user.name.value-object.ts   # Value Object: Nome do usuário
-│   └── interfaces/                     # Interfaces de Domínio
-│       └── user.repository.ts          # Interface do repositório de usuário
-├── infrastructure/                     # Camada de Infraestrutura
-│   └── db/                             # Acesso a Dados
-│       ├── mappers/                    # Mappers para conversão
-│       │   └── user.mapper.ts          # Mapper User (Domínio ↔ Prisma)
-│       └── repositories/               # Implementações de Repositórios
-│           └── prisma-user.repository.ts # Repositório Prisma para User
-└── presentation/                       # Camada de Apresentação
-    ├── controllers/                    # Controladores HTTP
-    │   └── user.controller.ts          # Controller REST para usuários
-    └── mappers/                        # Mappers de Apresentação
-        └── user.presenter.ts           # Presenter para respostas HTTP
-```
-
-## Modelo de Dados (Baseado no Schema Prisma)
-
-O módulo implementa a entidade `User` conforme definida no schema Prisma:
-
-```prisma
-model User {
-  id             String       @id @default(uuid())
-  name           String       @db.VarChar(255)
-  email          String       @unique @db.VarChar(255)
-  passwordHash   String
-  telephone      String       @db.VarChar(20)
-  status         Status       @default(ACTIVE)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  // Relations
-  userRoles    OrganizationMembership[] @relation("UserToMembership")
-  driver       Driver?                  @relation("DriverUser")
-  enrollments  Enrollment[]             @relation("EnrollmentUser")
-  auditLogs    AuditLog[]               @relation("AuditLogUser")
-
-  @@index([status])
-  @@map("user")
-}
-```
-
-### Campos da Entidade User
-
-- **id**: Identificador único (UUID)
-- **name**: Nome completo do usuário (até 255 caracteres)
-- **email**: Email único do usuário (até 255 caracteres)
-- **passwordHash**: Hash da senha
-- **telephone**: Número de telefone (até 20 caracteres)
-- **status**: Status do usuário (ACTIVE/INACTIVE)
-- **createdAt**: Data de criação
-- **updatedAt**: Data da última atualização
-
-### Value Objects Implementados
-
-- **Email**: Validação de formato de email
-- **PasswordHash**: Gerenciamento seguro de hash de senha
-- **Telephone**: Validação de formato de telefone
-- **UserName**: Validação de nome de usuário
-
-## Funcionalidades Implementadas
-
-### Casos de Uso Disponíveis
-
-1. **CreateUserUseCase**: Criação de novo usuário
-2. **FindUserByIdUseCase**: Busca usuário por ID
-3. **FindAllUsersUseCase**: Lista todos os usuários
-4. **UpdateUserUseCase**: Atualização de dados do usuário
-5. **DisableUserUseCase**: Desabilitação de usuário (soft delete via status)
-6. **FindAllActiveUsersUseCase**: Lista todos os usuários ativos
-
-### Endpoints da API
-
-- `POST /users` - Criar usuário
-- `GET /users` - Listar todos os usuários
-- `GET /users/active` - Listar todos os usuários ativos
-- `GET /users/:id` - Buscar usuário por ID
-- `PUT /users/:id` - Atualizar usuário
-- `DELETE /users/:id` - Desabilitar usuário
-
-## Avaliação de Completude do Módulo Inicial
-
-### ✅ Pontos Fortes
-
-1. **Arquitetura Limpa**: Implementação correta da Clean Architecture com separação adequada de responsabilidades
-2. **CRUD Básico**: Todos os casos de uso essenciais (Create, Read, Update, Delete) estão implementados
-3. **Value Objects**: Implementação adequada para validação de dados críticos (email, senha, telefone, nome)
-4. **Mappers**: Conversão adequada entre camadas (Domínio ↔ Infraestrutura, Domínio ↔ Apresentação)
-5. **DTOs**: Estrutura adequada para entrada e saída de dados
-6. **Repositório**: Interface e implementação com Prisma ORM
-7. **Controller**: Endpoints REST bem estruturados
-
-### ⚠️ Pontos de Atenção/Possíveis Melhorias
-
-1. **Validações de Domínio**: Verificar se todas as regras de negócio estão implementadas nos Value Objects
-2. **Autenticação/Autorização**: O módulo não inclui lógica de login/autenticação (pode estar em outro módulo)
-3. **Relações**: As relações com outras entidades (OrganizationMembership, Driver, etc.) não são gerenciadas diretamente neste módulo
-4. **Paginação**: O caso de uso `FindAllUsersUseCase` pode precisar de paginação para grandes volumes de dados
-5. **Busca Avançada**: Possibilidade de adicionar filtros por status, email, etc.
-6. **Testes**: Verificar cobertura de testes unitários e de integração
-7. **Logs de Auditoria**: Integração com AuditLog pode ser aprimorada
-
-### 📊 Status de Completude
-
-**Completude Geral: 85%**
-
-- ✅ Estrutura arquitetural: Completa
-- ✅ CRUD básico: Completo
-- ✅ Value Objects: Completo
-- ✅ Mappers e DTOs: Completos
-- ✅ Repositório Prisma: Completo
-- ✅ Controller REST: Completo
-- ✅ Recursos adicionais (paginação, filtros): Complepletos
-- ⚠️ Validações avançadas: Parcial
-- ⚠️ Testes: Não verificado
-
-## Próximos Passos Recomendados
-
-1. **Adicionar filtros** (por status, data de criação, etc.)
-2. **Implementar testes** unitários e de integração
-3. **Adicionar validações** mais robustas nos Value Objects
-4. **Considerar soft delete** físico vs lógico (atualmente usa status)
-5. **Integrar com módulo de autenticação** para login/logout
-6. **Adicionar cache** para operações de leitura frequentes
-
-## Dependências
-
-- **NestJS**: Framework principal
-- **Prisma**: ORM para acesso ao banco PostgreSQL
-- **Class-Validator**: Para validações de DTOs
-- **UUID**: Para geração de IDs únicos
-
-## Como Usar
-
-1. Importe o `UserModule` no seu módulo principal
-2. Configure as variáveis de ambiente para o banco de dados
-3. Execute as migrações do Prisma: `npx prisma migrate dev`
-4. A API estará disponível nos endpoints `/users`
+Manages the `User` aggregate — registered users of the Movy platform, including
+self-service profile management and developer-only administrative endpoints.
 
 ---
 
-**Última atualização**: Abril 2026
-**Versão**: 1.0.0
+## Domain Entity
+
+### User
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` (UUID) | Primary key |
+| `name` | `UserName` | Display name Value Object (3–255 chars, trimmed) |
+| `email` | `Email` | Email Value Object; unique in the system |
+| `passwordHash` | `PasswordHash` | Bcrypt hash Value Object; never returned in responses |
+| `telephone` | `Telephone` | Telephone Value Object |
+| `status` | `Status` | `ACTIVE` or `INACTIVE` |
+| `createdAt` | `Date` | Creation timestamp |
+| `updatedAt` | `Date` | Last update timestamp (refreshed on every mutation) |
+
+### Value Objects
+
+| VO | Validation Rules |
+|---|---|
+| `UserName` | Non-empty; 3–255 characters after trimming |
+| `PasswordHash` | Non-empty; minimum 8 characters (stores bcrypt hash, not plaintext) |
+| `Email` | Valid email format (shared VO from `shared/domain`) |
+| `Telephone` | Brazilian phone format (shared VO from `shared/domain`) |
+
+---
+
+## Use Cases
+
+| Use Case | Endpoint | Access |
+|---|---|---|
+| `CreateUserUseCase` | `POST /users` | Dev only (`DevGuard`) |
+| `FindUserByIdUseCase` | `GET /users/:id` | Dev only (deprecated — use `/me`) |
+| `FindAllUsersUseCase` | `GET /users` | Dev only |
+| `FindAllActiveUsersUseCase` | `GET /users/active` | Dev only |
+| `UpdateUserUseCase` | `PUT /users/me` | Authenticated user |
+| `DisableUserUseCase` | `DELETE /users/me` | Authenticated user |
+
+### Self-Service Endpoints (no DevGuard)
+
+| Endpoint | Description |
+|---|---|
+| `GET /users/me` | Returns the current user's profile |
+| `PUT /users/me` | Updates the current user's profile (name, email, telephone, password) |
+| `DELETE /users/me` | Soft-deletes the current user's account (sets status to `INACTIVE`) |
+
+### Business Rules
+
+- `email` must be unique; `UserEmailAlreadyExistsError` is thrown on conflict.
+- `DELETE /users/me` performs a **soft delete** — status is set to `INACTIVE`, the row is not removed.
+- Inactive users cannot be updated; `InactiveUserError` is thrown.
+- `FindUserByIdUseCase` treats `INACTIVE` users as non-existent; the same `UserNotFoundError` is thrown.
+- Password changes are re-hashed by `HashProvider` (bcrypt) — plaintext is never persisted.
+
+---
+
+## Domain Errors
+
+| Error Class | HTTP | Code |
+|---|---|---|
+| `InvalidUserNameError` | 400 | `INVALID_USER_NAME` |
+| `InvalidUserTelephoneError` | 400 | `INVALID_USER_TELEPHONE` |
+| `InvalidPasswordError` | 400 | `INVALID_PASSWORD` |
+| `UserNotFoundError` | 404 | `USER_NOT_FOUND` |
+| `UserEmailAlreadyExistsError` | 409 | `USER_EMAIL_ALREADY_EXISTS` |
+| `InactiveUserError` | 400 | `INACTIVE_USER` |
+
+---
+
+## Module Dependencies
+
+```
+UserModule
+  ├── PrismaModule    (PrismaService)
+  └── SharedModule    (guards, decorators, exception filters)
+  [internal] HashProvider → BcryptHashProvider (not exported)
+
+Exports:
+  UserRepository          → AuthModule, MembershipModule
+  CreateUserUseCase       → AuthModule (registration flow)
+  UpdateUserUseCase       → AuthModule
+  FindUserByIdUseCase     → AuthModule, MembershipModule
+  FindAllActiveUsersUseCase
+  FindAllUsersUseCase
+```
+
+---
+
+## Architecture
+
+```
+user/
+  domain/
+    entities/
+      user.entity.ts                    # User aggregate root
+      errors/
+        user.errors.ts                  # Domain errors → HTTP codes
+      value-objects/
+        user-name.value-object.ts       # UserName VO (3–255 chars)
+        password-hash.value-object.ts   # PasswordHash VO (bcrypt hash)
+    interfaces/
+      user.repository.ts                # Abstract repository contract
+  application/
+    use-cases/                          # One file per use case
+    dtos/
+      create-user.dto.ts                # POST /users input
+      update-user.dto.ts                # PUT /users/me input (all optional)
+      user-response.dto.ts              # Shared output DTO (excludes passwordHash)
+  infrastructure/
+    db/
+      mappers/
+        user.mapper.ts                  # Prisma User ↔ User domain
+      repositories/
+        prisma-user.repository.ts       # Prisma implementation
+  presentation/
+    controllers/
+      user.controller.ts                # Base path: /users
+    mappers/
+      user.presenter.ts                 # User → UserResponseDto
+  user.module.ts
+```
+
+---
+
+## Guards & Access Control
+
+| Endpoint | Guards |
+|---|---|
+| `POST /users`, `GET /users`, `GET /users/active`, `GET /users/:id`, `DELETE /users/:id` | `JwtAuthGuard` + `DevGuard` |
+| `GET /users/me`, `PUT /users/me`, `DELETE /users/me` | `JwtAuthGuard` only |

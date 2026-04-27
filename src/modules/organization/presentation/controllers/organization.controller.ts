@@ -42,6 +42,27 @@ import {
   DisableOrganizationUseCase,
 } from '../../application/use-cases';
 
+/**
+ * HTTP controller for organization management.
+ *
+ * @remarks
+ * Public / all-authenticated endpoints:
+ * - `GET /organizations/active` — list all active organizations
+ *
+ * Authenticated user (any role):
+ * - `GET /organizations/me` — list organizations the current user belongs to
+ *
+ * Admin-only endpoints (`RolesGuard` + `ADMIN` + `TenantFilterGuard`):
+ * - `GET /organizations/:id` — find by ID (org-scoped)
+ * - `PUT /organizations/:id` — partial update (org-scoped)
+ * - `DELETE /organizations/:id` — soft-disable (org-scoped)
+ *
+ * Dev-only endpoints (`DevGuard`):
+ * - `POST /organizations` — create organization
+ * - `GET /organizations` — list all (including inactive)
+ *
+ * Base path: `/organizations`
+ */
 @ApiTags('organizations')
 @Controller('organizations')
 @UseGuards(JwtAuthGuard)

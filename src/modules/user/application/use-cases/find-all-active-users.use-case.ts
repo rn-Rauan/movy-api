@@ -6,6 +6,12 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Returns a paginated list of all `ACTIVE` users.
+ *
+ * Delegates entirely to {@link UserRepository.findAllActive}.
+ * Results are ordered by `createdAt` descending (repository-defined ordering).
+ */
 @Injectable()
 export class FindAllActiveUsersUseCase {
   constructor(private readonly userRepository: UserRepository) {}

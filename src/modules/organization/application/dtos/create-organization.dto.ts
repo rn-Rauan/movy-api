@@ -2,13 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsEmail } from 'class-validator';
 
 /**
- * DTO for creating a new organization.
- * @param name - Organization name
- * @param email - Email contact
- * @param cnpj - Unique CNPJ number for the organization
- * @param telephone - Contact telephone
- * @param slug - Unique URL slug
- * @param address - Organization address
+ * Input DTO for the {@link CreateOrganizationUseCase} — `POST /organizations`.
+ *
+ * @remarks
+ * All fields are required. `cnpj` is validated by the {@link Cnpj} Value Object;
+ * `slug` must match `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`.
  */
 export class CreateOrganizationDto {
   @ApiProperty({ example: 'My Organization' })

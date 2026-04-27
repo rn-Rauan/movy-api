@@ -3,6 +3,13 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from 'generated/prisma/client';
 import { Pool } from 'pg';
 
+/**
+ * NestJS service wrapping `PrismaClient` with a `pg` connection pool adapter.
+ *
+ * @remarks
+ * Connects on `onModuleInit` and disconnects on `onModuleDestroy`.
+ * `DATABASE_URL` must be set in the environment — no fallback is provided.
+ */
 @Injectable()
 export class PrismaService
   extends PrismaClient

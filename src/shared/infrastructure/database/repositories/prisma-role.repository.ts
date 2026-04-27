@@ -5,6 +5,10 @@ import { PrismaService } from '../prisma.service';
 import { RoleMapper } from '../mappers/role.mapper';
 import { RoleName } from 'generated/prisma/enums';
 
+/**
+ * Prisma implementation of {@link RoleRepository}.
+ * Queries the `role` table seeded at startup — no write operations.
+ */
 @Injectable()
 export class PrismaRoleRepository implements RoleRepository {
   constructor(private readonly prisma: PrismaService) {}

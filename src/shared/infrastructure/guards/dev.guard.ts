@@ -10,19 +10,21 @@ import { DEV_ONLY_KEY } from '../decorators/dev.decorator';
 import { Request } from 'express';
 
 /**
- * Guard que restringe acesso apenas a desenvolvedores (isDev=true).
+ * Guard that restricts route access to developer accounts (`isDev = true`).
  *
- * Usado com o decorator @Dev() para marcar rotas exclusivas de dev.
- * Requer que TenantContextMiddleware tenha injetado req.context.
+ * @remarks
+ * Works in tandem with the {@link Dev} decorator. If `@Dev()` is not present on
+ * the route, the guard allows the request through unconditionally.
+ * If `@Dev()` is present, only users whose JWT carries `isDev = true` pass.
  *
- * Uso:
- *   @UseGuards(JwtAuthGuard, DevGuard)
- *   @Dev()
- *   @Get('/debug/info')
- *   async debugInfo() { ... }
+ * Must be applied after `JwtAuthGuard` so that `req.context` is already populated.
  *
- * Se @Dev() NÃO estiver presente na rota, o guard permite acesso (não bloqueia).
- * Se @Dev() ESTIVER presente, apenas usuários com isDev=true passam.
+ * ```typescript
+ * @UseGuards(JwtAuthGuard, DevGuard)
+ * @Dev()
+ * @Get('/admin/debug')
+ * async debugInfo() { ... }
+ * ```
  */
 @Injectable()
 export class DevGuard implements CanActivate {

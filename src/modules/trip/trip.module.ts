@@ -26,6 +26,30 @@ import { PrismaTripTemplateRepository } from './infrastructure/db/repositories/p
 import { TripInstanceController } from './presentation/controllers/trip-instance.controller';
 import { TripTemplateController } from './presentation/controllers/trip-template.controller';
 
+/**
+ * NestJS module that manages trip blueprints ({@link TripTemplate}) and their scheduled
+ * executions ({@link TripInstance}).
+ *
+ * Imports:
+ * - `DriverModule` — provides {@link DriverRepository} for driver assignment validation
+ * - `VehicleModule` — provides {@link VehicleRepository} for vehicle assignment validation
+ *
+ * Exports:
+ * - `TripTemplateRepository` — consumed by {@link BookingsModule} to resolve pricing
+ * - `TripInstanceRepository` — consumed by {@link BookingsModule} for capacity checks
+ */
+/**
+ * NestJS module that manages trip blueprints ({@link TripTemplate}) and their scheduled
+ * executions ({@link TripInstance}).
+ *
+ * Imports:
+ * - `DriverModule` — provides {@link DriverRepository} for driver assignment validation
+ * - `VehicleModule` — provides {@link VehicleRepository} for vehicle assignment validation
+ *
+ * Exports:
+ * - `TripTemplateRepository` — consumed by {@link BookingsModule} to resolve pricing
+ * - `TripInstanceRepository` — consumed by {@link BookingsModule} for capacity checks
+ */
 @Module({
   imports: [PrismaModule, SharedModule, DriverModule, VehicleModule],
   controllers: [TripTemplateController, TripInstanceController],

@@ -6,6 +6,12 @@ import {
 } from '../../domain/entities/errors/trip-instance.errors';
 import { TripInstanceRepository } from '../../domain/interfaces';
 
+/**
+ * Retrieves a single {@link TripInstance} by its UUID.
+ *
+ * Enforces organisation-scoped access: only members of the owning
+ * organisation may read the instance.
+ */
 @Injectable()
 export class FindTripInstanceByIdUseCase {
   constructor(
@@ -13,12 +19,13 @@ export class FindTripInstanceByIdUseCase {
   ) {}
 
   /**
-   * Finds a trip instance by its unique ID, scoped to the requesting organization.
+   * Looks up the instance and validates org ownership.
+   *
    * @param id - UUID of the trip instance
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns TripInstance found
-   * @throws TripInstanceNotFoundError if the trip instance does not exist
-   * @throws TripInstanceAccessForbiddenError if the instance belongs to a different organization
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @returns The matching {@link TripInstance}
+   * @throws {@link TripInstanceNotFoundError} if the instance does not exist
+   * @throws {@link TripInstanceAccessForbiddenError} if the instance belongs to a different org
    */
   async execute(id: string, organizationId: string): Promise<TripInstance> {
     const instance = await this.tripInstanceRepository.findById(id);

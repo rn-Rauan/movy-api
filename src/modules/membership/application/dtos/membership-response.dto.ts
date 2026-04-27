@@ -1,11 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
- * @param userId - UUID of the user associated with the membership
- * @param roleId - ID of the role assigned to the user within the organization
- * @param organizationId - UUID of the organization to which the membership belongs
- * @param assignedAt - Date when the membership was assigned
- * @param removedAt - Date when the membership was removed (null if still active)
+ * HTTP response shape for a single membership record.
+ *
+ * Returned by all endpoints that expose a {@link Membership} entity.
  */
 export class MembershipResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })

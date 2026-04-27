@@ -4,7 +4,8 @@ import { InvalidMaxCapacityError } from './errors/vehicle.errors';
 import { Plate } from './value-objects/plate.value-object';
 
 /**
- * Interface that defines the properties of the Vehicle entity.
+ * Internal property bag for the {@link VehicleEntity} aggregate.
+ * @internal
  */
 export interface VehicleProps {
   readonly id: string;
@@ -19,12 +20,19 @@ export interface VehicleProps {
 }
 
 /**
- * Entity Vehicle
+ * Aggregate root representing a physical vehicle registered to an organisation.
  *
- * Responsibility:
- * - Manage vehicle data owned by an organization
- * - Validate data integrity (capacity, plate, type)
- * - Encapsulate business rules (activate/deactivate)
+ * @remarks
+ * - `plate` is a {@link Plate} Value Object enforcing Brazilian plate formats
+ *   (old `ABC1234` or Mercosul `ABC1D23`)
+ * - `maxCapacity` must be a positive integer; violations throw {@link InvalidMaxCapacityError}
+ * - Status defaults to {@link VehicleStatus.ACTIVE} on creation; use `activate()` /
+ *   `deactivate()` to toggle
+ * - `updatedAt` is refreshed automatically on every mutating operation
+ *
+ * @see {@link Plate}
+ * @see {@link VehicleType}
+ * @see {@link VehicleStatus}
  */
 export class VehicleEntity {
   private readonly props: Required<VehicleProps>;
@@ -41,8 +49,11 @@ export class VehicleEntity {
   }
 
   /**
-   * Create a new Vehicle instance, running domain invariant checks.
-   * @throws InvalidMaxCapacityError if maxCapacity is not a positive integer
+   * Creates a new {@link VehicleEntity}, enforcing domain invariants.
+   *
+   * @param props - Vehicle data excluding audit timestamps and status
+   * @returns A new {@link VehicleEntity} with status `ACTIVE`
+   * @throws {@link InvalidMaxCapacityError} if `maxCapacity` is not a positive integer
    */
   static create(
     props: Omit<VehicleProps, 'createdAt' | 'updatedAt' | 'status'>,
@@ -54,7 +65,13 @@ export class VehicleEntity {
   }
 
   /**
-   * Restore an existing Vehicle instance from persistence (skips invariant checks).
+   * Reconstructs a {@link VehicleEntity} from a persistence record.
+   *
+   * Skips all domain invariant checks — the data is assumed valid since
+   * it was originally written through the domain layer.
+   *
+   * @param props - Full property snapshot from the database
+   * @returns A fully hydrated {@link VehicleEntity}
    */
   static restore(props: VehicleProps): VehicleEntity {
     return new VehicleEntity(props);

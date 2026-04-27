@@ -10,22 +10,20 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 import { Request } from 'express';
 
 /**
- * Guard que valida permissões de role via @Roles() decorator.
+ * Guard that enforces role-based access control via the {@link Roles} decorator.
  *
- * Lê a metadata @Roles() e compara com req.context.role.
- * Developers (isDev=true) sempre passam (bypass via @Dev() ou implícito).
+ * @remarks
+ * Reads `@Roles(...)` metadata from the route handler and compares it against
+ * `req.context.role`. Developer accounts (`isDev = true`) bypass all role checks.
+ * Routes without `@Roles()` are allowed unconditionally.
  *
- * Requer que TenantContextMiddleware tenha injetado req.context.
+ * Must be applied after `JwtAuthGuard` so that `req.context` is already populated.
  *
- * Uso:
- *   @UseGuards(JwtAuthGuard, RolesGuard)
- *   @Roles(RoleName.ADMIN, RoleName.DRIVER)
- *   async someMethod() { ... }
- *
- * Combinado com @Dev() (devs também passam mesmo sem role):
- *   @UseGuards(JwtAuthGuard, RolesGuard)
- *   @Roles(RoleName.ADMIN)
- *   async someMethod() { ... }  // devs passam via isDev bypass
+ * ```typescript
+ * @UseGuards(JwtAuthGuard, RolesGuard)
+ * @Roles(RoleName.ADMIN)
+ * async adminOnlyRoute() { ... }
+ * ```
  */
 @Injectable()
 export class RolesGuard implements CanActivate {

@@ -9,10 +9,11 @@ import {
 } from 'class-validator';
 
 /**
- * DTO for creating a new driver profile.
- * @param cnh - Driver license number (9-12 chars)
- * @param cnhCategory - License category (A, B, C, D, E)
- * @param cnhExpiresAt - License expiration date (ISO string)
+ * Input DTO for the {@link CreateDriverUseCase} — `POST /drivers`.
+ *
+ * @remarks
+ * All three CNH fields are required. The CNH number must be 9–12 alphanumeric
+ * characters; `cnhExpiresAt` must be a future ISO 8601 date string.
  */
 export class CreateDriverDto {
   @ApiProperty({

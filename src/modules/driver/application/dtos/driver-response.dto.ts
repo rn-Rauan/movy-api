@@ -2,15 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { DriverStatus } from '../../domain/interfaces/enums/driver-status.enum';
 
 /**
- * Response DTO with public driver profile data.
- * @param id - Unique identifier (UUID v4)
- * @param userId - Associated user ID
- * @param cnh - Driver license number
- * @param cnhCategory - License category
- * @param cnhExpiresAt - License expiration date
- * @param driverStatus - Current driver status
- * @param createdAt - Creation timestamp
- * @param updatedAt - Last update timestamp
+ * HTTP response shape for a single driver profile.
+ *
+ * Returned by all endpoints that expose a {@link DriverEntity}.
+ * The `cnh` field contains the raw license number string.
  */
 export class DriverResponseDto {
   @ApiProperty({

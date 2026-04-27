@@ -2,8 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsEmail } from 'class-validator';
 
 /**
- * @param userEmail - The email of the user to be added to the organization
- * @param roleId - The ID of the role to be assigned to the user within the organization
+ * Input DTO for {@link CreateMembershipUseCase} — `POST /memberships`.
+ *
+ * @remarks
+ * `roleId` maps to the seeded `Role` table: `1 = ADMIN`, `2 = DRIVER`.
+ * For the `DRIVER` role the user must already have a driver profile.
  */
 export class CreateMembershipDto {
   @ApiProperty({ example: 'user@example.com' })

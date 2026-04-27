@@ -2,11 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 /**
- * DTO for creating a new user.
- * @param name - Full name of the user
- * @param email - Unique email of the user
- * @param password - Password with a minimum of 8 characters
- * @param telephone - Phone number of the user
+ * Input DTO for `POST /users` (dev-only endpoint).
+ *
+ * @remarks
+ * - `password` is a plaintext string hashed by {@link HashProvider} before storage;
+ *   minimum 8 characters
+ * - `email` must be unique in the system; conflicts throw {@link UserEmailAlreadyExistsError}
+ * - `telephone` format is validated by the {@link Telephone} Value Object
  */
 export class CreateUserDto {
   @ApiProperty({ example: 'John Doe', description: 'The name of the user' })

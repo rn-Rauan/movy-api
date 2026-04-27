@@ -9,6 +9,13 @@ import {
 import { TripTemplateRepository } from '../../domain/interfaces';
 import { UpdateTripTemplateDto } from '../dtos';
 
+/**
+ * Applies a partial update to an existing {@link TripTemplate}.
+ *
+ * Validates ownership and active status before applying field-level changes.
+ * Each update category (route, stops, pricing, recurrence, auto-cancel) delegates
+ * validation to the domain entity methods, so all invariants are re-enforced.
+ */
 @Injectable()
 export class UpdateTripTemplateUseCase {
   constructor(
@@ -16,15 +23,15 @@ export class UpdateTripTemplateUseCase {
   ) {}
 
   /**
-   * Partially updates a trip template, scoped to the requesting organization.
-   * Route, stops, pricing, recurrence, and auto-cancel are delegated to entity methods (with validation).
+   * Partially updates a trip template, scoped to the requesting organisation.
+   *
    * @param id - UUID of the trip template to update
-   * @param input - Optional fields for update
-   * @param organizationId - UUID of the organization from JWT context
-   * @returns TripTemplate with updated data
-   * @throws TripTemplateNotFoundError if trip template does not exist
-   * @throws TripTemplateAccessForbiddenError if template belongs to a different organization
-   * @throws TripTemplateInactiveError if template is inactive
+   * @param input - Optional fields to update
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @returns The updated {@link TripTemplate}
+   * @throws {@link TripTemplateNotFoundError} if the template does not exist
+   * @throws {@link TripTemplateAccessForbiddenError} if the template belongs to a different org
+   * @throws {@link TripTemplateInactiveError} if the template is inactive
    */
   async execute(
     id: string,

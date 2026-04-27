@@ -15,6 +15,15 @@ import { DriverRepository } from './domain/interfaces';
 import { DriverController } from './presentation/controllers/driver.controller';
 import { UserModule } from '../user/user.module';
 
+/**
+ * NestJS module managing the {@link DriverEntity} aggregate.
+ *
+ * @remarks
+ * Imports {@link UserModule} to resolve {@link UserRepository} — required by
+ * {@link LookupDriverUseCase} for the admin enrollment flow.
+ * Exports all use cases and {@link DriverRepository} so that dependent modules
+ * (e.g., `BookingModule`, `TripModule`) can resolve driver profiles.
+ */
 @Module({
   imports: [PrismaModule, SharedModule, UserModule],
   controllers: [DriverController],

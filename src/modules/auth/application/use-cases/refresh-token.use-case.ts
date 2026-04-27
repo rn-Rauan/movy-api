@@ -5,6 +5,24 @@ import { JwtPayloadService } from '../services/jwt-payload.service';
 import { TokenResponseDto } from '../dtos';
 import type { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
 
+/**
+ * Rotates a JWT pair by validating an existing refresh token and issuing new ones.
+ *
+ * @remarks
+ * Verifies the token signature and expiry, then confirms the user is still active.
+ * Re-calls {@link JwtPayloadService.enrichPayload} so the new tokens reflect any
+ * membership changes that occurred since the original login.
+ * Throws `UnauthorizedException` for any invalid, expired, or revoked token.
+ */
+/**
+ * Rotates a JWT pair by validating an existing refresh token and issuing new ones.
+ *
+ * @remarks
+ * Verifies the token signature and expiry, then confirms the user is still active.
+ * Re-calls {@link JwtPayloadService.enrichPayload} so the new tokens reflect any
+ * membership changes that occurred since the original login.
+ * Throws `UnauthorizedException` for any invalid, expired, or revoked token.
+ */
 @Injectable()
 export class RefreshTokenUseCase {
   private readonly logger = new Logger(RefreshTokenUseCase.name);

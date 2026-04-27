@@ -13,6 +13,12 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 
+/**
+ * Returns a paginated list of {@link TripInstance} items derived from a specific {@link TripTemplate}.
+ *
+ * Validates that the template exists and belongs to the requesting organisation
+ * before delegating to the repository.
+ */
 @Injectable()
 export class FindTripInstancesByTemplateUseCase {
   constructor(
@@ -21,14 +27,14 @@ export class FindTripInstancesByTemplateUseCase {
   ) {}
 
   /**
-   * Lists all trip instances for a given trip template, scoped to the requesting organization.
-   * Validates template ownership before querying instances.
+   * Validates template ownership and returns the paginated list of instances.
+   *
    * @param templateId - UUID of the trip template
-   * @param organizationId - UUID of the organization from JWT context
-   * @param options - Pagination options (page, limit)
-   * @returns Paginated response with TripInstance list ordered by departure time
-   * @throws TripTemplateNotFoundError if the template does not exist
-   * @throws TripTemplateAccessForbiddenError if the template belongs to a different organization
+   * @param organizationId - UUID of the organisation (from JWT)
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstance} items ordered by `departureTime`
+   * @throws {@link TripTemplateNotFoundError} if the template does not exist
+   * @throws {@link TripTemplateAccessForbiddenError} if the template belongs to a different org
    */
   async execute(
     templateId: string,

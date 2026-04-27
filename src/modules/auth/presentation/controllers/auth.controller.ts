@@ -17,6 +17,40 @@ import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
 import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
 
+/**
+ * HTTP controller for authentication flows.
+ *
+ * @remarks
+ * All endpoints are public except `POST /auth/setup-organization`,
+ * which requires a valid `JwtAuthGuard` bearer token.
+ *
+ * | Method | Path | Guard | Use Case |
+ * |--------|------|-------|----------|
+ * | `POST` | `/auth/login` | — | `LoginUseCase` |
+ * | `POST` | `/auth/register` | — | `RegisterUseCase` |
+ * | `POST` | `/auth/register-organization` | — | `RegisterOrganizationWithAdminUseCase` |
+ * | `POST` | `/auth/setup-organization` | `JwtAuthGuard` | `SetupOrganizationForExistingUserUseCase` |
+ * | `POST` | `/auth/refresh` | — | `RefreshTokenUseCase` |
+ *
+ * Base path: `/auth`
+ */
+/**
+ * HTTP controller for authentication flows.
+ *
+ * @remarks
+ * All endpoints are public except `POST /auth/setup-organization`,
+ * which requires a valid `JwtAuthGuard` bearer token.
+ *
+ * | Method | Path | Guard | Use Case |
+ * |--------|------|-------|----------|
+ * | `POST` | `/auth/login` | — | `LoginUseCase` |
+ * | `POST` | `/auth/register` | — | `RegisterUseCase` |
+ * | `POST` | `/auth/register-organization` | — | `RegisterOrganizationWithAdminUseCase` |
+ * | `POST` | `/auth/setup-organization` | `JwtAuthGuard` | `SetupOrganizationForExistingUserUseCase` |
+ * | `POST` | `/auth/refresh` | — | `RefreshTokenUseCase` |
+ *
+ * Base path: `/auth`
+ */
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {

@@ -1,12 +1,12 @@
 import { InvalidCnhCategoryError } from '../errors';
 
 /**
- * CNH Category Value Object
+ * Value Object representing a Brazilian CNH license category.
  *
- * Responsibility:
- * - Encapsulate CNH category validation logic
- * - Ensure only valid categories are used (A, B, C, D, E)
- * - Be immutable and comparable
+ * @remarks
+ * Only the DETRAN categories `A`, `B`, `C`, `D`, and `E` are accepted.
+ * Use {@link CnhCategory.create} for new input and {@link CnhCategory.restore}
+ * to reconstruct from persistence without re-validation.
  */
 export type CnhCategoryType = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -26,9 +26,11 @@ export class CnhCategory {
   ];
 
   /**
-   * Create a new CNH Category instance
-   * @param category Category string to validate
-   * @throws InvalidCnhCategoryError if category is not valid
+   * Validates and creates a new {@link CnhCategory} instance.
+   *
+   * @param category - Raw category string (case-insensitive)
+   * @returns A valid {@link CnhCategory} Value Object
+   * @throws {@link InvalidCnhCategoryError} if the value is not in `A–E`
    */
   static create(category: string): CnhCategory {
     if (!category || typeof category !== 'string') {
@@ -45,7 +47,11 @@ export class CnhCategory {
   }
 
   /**
-   * Restore a CNH Category from persistence (skips validation)
+   * Reconstructs a {@link CnhCategory} from a previously validated persisted value.
+   * Skips validation — only call with data that already passed `create()`.
+   *
+   * @param category - Persisted category string
+   * @returns A {@link CnhCategory} instance
    */
   static restore(category: CnhCategoryType): CnhCategory {
     return new CnhCategory(category);

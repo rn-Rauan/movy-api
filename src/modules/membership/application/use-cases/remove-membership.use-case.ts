@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { MembershipRepository } from '../../domain/interfaces/membership.repository';
 import { MembershipNotFoundError } from '../../domain/entities';
 
+/**
+ * Soft-removes a membership by stamping `removedAt` with the current timestamp.
+ *
+ * @remarks
+ * Throws {@link MembershipNotFoundError} if no membership exists for the composite key.
+ * Does NOT hard-delete the record — use `MembershipRepository.delete` for that.
+ */
 @Injectable()
 export class RemoveMembershipUseCase {
   constructor(private readonly membershipRepository: MembershipRepository) {}

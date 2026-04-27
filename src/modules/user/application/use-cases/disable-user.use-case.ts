@@ -6,6 +6,17 @@ import {
 } from '../../domain/entities/errors/user.errors';
 import { User } from '../../domain/entities';
 
+/**
+ * Soft-deletes a user by setting their status to `INACTIVE`.
+ *
+ * @remarks
+ * The user record is NOT hard-deleted; inactive users are simply excluded
+ * from normal queries. Re-activation is not exposed as a use case — only a
+ * developer endpoint bypasses this.
+ *
+ * @see {@link UserNotFoundError}
+ * @see {@link InactiveUserError}
+ */
 @Injectable()
 export class DisableUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
