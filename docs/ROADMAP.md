@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 25 Abr 2026 
+**Última atualização:** 26 Abr 2026 
 
 ---
 
@@ -10,15 +10,15 @@
 
 ```
 FASE 1: Mar 31 - Abr 13    (2 semanas)  ✅ 100% COMPLETO (11 Abr 2026)
-FASE 2: Abr 14 - Mai 15    (4 semanas)  ⏳ EM ANDAMENTO
-FASE 3: Mai 18 - Jun 01    (2 semanas)  ⏳ FUTURO
+FASE 2: Abr 14 - Mai 15    (4 semanas)  ✅ COMPLETO (25 Abr 2026)
+FASE 3: Abr 26             (1 dia)      ✅ COMPLETO (26 Abr 2026)
 FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
 
 MVP PRONTO: 15 de Junho 2026
 
-Progresso em 25 Abr 2026:
-  Fase 2 — Bookings Module completo (7 use cases, 50 testes unitários, lógica B2C)
-  Total acumulado: 30 suites, 198 testes passando
+Progresso em 26 Abr 2026:
+  Fase 3 — Plans, Payment e Subscriptions completos (11 use cases, módulos SaaS prontos)
+  Total acumulado: 32 suites, 236 testes passando
 ```
 
 ---
@@ -237,18 +237,17 @@ Progresso em 25 Abr 2026:
 
 ---
 
-## 💰 Fase 3: Monetização (Mai 18 - Jun 01)
+## 💰 Fase 3: Monetização ✅ COMPLETO (26 Abr 2026)
 
-**Objetivo:** Transformar em SaaS com pagamentos
+**Objetivo:** Transformar em SaaS com planos e histórico de pagamentos
 
 | Status | O Quê | Duração |
 |:------:|-------|---------|
-| ⏳ | Payment integration (Stripe) | 4-5 dias |
-| ⏳ | Plans (Free/Pro/Enterprise) | 2 dias |
-| ⏳ | Billing + Invoices | 2 dias |
-| ⏳ | Testes de pagamento | 2 dias |
+| ✅ | Plans (FREE/BASIC/PRO/PREMIUM) — 5 use cases, DevGuard | ✅ Pronto (26 Abr) |
+| ✅ | Payment — read-only API, criação pelo BookingsModule | ✅ Pronto (26 Abr) |
+| ✅ | Subscriptions — 4 use cases, 30 dias, ADMIN-only | ✅ Pronto (26 Abr) |
 
-**Saída:** SaaS monetizado, pronto pra production
+**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização
 
 ---
 
@@ -274,7 +273,7 @@ Progresso em 25 Abr 2026:
 ✅ 04 Abr  → User + Org modules, Auth básica
 ✅ 18 Abr  → Vehicles + Drivers prontos (Vehicle 17 Abr, Driver 11+17 Abr)
 ✅ 01 Mai  → Trips + Bookings funcionando
-✅ 15 Mai  → Pagamentos integrados
+✅ 26 Abr  → Pagamentos + Planos + Assinaturas (Fase 3 antecipada)
 ✅ 15 Jun  → MVP deployado + TCC documentado
 ```
 
@@ -294,18 +293,18 @@ rbac/          ✅ COMPLETO (Guards + Decorators)
 shared/        ✅ COMPLETO
 ```
 
-### Fase 2 ⏳
+### Fase 2 ✅ COMPLETO (25 Abr 2026)
 ```
 vehicle/       ✅ COMPLETO (17 Abr)
 trip/          ✅ COMPLETO (21 Abr) — TripTemplate + TripInstance + FK fixes
 booking/       ✅ COMPLETO (25 Abr) — 9 use cases, lógica B2C + org-only, controller REST, 85 testes
 ```
 
-### Fase 3 ⏳
+### Fase 3 ✅ COMPLETO (26 Abr 2026)
 ```
-payment/       ⏳ PRÓXIMO (semana 1-2)
-plan/          ⏳ PRÓXIMO (semana 1-2)
-billing/       ⏳ PRÓXIMO (semana 1-2)
+plans/         ✅ COMPLETO (26 Abr) — 5 use cases, DevGuard, PlanName enum (FREE/BASIC/PRO/PREMIUM)
+payment/       ✅ COMPLETO (26 Abr) — read-only API, criação pelo BookingsModule, PaymentRepository exportado
+subscriptions/ ✅ COMPLETO (26 Abr) — 4 use cases, 30 dias, ADMIN-only, depende de PlansModule
 ```
 
 ### Fase 4 🔧
@@ -336,8 +335,9 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 - [x] Trip Templates ✅ (21 Abr)
 - [x] Trip Instances ✅ (21 Abr)
 - [x] Bookings ✅ (25 Abr)
-- [ ] Pagamentos (integração) ⏳
-- [ ] Plans básicos ⏳
+- [x] Pagamentos (histórico interno) ✅ (26 Abr)
+- [x] Plans básicos ✅ (26 Abr)
+- [x] Subscriptions ✅ (26 Abr)
 - [x] Auth JWT ✅
 - [x] Docker ✅ 
 - [x] README/Setup ✅ 

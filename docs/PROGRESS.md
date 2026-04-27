@@ -698,48 +698,161 @@ test/modules/bookings/
 
 ---
 
-## 💰 FASE 3: Monetização (Mai-Jun 2026)
+## 💰 FASE 3: Monetização ✅ COMPLETO (26 Abr 2026)
 
-### Payments Module 📋 (~7-10 dias)
+### Plans Module ✅ COMPLETO (26 Abr 2026)
 
-**Integração com Stripe (recomendado):**
-- [ ] Criar conta Stripe
-- [ ] POST `/payments/checkout` - Gerar session de pagamento
-- [ ] Webhook de confirmação de pagamento
-- [ ] Salvar histórico de transações
+**Endpoints REST (5 rotas):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `POST` | `/plans` | JWT + @Dev() | Cria plano (apenas devs) |
+| `PATCH` | `/plans/:id` | JWT + @Dev() | Atualiza dados do plano |
+| `PATCH` | `/plans/:id/deactivate` | JWT + @Dev() | Desativa plano |
+| `GET` | `/plans` | JWT | Lista todos os planos disponíveis |
+| `GET` | `/plans/:id` | JWT | Busca plano por ID |
 
-**Alternativa:** PagSeguro ou Mercado Pago
+**Domain Layer:**
+- ✅ `PlanEntity` com `create()`, `restore()`, `update()`, `deactivate()` — campo `name` imutável
+- ✅ `PlanName` enum: `FREE | BASIC | PRO | PREMIUM`
+- ✅ `Money` value object para `price`
+- ✅ `id = 0` na criação (banco gera o ID real)
+- ✅ 3 domain errors: `PlanNotFoundError` (404, `PLAN_NOT_FOUND`), `PlanAlreadyExistsError` (409, `PLAN_ALREADY_EXISTS`), `PlanCreationFailedError` (400, `PLAN_CREATION_FAILED_BAD_REQUEST`)
 
-**Arquivos:**
+**Application Layer:**
+- ✅ 5 use cases: `CreatePlanUseCase`, `UpdatePlanUseCase`, `DeactivatePlanUseCase`, `FindPlanByIdUseCase`, `FindAllPlansUseCase`
+- ✅ DTOs: `CreatePlanDto`, `UpdatePlanDto`, `PlanResponseDto` com class-validator + Swagger
+
+**Infrastructure & Presentation:**
+- ✅ `PrismaPlansRepository` + `PlanMapper` com `toDomain`/`toPersistence`
+- ✅ `PlanPresenter` com `toHTTP()` e `toHTTPList()`
+- ✅ `PlansModule` exporta `PlanRepository` — injetável em `SubscriptionsModule`
+
+**Arquivos implementados:**
 ```
-src/modules/payment/
-├── infrastructure/
-│   └── providers/
-│       ├── stripe.provider.ts
-│       └── payment.adapter.ts
+src/modules/plans/
+├── plans.module.ts ✅
+├── application/
+│   ├── dtos/ ✅ (create-plan, update-plan, plan-response)
+│   └── use-cases/ ✅ (5 use cases)
 ├── domain/
-│   └── entities/payment.entity.ts
-├── application/services/
-│   └── payment.service.ts
-└── payment.module.ts
+│   ├── entities/plan.entity.ts ✅
+│   ├── errors/plan.errors.ts ✅ (3 erros)
+│   └── interfaces/plan.repository.ts ✅
+├── infrastructure/
+│   ├── db/mappers/plan.mapper.ts ✅
+│   └── db/repositories/prisma-plans.repository.ts ✅
+├── presentation/
+│   ├── controllers/plan.controller.ts ✅
+│   └── mappers/plan.presenter.ts ✅
+└── README.md ✅
 ```
+
+**Status:** ✅ COMPLETO — CRUD funcional, writes protegidos por DevGuard + @Dev(), JSDoc em inglês (26 Abr 2026)
 
 ---
 
-### Plans & Billing 📋 (~3-5 dias)
+### Payment Module ✅ COMPLETO (26 Abr 2026)
 
-**Planos:**
-- [ ] FREE: básico, limite de trips/mês
-- [ ] PRO: sem limites, suporte prioritário
-- [ ] ENTERPRISE: customizado
+**Endpoints REST (2 rotas — leitura):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `GET` | `/organizations/:organizationId/payments/:id` | JWT + ADMIN + TenantFilter | Busca pagamento por ID |
+| `GET` | `/organizations/:organizationId/payments` | JWT + ADMIN + TenantFilter | Lista pagamentos da organização (paginado) |
 
-**Campos:**
-- [ ] price, max_trips_month, features, duration_days
+> Criação de pagamentos é responsabilidade do `CreateBookingUseCase` no módulo Bookings.
 
-**Faturamento:**
-- [ ] POST `/billing/invoice` - Gerar invoice
-- [ ] GET `/billing/invoices` - Histórico
-- [ ] Incluir payment_id da transação
+**Domain Layer:**
+- ✅ `PaymentEntity` com UUID gerado via `crypto.randomUUID()` no domínio, status inicial sempre `PENDING`
+- ✅ `Money` value object para `amount`
+- ✅ `MethodPayment` enum: `MONEY | PIX | CREDIT_CARD | DEBIT_CARD`
+- ✅ `PaymentStatus` enum: `PENDING | COMPLETED | FAILED`
+- ✅ 2 domain errors: `PaymentNotFoundError` (404, `PAYMENT_NOT_FOUND`), `PaymentCreationFailedError` (400, `PAYMENT_CREATION_FAILED_BAD_REQUEST`)
+
+**Application Layer:**
+- ✅ 2 use cases (leitura): `FindPaymentByIdUseCase`, `FindPaymentsByOrganizationUseCase`
+- ✅ DTO: `PaymentResponseDto` com Swagger
+
+**Infrastructure & Presentation:**
+- ✅ `PrismaPaymentRepository` + `PaymentMapper`
+- ✅ `PaymentPresenter` com `toHTTP()` e `toHTTPList()`
+- ✅ `PaymentModule` exporta `PaymentRepository` — injetável em `BookingsModule`
+
+**Arquivos implementados:**
+```
+src/modules/payment/
+├── payment.module.ts ✅
+├── application/
+│   ├── dtos/ ✅ (payment-response)
+│   └── use-cases/ ✅ (2 use cases)
+├── domain/
+│   ├── entities/payment.entity.ts ✅
+│   ├── errors/payment.errors.ts ✅ (2 erros)
+│   └── interfaces/payment.repository.ts ✅
+├── infrastructure/
+│   ├── db/mappers/payment.mapper.ts ✅
+│   └── db/repositories/prisma-payment.repository.ts ✅
+├── presentation/
+│   ├── controllers/payment.controller.ts ✅
+│   └── mappers/payment.presenter.ts ✅
+└── README.md ✅
+```
+
+**Status:** ✅ COMPLETO — read-only API, criação gerenciada pelo BookingsModule, PaymentRepository exportado (26 Abr 2026)
+
+---
+
+### Subscriptions Module ✅ COMPLETO (26 Abr 2026)
+
+**Endpoints REST (4 rotas):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `POST` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilter | Inscreve organização em um plano |
+| `PATCH` | `/organizations/:organizationId/subscriptions/:id/cancel` | JWT + ADMIN + TenantFilter | Cancela assinatura ativa |
+| `GET` | `/organizations/:organizationId/subscriptions/active` | JWT + ADMIN + TenantFilter | Busca assinatura ativa da org |
+| `GET` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilter | Lista histórico de assinaturas (paginado) |
+
+**Regras de Negócio:**
+- ✅ Uma organização só pode ter uma assinatura `ACTIVE` por vez (`SubscriptionAlreadyActiveError`)
+- ✅ Duração fixa: `SUBSCRIPTION_DURATION_DAYS = 30` — `expiresAt` calculado pelo use case no momento da criação
+- ✅ Plano deve existir e estar ativo para aceitar nova assinatura
+- ✅ Status: `ACTIVE | CANCELED` — `cancel()` transition via método de domínio
+- ✅ Isolamento de tenant via `TenantFilterGuard` + `@Roles(ADMIN)`
+
+**Domain Layer:**
+- ✅ `SubscriptionEntity` com UUID de `crypto.randomUUID()` no domínio, status inicial sempre `ACTIVE`, método `cancel()`
+- ✅ `SubscriptionStatus` enum: `ACTIVE | CANCELED`
+- ✅ 4 domain errors: `SubscriptionNotFoundError` (404), `SubscriptionAlreadyActiveError` (409, `SUBSCRIPTION_ALREADY_EXISTS`), `SubscriptionCreationFailedError` (400), `SubscriptionForbiddenError` (403, `SUBSCRIPTION_ACCESS_FORBIDDEN`)
+
+**Application Layer:**
+- ✅ 4 use cases: `SubscribeToPlanUseCase`, `CancelSubscriptionUseCase`, `FindActiveSubscriptionUseCase`, `FindSubscriptionsByOrganizationUseCase`
+- ✅ DTOs: `CreateSubscriptionDto`, `SubscriptionResponseDto` com Swagger
+
+**Infrastructure & Presentation:**
+- ✅ `PrismaSubscriptionRepository` + `SubscriptionMapper`
+- ✅ `SubscriptionPresenter` com `toHTTP()` e `toHTTPList()`
+- ✅ `SubscriptionsModule` importa `PlansModule` (para `PlanRepository` no `SubscribeToPlanUseCase`)
+
+**Arquivos implementados:**
+```
+src/modules/subscriptions/
+├── subscriptions.module.ts ✅ (importa PlansModule)
+├── application/
+│   ├── dtos/ ✅ (create-subscription, subscription-response)
+│   └── use-cases/ ✅ (4 use cases)
+├── domain/
+│   ├── entities/subscription.entity.ts ✅
+│   ├── errors/subscription.errors.ts ✅ (4 erros)
+│   └── interfaces/subscription.repository.ts ✅
+├── infrastructure/
+│   ├── db/mappers/subscription.mapper.ts ✅
+│   └── db/repositories/prisma-subscription.repository.ts ✅
+├── presentation/
+│   ├── controllers/subscription.controller.ts ✅
+│   └── mappers/subscription.presenter.ts ✅
+└── README.md ✅
+```
+
+**Status:** ✅ COMPLETO — 4 use cases, isolamento de tenant ADMIN-only, dependência em PlansModule, JSDoc em inglês (26 Abr 2026)
 
 ---
 
@@ -752,8 +865,10 @@ src/modules/payment/
   - [ ] Vehicles module: ⏳
   - [ ] Drivers module: ⏳
   - [x] Trips module: ✅ (11 specs, 90 testes — `FindAllTripTemplatesByOrganizationUseCase` pendente)
-  - [x] Bookings module: ✅ (7 specs, 54 testes — 25 Abr)
-  - [ ] Payments module: ⏳
+  - [x] Bookings module: ✅ (9 specs, 85 testes — 25 Abr)
+  - [ ] Plans module: ⏳
+  - [ ] Payment module: ⏳
+  - [ ] Subscriptions module: ⏳
 
 - [ ] Integration tests (E2E)
   - [ ] Auth flow completo
@@ -801,15 +916,13 @@ src/modules/payment/
 1. **Testes unitários pendentes:**
    - [ ] RegisterUseCase, RefreshTokenUseCase (auth module)
    - [ ] Use cases de CRUD de Driver (FindDriverById, UpdateDriver, etc.)
+   - [ ] Use cases de Plans, Payment e Subscriptions
 
-2. ~~**Bookings Module**~~ ✅ **CONCLUÍDO (25 Abr)** — 7 use cases, 54 testes, isolamento multi-tenant, reinscrição após cancelamento
+2. ~~**Bookings Module**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, isolamento multi-tenant, reinscrição após cancelamento
 
-3. **Swagger** — documentação dos endpoints ainda sem `@ApiProperty` completo
+3. ~~**Fase 3 (Monetização)**~~ ✅ **CONCLUÍDA (26 Abr)** — Plans (5 use cases, DevGuard), Payment (read-only, criação via Bookings), Subscriptions (4 use cases, 30 dias, ADMIN-only)
 
-4. **Fase 3 (Monetização)**
-   - [ ] Integração com Stripe (checkout, webhook)
-   - [ ] Plans (Free/Pro/Enterprise)
-   - [ ] Billing + Invoices
+4. **Swagger** — documentação dos endpoints ainda sem `@ApiProperty` completo
 
 ---
 
@@ -827,7 +940,7 @@ src/modules/payment/
 
 **Decisões Técnicas Pendentes:**
 - [ ] JWT custom vs Supabase Auth? → **Decisão:** Custom (já implementado)
-- [ ] Payment provider: Stripe vs PagSeguro? → **Decisão:** Stripe
+- [ ] ~~Payment provider: Stripe vs PagSeguro?~~ → **Decisão:** Pagamento interno simplificado (sem gateway externo no MVP)
 - [ ] Cache (Redis)? Não para MVP
 - [ ] Message Queue? Não para MVP
 - [ ] WebSockets para live tracking? Depois (V2)

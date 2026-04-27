@@ -899,6 +899,134 @@ Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` nos dois configs Jest (`test/jes
 
 **Compilação:** ✅ `npx tsc --noEmit` = 0 erros
 
+---
+
+### Plans Module ✅ COMPLETO (26 Abr 2026)
+
+O módulo de planos gerencia os planos de assinatura disponíveis na plataforma. Writes são restritos a desenvolvedores via `DevGuard`; qualquer usuário autenticado pode listar/consultar planos.
+
+**Entity `PlanEntity`:**
+- `id`: inteiro gerado pelo banco (`id = 0` na criação)
+- `name`: `PlanName` enum — `FREE | BASIC | PRO | PREMIUM`; campo imutável após criação
+- `price`: `Money` value object
+- `description`, `isActive`: campo boolean controlado por `deactivate()`
+- Métodos: `create()` (factory), `restore()` (hidratação), `update()` (atualiza preço/descrição), `deactivate()`
+
+**Use Cases (5):**
+| Use Case | Descrição |
+|----------|-----------|
+| `CreatePlanUseCase` | Valida unicidade do nome, cria plano via `PlanRepository.save()` |
+| `UpdatePlanUseCase` | Busca por ID, atualiza via `plan.update()`, persiste |
+| `DeactivatePlanUseCase` | Busca por ID, chama `plan.deactivate()`, persiste |
+| `FindPlanByIdUseCase` | Busca com `PlanNotFoundError` se não encontrado |
+| `FindAllPlansUseCase` | Listagem paginada |
+
+**Domain Errors:**
+| Error | Código | HTTP |
+|-------|--------|------|
+| `PlanNotFoundError` | `PLAN_NOT_FOUND` | 404 |
+| `PlanAlreadyExistsError` | `PLAN_ALREADY_EXISTS` | 409 |
+| `PlanCreationFailedError` | `PLAN_CREATION_FAILED_BAD_REQUEST` | 400 |
+
+**Endpoints REST (`/plans`):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `POST` | `/plans` | JWT + @Dev() + DevGuard | Cria plano |
+| `PATCH` | `/plans/:id` | JWT + @Dev() + DevGuard | Atualiza plano |
+| `PATCH` | `/plans/:id/deactivate` | JWT + @Dev() + DevGuard | Desativa plano |
+| `GET` | `/plans` | JWT | Lista todos os planos |
+| `GET` | `/plans/:id` | JWT | Busca plano por ID |
+
+`PlansModule` exporta `PlanRepository` — injetável em `SubscriptionsModule`.
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
+
+---
+
+### Payment Module ✅ COMPLETO (26 Abr 2026)
+
+O módulo de pagamentos expõe uma API de **leitura apenas**. A criação de pagamentos é responsabilidade do `CreateBookingUseCase` no módulo Bookings — cada booking cria um registro de pagamento no momento da inscrição.
+
+**Entity `PaymentEntity`:**
+- `id`: UUID gerado via `crypto.randomUUID()` no domínio
+- `status`: `PaymentStatus` enum — `PENDING | COMPLETED | FAILED`; status inicial sempre `PENDING`
+- `amount`: `Money` value object
+- `method`: `MethodPayment` enum — `MONEY | PIX | CREDIT_CARD | DEBIT_CARD`
+- `organizationId`, `bookingId`: referências para isolamento de tenant e rastreabilidade
+
+**Use Cases (2 — read-only):**
+| Use Case | Descrição |
+|----------|-----------|
+| `FindPaymentByIdUseCase` | Busca pagamento por ID, valida pertencimento à org |
+| `FindPaymentsByOrganizationUseCase` | Listagem paginada dos pagamentos da organização |
+
+**Domain Errors:**
+| Error | Código | HTTP |
+|-------|--------|------|
+| `PaymentNotFoundError` | `PAYMENT_NOT_FOUND` | 404 |
+| `PaymentCreationFailedError` | `PAYMENT_CREATION_FAILED_BAD_REQUEST` | 400 |
+
+**Endpoints REST (`/organizations/:organizationId/payments`):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `GET` | `/organizations/:organizationId/payments/:id` | JWT + ADMIN + TenantFilterGuard | Busca pagamento por ID |
+| `GET` | `/organizations/:organizationId/payments` | JWT + ADMIN + TenantFilterGuard | Lista pagamentos da org (paginado) |
+
+`PaymentModule` exporta `PaymentRepository` — injetável em `BookingsModule`.
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
+
+---
+
+### Subscriptions Module ✅ COMPLETO (26 Abr 2026)
+
+O módulo de assinaturas gerencia a relação entre organizações e planos. Cada organização pode ter apenas uma assinatura ativa por vez. A duração é fixa em 30 dias, calculada no use case no momento da criação.
+
+**Entity `SubscriptionEntity`:**
+- `id`: UUID gerado via `crypto.randomUUID()` no domínio
+- `status`: `SubscriptionStatus` enum — `ACTIVE | CANCELED`; status inicial sempre `ACTIVE`
+- `startDate`, `expiresAt`: calculado pelo `SubscribeToPlanUseCase` (`startDate + SUBSCRIPTION_DURATION_DAYS`)
+- Método: `cancel()` — transita para `CANCELED`
+- `planId`, `organizationId`: vínculos do contrato
+
+**Constante de domínio:** `SUBSCRIPTION_DURATION_DAYS = 30` (definida em `SubscribeToPlanUseCase`)
+
+**Regras de negócio:**
+1. O plano referenciado deve existir e estar com `isActive = true`
+2. A organização não pode ter outra assinatura `ACTIVE` no momento da criação (`SubscriptionAlreadyActiveError`)
+3. Apenas membros com role `ADMIN` da organização podem criar/cancelar assinaturas
+4. Isolamento de tenant via `TenantFilterGuard` — `organizationId` do route param validado contra o JWT
+
+**Use Cases (4):**
+| Use Case | Descrição |
+|----------|-----------|
+| `SubscribeToPlanUseCase` | Valida plano ativo + ausência de ACTIVE subscription → cria com 30 dias |
+| `CancelSubscriptionUseCase` | Busca subscription por ID, chama `subscription.cancel()`, persiste |
+| `FindActiveSubscriptionUseCase` | Retorna a assinatura ACTIVE da organização (ou 404) |
+| `FindSubscriptionsByOrganizationUseCase` | Histórico paginado de assinaturas da org |
+
+**Domain Errors:**
+| Error | Código | HTTP |
+|-------|--------|------|
+| `SubscriptionNotFoundError` | `SUBSCRIPTION_NOT_FOUND` | 404 |
+| `SubscriptionAlreadyActiveError` | `SUBSCRIPTION_ALREADY_EXISTS` | 409 |
+| `SubscriptionCreationFailedError` | `SUBSCRIPTION_CREATION_FAILED_BAD_REQUEST` | 400 |
+| `SubscriptionForbiddenError` | `SUBSCRIPTION_ACCESS_FORBIDDEN` | 403 |
+
+**Endpoints REST (`/organizations/:organizationId/subscriptions`):**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `POST` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilterGuard | Inscreve org em um plano |
+| `PATCH` | `/organizations/:organizationId/subscriptions/:id/cancel` | JWT + ADMIN + TenantFilterGuard | Cancela assinatura ativa |
+| `GET` | `/organizations/:organizationId/subscriptions/active` | JWT + ADMIN + TenantFilterGuard | Retorna assinatura ativa |
+| `GET` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilterGuard | Histórico paginado |
+
+`SubscriptionsModule` importa `PlansModule` para injetar `PlanRepository` no `SubscribeToPlanUseCase`.
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Implementado sistema de **Role Entity** com tipos pré-definidos (ADMIN, DRIVER).
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
@@ -919,16 +1047,16 @@ O script de seed foi configurado para:
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
 2. ~~**Testes Unitários — Trip Module:**~~ ✅ **CONCLUÍDO (21 Abr)** — 11 suites, 90 testes (todos use cases de TripTemplate e TripInstance cobertos; `FindAllTripTemplatesByOrganizationUseCase` pendente).
-3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization/Vehicle/Driver.
-3. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
-4. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
-5. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
-6. **Integração de Pagamentos:** Mock de gateway de pagamento para o MVP.
-7. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
-8. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
+3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization/Vehicle/Driver/Plans/Payment/Subscriptions.
+4. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
+5. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
+6. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
+7. ~~**Fase 3 (Monetização) — Plans, Payment, Subscriptions**~~ ✅ **CONCLUÍDO (26 Abr)** — Plans (5 use cases, DevGuard, PlanName enum), Payment (read-only API, criação via Bookings), Subscriptions (4 use cases, 30 dias, ADMIN-only).
+8. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
+9. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 25 de abril de 2026, a **Fase 1 está 100% completa** e a **Fase 2 está em andamento avançado** com Vehicle, Trip e Bookings modules completos:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 26 de abril de 2026, as **Fases 1, 2 e 3 estão 100% completas** com 13 módulos implementados:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*.
@@ -937,11 +1065,14 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 25 de abril 
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError` *(17 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
 - ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir *(21 Abr)*.
-- ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmção de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
+- ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
+- ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*.
+- ✅ **Payment Module**: API read-only (2 use cases), `PaymentEntity` com UUID de domínio e status inicial `PENDING`, enums `MethodPayment` e `PaymentStatus`, criação gerenciada pelo `CreateBookingUseCase`, `PaymentRepository` exportado para `BookingsModule` *(26 Abr)*.
+- ✅ **Subscriptions Module**: 4 use cases, assinatura única por org (ACTIVE), duração de 30 dias calculada no use case, `SubscriptionEntity` com `cancel()`, ADMIN-only via `TenantFilterGuard`, depende de `PlansModule` *(26 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker.
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
-- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory, Plate).
+- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory, Plate, Money).
 - ✅ **Validation Errors** para tratamento de erros específicos do domínio.
 - ✅ **Global Exception Handling** com AllExceptionsFilter refatorado (mapeamento por padrão de código) *(atualizado 13 Abr)*.
 - ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard, DevGuard implementados e aplicados.
@@ -949,11 +1080,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 25 de abril 
 - ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
 - ✅ **Segurança IDOR**: Vehicle e Driver validam ownership em operações por ID; Membership protegido via TenantFilterGuard *(17 Abr)*.
 - ✅ **Segurança FK**: Trip module valida existência de Driver e Vehicle antes de persistir atribuições, evitando HTTP 500 por FK violation *(21 Abr)*.
-- ✅ **Testes Unitários**: 32 suites, 237 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module adicionado 21 Abr; Vehicle/User/Organization adicionados; Bookings 85 testes 25 Abr)*.
+- ✅ **Testes Unitários**: 32 suites, 236 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module adicionado 21 Abr; Bookings 85 testes 25 Abr)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fase 1 100% COMPLETA** (✅). **Fase 2 em andamento** — Vehicle Module (17 Abr), Trip Module (21 Abr) e Bookings Module (25 Abr, 9 use cases / 85 testes) completos. Próximo: Pagamentos.
+**Progresso atual:** **Fases 1, 2 e 3 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Próximo: Fase 4 (Testes coverage 80%+, Swagger completo, Docker prod, deploy).
 
 ---
 
@@ -967,7 +1098,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (198 testes, 30 suites)
+- `npm run test`: Executa testes unitários (236 testes, 32 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
