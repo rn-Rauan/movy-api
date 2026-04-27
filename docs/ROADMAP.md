@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 26 Abr 2026 
+**Última atualização:** 27 Abr 2026 
 
 ---
 
@@ -16,9 +16,11 @@ FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
 
 MVP PRONTO: 15 de Junho 2026
 
-Progresso em 26 Abr 2026:
-  Fase 3 — Plans, Payment e Subscriptions completos (11 use cases, módulos SaaS prontos)
-  Total acumulado: 32 suites, 236 testes passando
+Progresso em 27 Abr 2026:
+  durationDays adicionado ao Plan (migration + entity + mapper + DTOs + prisma generate)
+  TransactionManager implementado (AsyncLocalStorage — Clean Architecture no CreateBooking)
+  Novos testes: CreatePlanUseCase (5), SubscribeToPlanUseCase (7)
+  Total acumulado: 34 suites, 252 testes passando
 ```
 
 ---
@@ -245,9 +247,12 @@ Progresso em 26 Abr 2026:
 |:------:|-------|---------|
 | ✅ | Plans (FREE/BASIC/PRO/PREMIUM) — 5 use cases, DevGuard | ✅ Pronto (26 Abr) |
 | ✅ | Payment — read-only API, criação pelo BookingsModule | ✅ Pronto (26 Abr) |
-| ✅ | Subscriptions — 4 use cases, 30 dias, ADMIN-only | ✅ Pronto (26 Abr) |
+| ✅ | Subscriptions — 4 use cases, duração via plan.durationDays, ADMIN-only | ✅ Pronto (26-27 Abr) |
+| ✅ | durationDays no Plan (migration + entity + mapper) | ✅ Pronto (27 Abr) |
+| ✅ | TransactionManager (AsyncLocalStorage, Clean Architecture no CreateBooking) | ✅ Pronto (27 Abr) |
+| ✅ | Testes Plans/Subscriptions (12 testes) | ✅ Pronto (27 Abr) |
 
-**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização
+**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização. TransactionManager clean architecture. 34 suites, 252 testes.
 
 ---
 

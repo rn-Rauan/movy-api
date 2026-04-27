@@ -36,11 +36,16 @@ function makeMocks() {
     save: jest.fn(),
   } as any as jest.Mocked<PaymentRepository>;
 
+  const transactionManager = {
+    runInTransaction: jest.fn().mockImplementation((fn: () => Promise<unknown>) => fn()),
+  };
+
   return {
     bookingRepository,
     tripInstanceRepository,
     tripTemplateRepository,
     paymentRepository,
+    transactionManager,
   };
 }
 
@@ -78,9 +83,10 @@ describe('CreateBookingUseCase', () => {
     mocks = makeMocks();
     sut = new CreateBookingUseCase(
       mocks.bookingRepository,
+      mocks.paymentRepository,
       mocks.tripInstanceRepository,
       mocks.tripTemplateRepository,
-      mocks.paymentRepository,
+      mocks.transactionManager,
     );
   });
 

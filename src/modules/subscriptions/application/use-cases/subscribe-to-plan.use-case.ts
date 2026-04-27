@@ -10,17 +10,14 @@ import {
 } from '../../domain/errors/subscription.errors';
 import { CreateSubscriptionDto } from '../dtos';
 
-const SUBSCRIPTION_DURATION_DAYS = 30;
-
 /**
- * Subscribes an organisation to a plan, creating a new 30-day subscription.
+ * Subscribes an organisation to a plan, creating a new subscription.
  *
  * Validates that the plan exists and is active, and that the organisation does not
  * already have an active subscription before persisting the new entity.
  *
  * @remarks
- * The subscription duration is controlled by the module-level constant
- * `SUBSCRIPTION_DURATION_DAYS = 30`.
+ * The subscription duration is determined by `plan.durationDays`, set when the plan is created.
  */
 @Injectable()
 export class SubscribeToPlanUseCase {
@@ -60,7 +57,7 @@ export class SubscribeToPlanUseCase {
     }
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + SUBSCRIPTION_DURATION_DAYS);
+    expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
 
     const subscription = SubscriptionEntity.create({
       organizationId,

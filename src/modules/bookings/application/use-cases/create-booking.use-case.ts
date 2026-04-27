@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Money } from 'src/shared/domain/entities/value-objects';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
 import {
   TripInstanceRepository,
   TripStatus,
@@ -16,9 +17,9 @@ import {
   TripPriceNotAvailableError,
 } from '../../domain/entities/errors/booking.errors';
 import { CreateBookingDto } from '../dtos';
-import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
 import { PaymentEntity } from 'src/modules/payment/domain/entities/payment.entity';
 import { PaymentCreationFailedError } from 'src/modules/payment/domain/errors/payment.errors';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
 
 /**
  * Creates a new booking (enrollment) for an authenticated user in a trip instance.
@@ -30,14 +31,20 @@ import { PaymentCreationFailedError } from 'src/modules/payment/domain/errors/pa
  * - `recordedPrice` is resolved server-side from the `TripTemplate` — never trusted from the client
  *
  * Also creates a {@link PaymentEntity} with `status = PENDING` atomically with the booking.
+ *
+ * @remarks
+ * Both the booking and the payment are persisted inside a single `TransactionManager.runInTransaction`
+ * call. The `TransactionManager` uses `AsyncLocalStorage` to propagate the Prisma tx client to
+ * the repositories transparently — no Prisma types leak into this use case.
  */
 @Injectable()
 export class CreateBookingUseCase {
   constructor(
     private readonly bookingRepository: BookingRepository,
+    private readonly paymentRepository: PaymentRepository,
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly tripTemplateRepository: TripTemplateRepository,
-    private readonly paymentRepository: PaymentRepository,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   /**
@@ -107,25 +114,26 @@ export class CreateBookingUseCase {
       alightingStop: dto.alightingStop,
     });
 
-    const saved = await this.bookingRepository.save(booking);
-
-    if (!saved) {
-      throw new BookingCreationFailedError();
-    }
-
     const payment = PaymentEntity.create({
-      organizationId: saved.organizationId,
-      enrollmentId: saved.id,
+      organizationId: instance.organizationId,
+      enrollmentId: booking.id,
       method: dto.method,
-      amount: saved.recordedPrice,
+      amount: recordedPrice,
     });
 
-    const savedPayment = await this.paymentRepository.save(payment);
-    if (!savedPayment) {
-      throw new PaymentCreationFailedError();
-    }
+    const savedBooking = await this.transactionManager.runInTransaction(
+      async () => {
+        const createdBooking = await this.bookingRepository.save(booking);
+        if (!createdBooking) throw new BookingCreationFailedError();
 
-    return saved;
+        const createdPayment = await this.paymentRepository.save(payment);
+        if (!createdPayment) throw new PaymentCreationFailedError();
+
+        return createdBooking;
+      },
+    );
+
+    return savedBooking;
   }
 
   private resolvePrice(

@@ -42,6 +42,7 @@ export class CreatePlanUseCase {
       maxVehicles: dto.maxVehicles,
       maxDrivers: dto.maxDrivers,
       maxMonthlyTrips: dto.maxMonthlyTrips,
+      durationDays: dto.durationDays,
     });
 
     const saved = await this.planRepository.save(plan);

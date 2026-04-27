@@ -25,8 +25,9 @@ import { BookingController } from './presentation/controllers/booking.controller
  * - `TripModule` — provides `TripInstanceRepository` and `TripTemplateRepository`
  *   for trip validation and price resolution
  * - `PaymentModule` — provides `PaymentRepository` for creating the initial `PENDING`
- *   payment record atomically with each new booking
+ *   payment record atomically with each new booking via `TransactionManager`
  *
+ * `TransactionManager` is provided globally by `PrismaModule` (via `SharedModule`).
  * Does **not** export `BookingRepository` — no other module queries bookings directly.
  */
 @Module({

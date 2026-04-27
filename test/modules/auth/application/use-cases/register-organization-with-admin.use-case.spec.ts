@@ -5,6 +5,7 @@ import { CreateMembershipUseCase } from 'src/modules/membership/application/use-
 import { CreateOrganizationUseCase } from 'src/modules/organization/application/use-cases';
 import { CreateUserUseCase } from 'src/modules/user/application/use-cases';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
+import { OrganizationRepository } from 'src/modules/organization/domain/interfaces/organization.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
@@ -37,6 +38,10 @@ function makeMocks() {
     delete: jest.fn(),
   } as any as jest.Mocked<UserRepository>;
 
+  const organizationRepository = {
+    delete: jest.fn(),
+  } as any as jest.Mocked<OrganizationRepository>;
+
   return {
     createUserUseCase,
     createOrganizationUseCase,
@@ -45,6 +50,7 @@ function makeMocks() {
     jwtService,
     jwtPayloadService,
     userRepository,
+    organizationRepository,
   };
 }
 
@@ -87,6 +93,7 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
       mocks.jwtService,
       mocks.jwtPayloadService,
       mocks.userRepository,
+      mocks.organizationRepository,
     );
   });
 

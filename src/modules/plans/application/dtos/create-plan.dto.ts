@@ -33,4 +33,9 @@ export class CreatePlanDto {
   @IsInt()
   @IsPositive()
   maxMonthlyTrips: number;
+
+  @ApiProperty({ example: 30, description: 'Subscription duration in days' })
+  @IsInt()
+  @IsPositive()
+  durationDays: number;
 }

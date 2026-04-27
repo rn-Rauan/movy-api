@@ -4,6 +4,7 @@ import { CreateUserUseCase } from '../../../user/application/use-cases';
 import { CreateOrganizationUseCase } from '../../../organization/application/use-cases';
 import { CreateMembershipUseCase } from '../../../membership/application/use-cases';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
+import { OrganizationRepository } from '../../../organization/domain/interfaces/organization.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
@@ -18,8 +19,7 @@ import { TokenResponseDto } from '../dtos';
  * @remarks
  * Compensation pattern:
  * - If organization creation fails → the user row is deleted.
- * - If membership creation fails → the user row is deleted.
- * - The organization is NOT deleted on membership failure (manual cleanup needed).
+ * - If membership creation fails → the user row AND the organization row are deleted.
  *
  * Throws:
  * - `UserEmailAlreadyExistsError` — email already taken
@@ -40,6 +40,7 @@ export class RegisterOrganizationWithAdminUseCase {
     private readonly jwtService: JwtService,
     private readonly jwtPayloadService: JwtPayloadService,
     private readonly userRepository: UserRepository,
+    private readonly organizationRepository: OrganizationRepository,
   ) {}
 
   /**
@@ -94,8 +95,9 @@ export class RegisterOrganizationWithAdminUseCase {
       );
     } catch (error) {
       this.logger.warn(
-        `[RegisterOrg] Membership creation failed, compensating: deleting user ${user.id}`,
+        `[RegisterOrg] Membership creation failed, compensating: deleting org ${organization.id} and user ${user.id}`,
       );
+      await this.compensateOrganization(organization.id);
       await this.compensateUser(user.id);
       throw error;
     }
@@ -120,6 +122,16 @@ export class RegisterOrganizationWithAdminUseCase {
         email: user.email,
       },
     };
+  }
+
+  private async compensateOrganization(organizationId: string): Promise<void> {
+    try {
+      await this.organizationRepository.delete(organizationId);
+    } catch {
+      this.logger.error(
+        `[RegisterOrg] Compensation failed: could not delete organization ${organizationId}`,
+      );
+    }
   }
 
   private async compensateUser(userId: string): Promise<void> {

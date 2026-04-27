@@ -14,6 +14,7 @@ export class PlanResponseDto {
   @ApiProperty() maxVehicles: number;
   @ApiProperty() maxDrivers: number;
   @ApiProperty() maxMonthlyTrips: number;
+  @ApiProperty() durationDays: number;
   @ApiProperty() isActive: boolean;
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;

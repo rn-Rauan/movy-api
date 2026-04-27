@@ -7,6 +7,7 @@ import {
 } from 'src/shared/domain/interfaces';
 import type { Status } from 'src/shared/domain/types';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { TransactionContext } from 'src/shared/infrastructure/database/transaction-context';
 import { BookingMapper } from '../mappers/booking.mapper';
 
 /**
@@ -19,7 +20,15 @@ import { BookingMapper } from '../mappers/booking.mapper';
  */
 @Injectable()
 export class PrismaBookingRepository implements BookingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly transactionContext: TransactionContext,
+  ) {}
+
+  /** Returns the transaction-scoped client when inside a transaction, or the root PrismaService. */
+  private get db() {
+    return this.transactionContext.client ?? this.prisma;
+  }
 
   /**
    * Inserts a new booking row via `prisma.enrollment.create`.
@@ -28,7 +37,7 @@ export class PrismaBookingRepository implements BookingRepository {
    * @returns The saved entity, or `null` on unexpected failure
    */
   async save(entity: Booking): Promise<Booking | null> {
-    const data = await this.prisma.enrollment.create({
+    const data = await this.db.enrollment.create({
       data: BookingMapper.toPersistence(entity),
     });
 
@@ -42,7 +51,7 @@ export class PrismaBookingRepository implements BookingRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   async update(entity: Booking): Promise<Booking | null> {
-    const data = await this.prisma.enrollment.update({
+    const data = await this.db.enrollment.update({
       where: { id: entity.id },
       data: BookingMapper.toPersistence(entity),
     });
@@ -56,7 +65,7 @@ export class PrismaBookingRepository implements BookingRepository {
    * @param id - UUID of the booking to delete
    */
   async delete(id: string): Promise<void> {
-    await this.prisma.enrollment.delete({ where: { id } });
+    await this.db.enrollment.delete({ where: { id } });
   }
 
   /**
@@ -66,7 +75,7 @@ export class PrismaBookingRepository implements BookingRepository {
    * @returns The matching {@link Booking}, or `null` if not found
    */
   async findById(id: string): Promise<Booking | null> {
-    const data = await this.prisma.enrollment.findUnique({
+    const data = await this.db.enrollment.findUnique({
       where: { id },
     });
 
@@ -224,7 +233,7 @@ export class PrismaBookingRepository implements BookingRepository {
     userId: string,
     tripInstanceId: string,
   ): Promise<Booking | null> {
-    const data = await this.prisma.enrollment.findFirst({
+    const data = await this.db.enrollment.findFirst({
       where: { userId, tripInstanceId, status: 'ACTIVE' },
     });
 
@@ -240,7 +249,7 @@ export class PrismaBookingRepository implements BookingRepository {
    * @returns Number of active bookings
    */
   async countActiveByTripInstance(tripInstanceId: string): Promise<number> {
-    return this.prisma.enrollment.count({
+    return this.db.enrollment.count({
       where: { tripInstanceId, status: 'ACTIVE' },
     });
   }

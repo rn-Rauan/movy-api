@@ -282,7 +282,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 - **`sut`** (System Under Test): Instância real do use case com dependências injetadas manualmente.
 - **Factories por módulo**: Funções `make*()` que criam entidades de domínio com valores padrão e suporte a overrides.
 
-**Suites de Teste (32 suites, 237 testes):**
+**Suites de Teste (34 suites, 252 testes):**
 
 | Use Case | Testes | Cenários Cobertos |
 |----------|--------|--------------------|
@@ -309,7 +309,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `FindUserByIdUseCase` | 3 | Happy path, UserNotFoundError (inexistente), UserNotFoundError (inativo) |
 | `CreateOrganizationUseCase` | 4 | Happy path (criação + save), CNPJ duplicado, slug duplicado |
 | `FindOrganizationByIdUseCase` | 6 | Happy path, bypass dev, OrganizationNotFoundError (inexistente + inativo), OrganizationForbiddenError |
-| `CreateBookingUseCase` | 12 | Happy path SCHEDULED, happy path CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceNotFoundError, BookingCreationFailedError |
+| `CreateBookingUseCase` | 18 | Happy path SCHEDULED/CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceNotFoundError, BookingCreationFailedError, PaymentCreationFailedError, transação atômica via TransactionManager |
 | `CancelBookingUseCase` | 8 | Happy path (status INACTIVE), update chamado uma vez, entidade persistida com INACTIVE, BookingNotFoundError, BookingAccessForbiddenError, update retorna null |
 | `ConfirmPresenceUseCase` | 7 | Happy path org member (presenceConfirmed=true), update chamado uma vez, entidade persistida corretamente, owner bloqueado (2 testes), BookingNotFoundError, BookingAccessForbiddenError cross-org |
 | `FindBookingByIdUseCase` | 5 | Happy path, findById chamado com id correto, BookingNotFoundError, BookingAccessForbiddenError (cross-org), dados não expostos no forbidden |
@@ -318,8 +318,10 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `FindBookingsByUserUseCase` | 8 | Happy path, userId correto (somente as próprias), mapeamento para dto, lista vazia, filtro status ACTIVE, filtro INACTIVE, filtro undefined (sem filtro) |
 | `FindBookingDetailsUseCase` | 11 | Happy path owner (4 testes), happy path org member (1), BookingNotFoundError (2), BookingAccessForbiddenError (3), TripInstanceNotFoundError (1) |
 | `GetBookingAvailabilityUseCase` | 9 | SCHEDULED/CONFIRMED bookable (2), DRAFT/IN_PROGRESS não bookable (2), trip lotada (1), capacity=0 (1), tripInstanceId no response (1), trip not found (2) |
+| `CreatePlanUseCase` | 5 | Happy path (create + save, durationDays correto, ordem findByName→save), PlanAlreadyExistsError (error + save não chamado), PlanCreationFailedError |
+| `SubscribeToPlanUseCase` | 7 | Happy path (create + save once, expiresAt = now + plan.durationDays), PlanNotFoundError (inexistente + inativo), SubscriptionAlreadyActiveError (error + save não chamado), SubscriptionCreationFailedError |
 
-**Factories Implementadas (17 total):**
+**Factories Implementadas (20 total):**
 
 | Factory | Localização | Entidade/DTO |
 |---------|------------|-------------|
@@ -338,8 +340,11 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `makeCreateTripInstanceDto()` | `test/modules/trip/factories/` | CreateTripInstanceDto |
 | `makeUpdateTripTemplateDto()` | `test/modules/trip/factories/` | UpdateTripTemplateDto |
 | `makeVehicle()` | `test/modules/vehicle/factories/` | VehicleEntity com Plate value object |
-| `makeBooking()` | `test/modules/bookings/factories/` | Booking entity com Money/EnrollmentType (suporte a overrides de status) |
+| `makeBooking()` | `test/modules/bookings/factories/` | Booking entity com Money/EnrollmentType |
 | `makeCreateBookingDto()` | `test/modules/bookings/factories/` | CreateBookingDto literal |
+| `makePlan()` | `test/modules/plans/factories/` | PlanEntity com durationDays |
+| `makeCreatePlanDto()` | `test/modules/plans/factories/` | CreatePlanDto com durationDays |
+| `makeSubscription()` | `test/modules/subscriptions/factories/` | SubscriptionEntity com expiresAt calculado |
 
 **Estrutura de Pastas dos Testes:**
 ```
@@ -367,13 +372,21 @@ test/
 │   └── organization/
 │       ├── factories/ (organization)
 │       └── application/use-cases/ (create-organization, find-organization-by-id specs)
-└── bookings/
-    ├── factories/ (booking, create-booking.dto)
-    └── application/use-cases/ (9 specs: create, cancel, confirm-presence, find-by-id, find-by-org, find-by-trip-instance, find-by-user, find-booking-details, get-booking-availability)
+   ├── bookings/
+│   ├── factories/ (booking, create-booking.dto)
+│   └── application/use-cases/ (9 specs: create, cancel, confirm-presence, find-by-id, find-by-org, find-by-trip-instance, find-by-user, find-booking-details, get-booking-availability)
+│   ├── plans/
+│   │   ├── factories/ (plan, create-plan.dto)
+│   │   └── application/use-cases/ (create-plan spec)
+│   └── subscriptions/
+│       ├── factories/ (subscription)
+│       └── application/use-cases/ (subscribe-to-plan spec)
 └── shared/factories/ (role)
 ```
 
-**Fix Jest — `moduleNameMapper` (25 Abr 2026):**
+**Total Bookings:** 9 suites, 85 testes. **Total projeto (27 Abr):** 34 suites, 252 testes.
+
+**Fix Jest — `moduleNameMapper`
 Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` em `test/jest-unit.json` e `package.json`. Sem esse mapeamento, imports como `import { makeTripInstance } from 'test/modules/trip/factories/...'` falhavam na resolução de módulo quando o spec era rodado pelo VS Code Jest runner (que usa o config do `package.json` diretamente).
 
 ### 4.8 RBAC (Role-Based Access Control) Architecture ✅ COMPLETO (11 Abr 2026)
@@ -829,7 +842,7 @@ Após a implementação inicial, o módulo passou por um ciclo de melhorias que 
 - `find-bookings-by-user.use-case.spec.ts`: atualizado (8 testes)
 - `confirm-presence.use-case.spec.ts`: atualizado (7 testes)
 
-**Total bookings:** 9 suites, 85 testes. **Total projeto:** 32 suites, 237 testes.
+**Total bookings:** 9 suites, 85 testes. **Total projeto (27 Abr):** 34 suites, 252 testes.
 
 **Compilacao:** ✅ `npx tsc --noEmit` = 0 erros
 
@@ -989,7 +1002,7 @@ O módulo de assinaturas gerencia a relação entre organizações e planos. Cad
 - Método: `cancel()` — transita para `CANCELED`
 - `planId`, `organizationId`: vínculos do contrato
 
-**Constante de domínio:** `SUBSCRIPTION_DURATION_DAYS = 30` (definida em `SubscribeToPlanUseCase`)
+**Constante de domínio:** ~~`SUBSCRIPTION_DURATION_DAYS = 30` (definida em `SubscribeToPlanUseCase`)~~ *(removida 27 Abr 2026 — ver seção 6.8)*
 
 **Regras de negócio:**
 1. O plano referenciado deve existir e estar com `isActive = true`
@@ -1027,6 +1040,112 @@ O módulo de assinaturas gerencia a relação entre organizações e planos. Cad
 
 ---
 
+## 6.8 Implementações (27 Abr 2026)
+
+### durationDays no Plan — Remoção de Constante de Domínio Hardcoded
+
+O `SubscribeToPlanUseCase` possuía a constante `SUBSCRIPTION_DURATION_DAYS = 30` hardcoded no use case. Isso violava DDD: a duração de um plano é uma propriedade **do plano em si**, não do caso de uso.
+
+**Alterações:**
+- Schema Prisma: `durationDays Int @default(30)` adicionado ao model `Plan`
+- Migration `20260427182603_add_plan_duration_days` aplicada + `prisma generate` executado
+- `PlanEntity`: `durationDays: number` adicionado ao estado, construtor, getter, `create()`, `restore()`, `update()`
+- `PlanMapper`: `toDomain()` e `toPersistence()` mapeiam o campo
+- `CreatePlanDto` / `PlanResponseDto`: campo `durationDays` adicionado com validação `@IsInt() @IsPositive()`
+- `PlanPresenter.toHTTP()`: inclui `durationDays`
+- `SubscribeToPlanUseCase`: constante removida → `expiresAt.setDate(expiresAt.getDate() + plan.durationDays)`
+
+---
+
+### TransactionManager — Gerenciamento de Transações sem Vazamento de Infraestrutura
+
+#### Problema
+
+O `CreateBookingUseCase` precisava persistir um `Booking` e um `PaymentEntity` **atomicamente** — se um dos inserts falhasse, o outro deveria ser desfeito. A solução anterior injetava `PrismaService` diretamente no use case e chamava `prisma.$transaction(async (tx) => { tx.enrollment.create(...); tx.payment.create(...) })`. Isso violava a arquitetura em dois pontos:
+
+1. **O use case conhecia o Prisma** — acoplamento de infraestrutura na camada de aplicação
+2. **Os mappers (`BookingMapper`, `PaymentMapper`) eram chamados dentro do use case** — responsabilidade da camada de infraestrutura vazando para a aplicação
+
+#### Solução — `TransactionManager` com `AsyncLocalStorage`
+
+Em vez de introduzir o padrão Unit of Work completo (que exigiria refatorar todos os repositórios), foi implementada uma solução minimalista baseada em `AsyncLocalStorage` do Node.js:
+
+```
+UseCase
+  └─ transactionManager.runInTransaction(async () => {
+       await bookingRepository.save(booking)      ← usa o tx client transparentemente
+       await paymentRepository.save(payment)      ← idem
+     })
+         ↓
+PrismaTransactionManager
+  └─ prisma.$transaction((tx) =>
+       transactionContext.run(tx, fn))            ← injeta o cliente de tx no contexto async
+           ↓
+PrismaTxClient armazenado em AsyncLocalStorage
+           ↓
+PrismaBookingRepository.save() / PrismaPaymentRepository.save()
+  └─ private get db() { return context.client ?? this.prisma }
+                                   ↑
+                        tx client se dentro de uma transação,
+                        PrismaService normal caso contrário
+```
+
+**Componentes implementados:**
+
+| Arquivo | Camada | Responsabilidade |
+|---------|--------|------------------|
+| `src/shared/infrastructure/database/transaction-context.ts` | Shared Infra | `AsyncLocalStorage<PrismaTxClient>` — armazena o cliente Prisma da transação ativa. Expõe `client` (getter) e `run(tx, fn)` |
+| `src/shared/infrastructure/database/transaction-manager.ts` | Shared Infra / Domínio de Aplicação | `abstract class TransactionManager` — token de DI. Método `runInTransaction<T>(fn: () => Promise<T>): Promise<T>` |
+| `src/shared/infrastructure/database/prisma-transaction-manager.ts` | Shared Infra | `PrismaTransactionManager` — implementação. Chama `prisma.$transaction((tx) => context.run(tx, fn))` |
+
+**Alterações nos repositórios:**
+
+Ambos `PrismaBookingRepository` e `PrismaPaymentRepository` receberam `TransactionContext` por injeção de dependência e um getter privado `db`:
+
+```typescript
+private get db() {
+  return this.transactionContext.client ?? this.prisma;
+}
+```
+
+O método `save()` de cada repositório usa `this.db.enrollment.create(...)` em vez de `this.prisma.enrollment.create(...)`. Fora de uma transação, `context.client` é `null` e o comportamento é idêntico ao anterior.
+
+**Registro no `PrismaModule` (`@Global`):**
+```typescript
+providers: [
+  PrismaService,
+  TransactionContext,
+  { provide: TransactionManager, useClass: PrismaTransactionManager },
+  ...
+],
+exports: [PrismaService, TransactionContext, TransactionManager, ...]
+```
+
+Como `PrismaModule` é `@Global`, `TransactionManager` fica disponível em todos os módulos sem necessidade de importação explícita.
+
+**`CreateBookingUseCase` refatorado:**
+```typescript
+const savedBooking = await this.transactionManager.runInTransaction(async () => {
+  const createdBooking = await this.bookingRepository.save(booking);
+  if (!createdBooking) throw new BookingCreationFailedError();
+
+  const createdPayment = await this.paymentRepository.save(payment);
+  if (!createdPayment) throw new PaymentCreationFailedError();
+
+  return createdBooking;
+});
+```
+
+Nenhuma importação de Prisma, nenhum mapper chamado no use case. O fluxo é `UseCase → Repository → Infra`.
+
+**Decisão Arquitetural — Por que não Unit of Work completo?**
+
+O padrão Unit of Work clássico exigiria que todos os repositórios aceitassem um `UnitOfWork` ou `Session` como parâmetro nos seus métodos, alterando todas as assinaturas de interface. Para um MVP/TCC com um único caso de uso que precisa de transação (CreateBooking), essa refatoração seria desproporcional. A abordagem com `AsyncLocalStorage` é transparente: os repositórios e suas interfaces permanecem inalterados externamente, e o contexto transacional é propagado implicitamente pelo runtime do Node.js.
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros. Testes: 34 suites, 252 testes.
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Implementado sistema de **Role Entity** com tipos pré-definidos (ADMIN, DRIVER).
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
@@ -1047,7 +1166,7 @@ O script de seed foi configurado para:
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
 2. ~~**Testes Unitários — Trip Module:**~~ ✅ **CONCLUÍDO (21 Abr)** — 11 suites, 90 testes (todos use cases de TripTemplate e TripInstance cobertos; `FindAllTripTemplatesByOrganizationUseCase` pendente).
-3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de User/Organization/Vehicle/Driver/Plans/Payment/Subscriptions.
+3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de Vehicle/Driver/Plans/Payment/Subscriptions.
 4. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
 5. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
 6. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
@@ -1056,7 +1175,7 @@ O script de seed foi configurado para:
 9. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 26 de abril de 2026, as **Fases 1, 2 e 3 estão 100% completas** com 13 módulos implementados:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 27 de abril de 2026, as **Fases 1, 2 e 3 estão 100% completas** com 13 módulos implementados:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*.
@@ -1080,7 +1199,7 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 26 de abril 
 - ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
 - ✅ **Segurança IDOR**: Vehicle e Driver validam ownership em operações por ID; Membership protegido via TenantFilterGuard *(17 Abr)*.
 - ✅ **Segurança FK**: Trip module valida existência de Driver e Vehicle antes de persistir atribuições, evitando HTTP 500 por FK violation *(21 Abr)*.
-- ✅ **Testes Unitários**: 32 suites, 236 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module adicionado 21 Abr; Bookings 85 testes 25 Abr)*.
+- ✅ **Testes Unitários**: 34 suites, 252 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
@@ -1098,7 +1217,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (236 testes, 32 suites)
+- `npm run test`: Executa testes unitários (252 testes, 34 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias

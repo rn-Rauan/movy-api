@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 25 Abr 2026
+**Última atualização:** 27 Abr 2026
 
 ---
 
@@ -653,18 +653,8 @@ src/modules/trip/
 - ✅ DTOs novos: `BookingDetailsResponseDto` (extends `BookingResponseDto` + dados da trip), `BookingAvailabilityResponseDto` (`tripInstanceId`, `tripStatus`, `totalCapacity`, `activeCount`, `availableSlots`, `isBookable`)
 
 **Testes Unitários:**
-- ✅ 9 suites, **85 testes** — todos passando (total acumulado do projeto: **32 suites, 237 testes**)
-- ✅ `find-booking-details.use-case.spec.ts` — NOVO: 11 testes (happy path owner/org, not found, forbidden, trip not found)
-- ✅ `get-booking-availability.use-case.spec.ts` — NOVO: 9 testes (SCHEDULED/CONFIRMED bookable, DRAFT/IN_PROGRESS bloqueado, trip full, trip not found)
-- ✅ `find-bookings-by-trip-instance.use-case.spec.ts` — REESCRITO: org mismatch e B2C bloqueados (9 testes)
-- ✅ `find-bookings-by-user.use-case.spec.ts` — atualizado: filtro por status (8 testes)
-- ✅ `confirm-presence.use-case.spec.ts` — atualizado: owner bloqueado, cross-org bloqueado (7 testes)
-- ✅ `cancel-booking.use-case.spec.ts` — 8 testes
-- ✅ `create-booking.use-case.spec.ts` — 12 testes
-- ✅ `find-booking-by-id.use-case.spec.ts` — 5 testes
-- ✅ `find-bookings-by-organization.use-case.spec.ts` — 5 testes
-- ✅ Factories: `makeBooking()`, `makeCreateBookingDto()`
-- ✅ Fix no `moduleNameMapper` do Jest: `"^test/(.*)$": "<rootDir>/test/$1"` adicionado em `jest-unit.json` e `package.json`
+- ✅ 9 suites, **85 testes** — todos passando (total acumulado do projeto: **34 suites, 252 testes** — 27 Abr)
+- ✅ `create-booking.use-case.spec.ts` — atualizado (27 Abr): 18 testes (era 12 — adicionados testes de PaymentCreationFailedError + TransactionManager)
 
 **⚠️ Bugs identificados (pendentes de fix):**
 - ❌ `CancelBookingUseCase`: não bloqueia booking já `INACTIVE` — falta guard antes de `booking.cancel()`
@@ -812,8 +802,7 @@ src/modules/payment/
 | `GET` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilter | Lista histórico de assinaturas (paginado) |
 
 **Regras de Negócio:**
-- ✅ Uma organização só pode ter uma assinatura `ACTIVE` por vez (`SubscriptionAlreadyActiveError`)
-- ✅ Duração fixa: `SUBSCRIPTION_DURATION_DAYS = 30` — `expiresAt` calculado pelo use case no momento da criação
+- ✅ Duração configurável por plano via `plan.durationDays` (27 Abr) — constante hardcoded removida
 - ✅ Plano deve existir e estar ativo para aceitar nova assinatura
 - ✅ Status: `ACTIVE | CANCELED` — `cancel()` transition via método de domínio
 - ✅ Isolamento de tenant via `TenantFilterGuard` + `@Roles(ADMIN)`
@@ -856,7 +845,50 @@ src/modules/subscriptions/
 
 ---
 
-## 🔧 FASE 4: Qualidade & DevOps (Contínuo)
+## 🔧 FASE 3.5: Refatorações Arquiteturais (27 Abr 2026)
+
+### durationDays no Plan ✅ COMPLETO (27 Abr 2026)
+- ✅ Migration `20260427182603_add_plan_duration_days`: campo `durationDays Int @default(30)` no model `Plan`
+- ✅ `PlanEntity`: getter `durationDays` + `create()`/`restore()`/`update()` atualizados
+- ✅ `PlanMapper`: `toDomain()` e `toPersistence()` mapeiam o campo
+- ✅ `CreatePlanDto` / `PlanResponseDto`: campo `durationDays` com `@IsInt() @IsPositive()`
+- ✅ `PlanPresenter.toHTTP()`: inclui `durationDays`
+- ✅ `SubscribeToPlanUseCase`: constante `SUBSCRIPTION_DURATION_DAYS = 30` removida → usa `plan.durationDays`
+- ✅ `prisma generate` executado, client regenerado
+
+### TransactionManager — Infraestrutura de Transações Sem Vazamento ✅ COMPLETO (27 Abr 2026)
+
+**Problema:** `CreateBookingUseCase` injetava `PrismaService` e chamava `prisma.$transaction(async tx => { tx.enrollment.create(); tx.payment.create() })` diretamente no use case — violação de Clean Architecture (infraestrutura na camada de aplicação). Além disso, `BookingMapper` e `PaymentMapper` eram chamados dentro do use case.
+
+**Solução:** `AsyncLocalStorage` do Node.js propaga o cliente Prisma da transação transparentemente pela call stack. Repositórios verificam `context.client ?? prisma`. Use case apenas chama `transactionManager.runInTransaction(fn)` — zero import de Prisma.
+
+**Novos arquivos:**
+```
+src/shared/infrastructure/database/
+├── transaction-context.ts         ✔ AsyncLocalStorage<PrismaTxClient>
+├── transaction-manager.ts         ✔ Abstract class (token de DI NestJS)
+└── prisma-transaction-manager.ts  ✔ prisma.$transaction + context.run(tx, fn)
+```
+
+**Arquivos modificados:**
+- `src/shared/infrastructure/database/prisma.module.ts` — providers/exports: `TransactionContext`, `TransactionManager → PrismaTransactionManager`
+- `src/shared/index.ts` — re-export de `TransactionManager`
+- `src/modules/bookings/infrastructure/db/repositories/prisma-booking.repository.ts` — `TransactionContext` injetado, getter `db` adicionado, todos os writes usam `this.db`
+- `src/modules/payment/infrastructure/db/repositories/prisma-payment.repository.ts` — idem
+- `src/modules/bookings/application/use-cases/create-booking.use-case.ts` — `PrismaService` e mappers removidos, `PaymentRepository` + `TransactionManager` injetados
+
+**Testes atualizados:**
+- `test/modules/bookings/application/use-cases/create-booking.use-case.spec.ts` — 18 testes (mock `transactionManager.runInTransaction` chama fn diretamente)
+- `test/modules/auth/.../register-organization-with-admin.use-case.spec.ts` — 8º argumento `organizationRepository` adicionado
+
+**Novos testes:**
+- `test/modules/plans/application/use-cases/create-plan.use-case.spec.ts` — 5 testes
+- `test/modules/subscriptions/application/use-cases/subscribe-to-plan.use-case.spec.ts` — 7 testes
+- `test/modules/plans/factories/plan.factory.ts` — `makePlan()` com `durationDays`
+- `test/modules/plans/factories/create-plan.dto.factory.ts` — `makeCreatePlanDto()`
+- `test/modules/subscriptions/factories/subscription.factory.ts` — `makeSubscription()`
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes.**
 
 ### Testing 📋
 - [ ] Unit tests (target: 80%+)
@@ -864,11 +896,11 @@ src/modules/subscriptions/
   - [ ] Organization module: ⏳ Next
   - [ ] Vehicles module: ⏳
   - [ ] Drivers module: ⏳
-  - [x] Trips module: ✅ (11 specs, 90 testes — `FindAllTripTemplatesByOrganizationUseCase` pendente)
+  - [x] Trips module: ✅ (11 specs, 90 testes)
   - [x] Bookings module: ✅ (9 specs, 85 testes — 25 Abr)
-  - [ ] Plans module: ⏳
+  - [x] Plans module: ✅ (1 spec, 5 testes — 27 Abr)
   - [ ] Payment module: ⏳
-  - [ ] Subscriptions module: ⏳
+  - [x] Subscriptions module: ✅ (1 spec, 7 testes — 27 Abr)
 
 - [ ] Integration tests (E2E)
   - [ ] Auth flow completo

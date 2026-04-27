@@ -12,6 +12,7 @@ interface PlanState {
   maxVehicles: number;
   maxDrivers: number;
   maxMonthlyTrips: number;
+  durationDays: number;
   isActive: boolean;
   readonly createdAt: Date;
   updatedAt: Date;
@@ -23,6 +24,7 @@ export interface CreatePlanProps {
   maxVehicles: number;
   maxDrivers: number;
   maxMonthlyTrips: number;
+  durationDays: number;
 }
 
 export class PlanEntity {
@@ -81,6 +83,8 @@ export class PlanEntity {
       this.props.maxDrivers = props.maxDrivers;
     if (props.maxMonthlyTrips !== undefined)
       this.props.maxMonthlyTrips = props.maxMonthlyTrips;
+    if (props.durationDays !== undefined)
+      this.props.durationDays = props.durationDays;
     this.props.updatedAt = new Date();
   }
 
@@ -112,6 +116,9 @@ export class PlanEntity {
   }
   get maxMonthlyTrips(): number {
     return this.props.maxMonthlyTrips;
+  }
+  get durationDays(): number {
+    return this.props.durationDays;
   }
   get isActive(): boolean {
     return this.props.isActive;

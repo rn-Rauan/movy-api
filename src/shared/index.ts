@@ -10,6 +10,7 @@ export * from './domain/entities/value-objects';
 // Infrastructure
 export * from './infrastructure/database/mappers/role.mapper';
 export * from './infrastructure/database/repositories/prisma-role.repository';
+export * from './infrastructure/database/transaction-manager';
 
 // Presentation
 export * from './presentation/dtos/paginated.dto';

@@ -22,6 +22,7 @@ export class PlanPresenter {
       maxVehicles: entity.maxVehicles,
       maxDrivers: entity.maxDrivers,
       maxMonthlyTrips: entity.maxMonthlyTrips,
+      durationDays: entity.durationDays,
       isActive: entity.isActive,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

@@ -27,6 +27,7 @@ export class PlanMapper {
       maxVehicles: raw.maxVehicles,
       maxDrivers: raw.maxDrivers,
       maxMonthlyTrips: raw.maxMonthlyTrips,
+      durationDays: raw.durationDays,
       isActive: raw.isActive,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
@@ -49,6 +50,7 @@ export class PlanMapper {
       maxVehicles: entity.maxVehicles,
       maxDrivers: entity.maxDrivers,
       maxMonthlyTrips: entity.maxMonthlyTrips,
+      durationDays: entity.durationDays,
       isActive: entity.isActive,
     };
   }

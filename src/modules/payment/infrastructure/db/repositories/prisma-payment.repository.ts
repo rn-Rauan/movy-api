@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { TransactionContext } from 'src/shared/infrastructure/database/transaction-context';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -17,7 +18,15 @@ import { PaymentMapper } from '../mappers/payment.mapper';
  */
 @Injectable()
 export class PrismaPaymentRepository implements PaymentRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly transactionContext: TransactionContext,
+  ) {}
+
+  /** Returns the transaction-scoped client when inside a transaction, or the root PrismaService. */
+  private get db() {
+    return this.transactionContext.client ?? this.prisma;
+  }
 
   /**
    * Inserts a new payment row via `prisma.payment.create`.
@@ -27,7 +36,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
    */
   async save(payment: PaymentEntity): Promise<PaymentEntity | null> {
     const data = PaymentMapper.toPersistence(payment);
-    const result = await this.prisma.payment.create({ data });
+    const result = await this.db.payment.create({ data });
     return result ? PaymentMapper.toDomain(result) : null;
   }
 
