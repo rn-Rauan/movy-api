@@ -13,6 +13,7 @@ import {
   TripTemplateRepository,
 } from '../../domain/interfaces';
 import { CreateTripInstanceDto } from '../dtos';
+import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 
 /**
  * Creates a new {@link TripInstance} (in `DRAFT` status) from an existing active {@link TripTemplate}.
@@ -25,6 +26,7 @@ export class CreateTripInstanceUseCase {
   constructor(
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly tripTemplateRepository: TripTemplateRepository,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   /**
@@ -61,41 +63,55 @@ export class CreateTripInstanceUseCase {
       throw new TripTemplateInactiveError(input.tripTemplateId);
     }
 
-    const departureTime = new Date(input.departureTime);
-    const arrivalEstimate = new Date(input.arrivalEstimate);
+    return this.unitOfWork.execute(async () => {
+      const freshTemplate = await this.tripTemplateRepository.findById(
+        input.tripTemplateId,
+      );
 
-    const autoCancelAt = this.resolveAutoCancelAt(
-      template.autoCancelEnabled,
-      template.autoCancelOffset,
-      departureTime,
-    );
+      if (!freshTemplate) {
+        throw new TripTemplateNotFoundError(input.tripTemplateId);
+      }
 
-    const minRevenue = this.resolveMinRevenue(
-      input.minRevenue,
-      template.autoCancelEnabled,
-      template.minRevenue,
-    );
+      if (!freshTemplate.isActive()) {
+        throw new TripTemplateInactiveError(input.tripTemplateId);
+      }
 
-    const instance = TripInstance.create({
-      id: randomUUID(),
-      organizationId,
-      tripTemplateId: input.tripTemplateId,
-      driverId: input.driverId ?? null,
-      vehicleId: input.vehicleId ?? null,
-      totalCapacity: input.totalCapacity,
-      departureTime,
-      arrivalEstimate,
-      minRevenue,
-      autoCancelAt,
+      const departureTime = new Date(input.departureTime);
+      const arrivalEstimate = new Date(input.arrivalEstimate);
+
+      const autoCancelAt = this.resolveAutoCancelAt(
+        freshTemplate.autoCancelEnabled,
+        freshTemplate.autoCancelOffset,
+        departureTime,
+      );
+
+      const minRevenue = this.resolveMinRevenue(
+        input.minRevenue,
+        freshTemplate.autoCancelEnabled,
+        freshTemplate.minRevenue,
+      );
+
+      const instance = TripInstance.create({
+        id: randomUUID(),
+        organizationId,
+        tripTemplateId: input.tripTemplateId,
+        driverId: input.driverId ?? null,
+        vehicleId: input.vehicleId ?? null,
+        totalCapacity: input.totalCapacity,
+        departureTime,
+        arrivalEstimate,
+        minRevenue,
+        autoCancelAt,
+      });
+
+      const saved = await this.tripInstanceRepository.save(instance);
+
+      if (!saved) {
+        throw new TripInstanceCreationFailedError();
+      }
+
+      return saved;
     });
-
-    const saved = await this.tripInstanceRepository.save(instance);
-
-    if (!saved) {
-      throw new TripInstanceCreationFailedError();
-    }
-
-    return saved;
   }
 
   /**

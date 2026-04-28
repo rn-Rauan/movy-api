@@ -6,6 +6,7 @@ import {
 } from '../../domain/entities/errors/trip-instance.errors';
 import { TripInstanceRepository } from '../../domain/interfaces';
 import { TransitionTripInstanceStatusDto } from '../dtos';
+import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 
 /**
  * Transitions a {@link TripInstance} to a new lifecycle status.
@@ -18,6 +19,7 @@ import { TransitionTripInstanceStatusDto } from '../dtos';
 export class TransitionTripInstanceStatusUseCase {
   constructor(
     private readonly tripInstanceRepository: TripInstanceRepository,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   /**
@@ -37,24 +39,26 @@ export class TransitionTripInstanceStatusUseCase {
     input: TransitionTripInstanceStatusDto,
     organizationId: string,
   ): Promise<TripInstance> {
-    const instance = await this.tripInstanceRepository.findById(id);
+    return this.unitOfWork.execute(async () => {
+      const instance = await this.tripInstanceRepository.findById(id);
 
-    if (!instance) {
-      throw new TripInstanceNotFoundError(id);
-    }
+      if (!instance) {
+        throw new TripInstanceNotFoundError(id);
+      }
 
-    if (instance.organizationId !== organizationId) {
-      throw new TripInstanceAccessForbiddenError(id);
-    }
+      if (instance.organizationId !== organizationId) {
+        throw new TripInstanceAccessForbiddenError(id);
+      }
 
-    instance.transitionTo(input.newStatus);
+      instance.transitionTo(input.newStatus);
 
-    const updated = await this.tripInstanceRepository.update(instance);
+      const updated = await this.tripInstanceRepository.update(instance);
 
-    if (!updated) {
-      throw new TripInstanceNotFoundError(id);
-    }
+      if (!updated) {
+        throw new TripInstanceNotFoundError(id);
+      }
 
-    return updated;
+      return updated;
+    });
   }
 }

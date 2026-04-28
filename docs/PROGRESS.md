@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 27 Abr 2026
+**Última atualização:** 28 Abr 2026
 
 ---
 
@@ -331,7 +331,7 @@ src/modules/organization/
 1. `LoginUseCase` - Valida credenciais, gera tokens JWT — ✅ **5 testes** *(16 Abr)*
 2. `RegisterUseCase` - Cria usuário com validação e hash de senha
 3. `RefreshTokenUseCase` - Valida refresh token e gera novo par
-4. `RegisterOrganizationWithAdminUseCase` - Orquestra User → Org → Membership com compensação em 2 estágios *(atualizado 14 Abr)* — ✅ **5 testes** *(16 Abr)*
+4. `RegisterOrganizationWithAdminUseCase` - Orquestra User → Org → Membership **atomicamente via `TransactionManager.runInTransaction`** — rollback pelo Prisma se qualquer etapa falhar *(padrão de compensação manual removido 27 Abr)* — ✅ **5 testes** *(16 Abr)*
 5. `SetupOrganizationForExistingUserUseCase` - Usuário já logado cria org, obtém membership ADMIN e recebe JWT atualizado *(novo 14 Abr)* — ✅ **6 testes** *(16 Abr)*
 
 **Novo Use Case - SetupOrganizationForExistingUserUseCase (14 Abr 2026):**
@@ -344,7 +344,7 @@ src/modules/organization/
 **Novo Use Case - RegisterOrganizationWithAdminUseCase (12 Abr 2026, atualizado 14 Abr):**
 - Orquestra criação de usuário + organização + login automático em um único fluxo
 - `RegisterOrganizationWithAdminDto`: DTO unificado (dados do admin + dados da org)
-- Compensação em 2 estágios: `compensateUser()` chamado se org ou membership falhar
+- Compensação em 2 estágios: ~~`compensateUser()` chamado se org ou membership falhar~~ **substituído por `TransactionManager.runInTransaction` (27 Abr) — rollback automático pelo Prisma**
 - `CreateOrganizationUseCase` simplificado para SRP (apenas cria org) — membership agora é responsabilidade do orquestrador
 
 **Otimização JWT Strategy (13 Abr 2026):**
@@ -643,9 +643,9 @@ src/modules/trip/
 
 **Application Layer:**
 - ✅ 9 use cases: `CreateBookingUseCase`, `CancelBookingUseCase`, `ConfirmPresenceUseCase`, `FindBookingByIdUseCase`, `FindBookingsByOrganizationUseCase`, `FindBookingsByTripInstanceUseCase`, `FindBookingsByUserUseCase`, `FindBookingDetailsUseCase`, `GetBookingAvailabilityUseCase`
-- ✅ `CreateBookingUseCase`: verifica trip → capacity → duplicate → price server-side → `Booking.create()` → save
-- ✅ `CancelBookingUseCase`: bloqueia trip `IN_PROGRESS` ou `FINISHED` antes de cancelar
-- ✅ `ConfirmPresenceUseCase`: **apenas org members** — owner é bloqueado (`BookingAccessForbiddenError`)
+- ✅ `CreateBookingUseCase`: **todo o fluxo** (countActive + save + payment.save) dentro de `runInTransaction(Serializable)` — race condition de capacidade resolvida; verifica trip → capacity → duplicate → price server-side → `Booking.create()` → save
+- ✅ `CancelBookingUseCase`: bloqueia trip `IN_PROGRESS` ou `FINISHED`; bloqueia booking já `INACTIVE` (`BookingAlreadyInactiveError`); bloqueia cancelamento dentro de 30 min da partida (`BookingCancellationDeadlineError`)
+- ✅ `ConfirmPresenceUseCase`: **apenas org members** — owner é bloqueado (`BookingAccessForbiddenError`); bloqueia booking `INACTIVE` (`BookingAlreadyInactiveError`)
 - ✅ `FindBookingsByTripInstanceUseCase`: 3º param `callerOrganizationId?` — bloqueia acesso B2C
 - ✅ `FindBookingsByUserUseCase`: 3º param `status?: Status` repassado ao repositório
 - ✅ `FindBookingDetailsUseCase`: injeta `BookingRepository` + `TripInstanceRepository`; retorna `BookingDetailsResponseDto`
@@ -653,7 +653,7 @@ src/modules/trip/
 - ✅ DTOs novos: `BookingDetailsResponseDto` (extends `BookingResponseDto` + dados da trip), `BookingAvailabilityResponseDto` (`tripInstanceId`, `tripStatus`, `totalCapacity`, `activeCount`, `availableSlots`, `isBookable`)
 
 **Testes Unitários:**
-- ✅ 9 suites, **85 testes** — todos passando (total acumulado do projeto: **34 suites, 252 testes** — 27 Abr)
+- ✅ 9 suites, **85 testes** — todos passando (total acumulado do projeto: **34 suites, 252 testes** — 27 Abr; **37 suites, 278 testes** — 28 Abr)
 - ✅ `create-booking.use-case.spec.ts` — atualizado (27 Abr): 18 testes (era 12 — adicionados testes de PaymentCreationFailedError + TransactionManager)
 
 **⚠️ Bugs identificados (pendentes de fix):**
@@ -884,9 +884,58 @@ src/shared/infrastructure/database/
 
 **Impacto:**
 - Repositórios: migrados para `DbContext` (não iniciam transações; só executam queries)
-- Use cases com múltiplas escritas: envolvem persistência em `UnitOfWork.execute(...)`
+- Use cases com múltiplas escritas: envolvem persistência em `UnitOfWork.execute(...)` ou `TransactionManager.runInTransaction(...)` (compat)
 
-**Compilação/Testes:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes.**
+**Use cases que receberam transação (27 Abr 2026):**
+
+| Use Case | Módulo | Interface usada | O que é atomizado |
+|----------|--------|-----------------|-------------------|
+| `RegisterOrganizationWithAdminUseCase` | Auth | `TransactionManager.runInTransaction` | user + organization + membership ADMIN |
+| `SetupOrganizationForExistingUserUseCase` | Auth | `TransactionManager.runInTransaction` | organization + membership ADMIN (usuário já existe) |
+| `CreateBookingUseCase` | Bookings | `TransactionManager.runInTransaction` | booking + payment — inscrição + registro de pagamento |
+| `SubscribeToPlanUseCase` | Subscriptions | `TransactionManager.runInTransaction` | `findActive()` + `save()` — garante max 1 ACTIVE por org |
+
+> Auth e Subscriptions usam `TransactionManager.runInTransaction` por serem implementações anteriores à padronização `UnitOfWork`. `TransactionManager` é um token compat que delega para o mesmo `PrismaUnitOfWork`.
+
+**Compilação/Testes:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes (27 Abr). 37 suites, 278 testes (28 Abr — guards: DevGuard, RolesGuard, TenantFilterGuard).**
+
+---
+
+## 🔧 FASE 3.6: Análise de Concorrência e Correções (28 Abr 2026)
+
+> Análise completa de race conditions e lost updates em todos os módulos. Auth e Subscriptions já estavam protegidos (27 Abr). As correções de código foram no módulo Trip.
+
+### Auth Module — Já Protegido ✅ (análise 28 Abr)
+- ✅ `RegisterOrganizationWithAdminUseCase`: `user + org + membership` dentro de `TransactionManager.runInTransaction` — rollback total se qualquer etapa falhar. Sem alteração necessária.
+- ✅ `SetupOrganizationForExistingUserUseCase`: `org + membership` dentro de `TransactionManager.runInTransaction`. Sem alteração necessária.
+
+### Membership Module — Sem Necessidade de Transação ✅ (análise 28 Abr)
+- ✅ `CreateMembershipUseCase`: escrita única em uma tabela — não há risco de inconsistência entre múltiplas escritas. Sem alteração necessária.
+- ✅ Demais use cases de Membership: operações simples de leitura ou atualização única. Sem risco de race condition identificado.
+
+### Subscriptions Module — Já Protegido ✅ (análise 28 Abr)
+- ✅ `SubscribeToPlanUseCase`: `findActive() + save()` dentro de `TransactionManager.runInTransaction` com isolamento Serializable — garante que duas requisições simultâneas não criem duas assinaturas ACTIVE para a mesma organização. Sem alteração necessária.
+
+### Trip Module — Correções Aplicadas ✅ (28 Abr 2026)
+
+#### `TransitionTripInstanceStatusUseCase` — Proteção contra Lost Update
+- ✅ Use case envolto em `UnitOfWork.execute(async () => { ... })`
+- ✅ Com isolamento `Serializable`, dois requests simultâneos que tentam transitar o mesmo status colidem — apenas um commita, o outro recebe `P2034` e é retentado
+- ✅ Mock de `UnitOfWork` adicionado ao spec (`execute: jest.fn().mockImplementation((fn) => fn())`)
+- ✅ Construtor atualizado: `new TransitionTripInstanceStatusUseCase(tripInstanceRepository, unitOfWork)`
+
+#### `CreateTripInstanceUseCase` — Proteção contra Race Condition com DeactivateTripTemplate
+- ✅ Validações de fast-fail mantidas **fora** da transação (evita lock desnecessário em erros óbvios)
+- ✅ Template re-lido **dentro** do `UnitOfWork.execute()` — `isActive()` revalidado sob isolamento Serializable
+- ✅ Fecha a janela onde `DeactivateTripTemplate` poderia commitar entre o `findById` externo e o `save`
+- ✅ `tripTemplateRepository.findById` chamado duas vezes; testes funcionam sem alteração pois `mockResolvedValue` retorna o mesmo valor em chamadas subsequentes
+- ✅ Construtor atualizado: `new CreateTripInstanceUseCase(tripInstanceRepository, tripTemplateRepository, unitOfWork)`
+
+#### `AssignDriverToTripInstance` / `AssignVehicleToTripInstance` — Sem Alteração
+- ✅ FK constraints `onDelete: Restrict` confirmados no schema Prisma para `driverId` e `vehicleId` na tabela `TripInstance`
+- ✅ Integridade referencial garantida a nível de banco — transações adicionais desnecessárias
+
+**Compilação/Testes:** ✅ 15/15 testes passando após as mudanças.
 
 ### Testing 📋
 - [ ] Unit tests (target: 80%+)

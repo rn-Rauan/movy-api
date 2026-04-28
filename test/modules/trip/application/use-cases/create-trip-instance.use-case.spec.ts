@@ -11,6 +11,7 @@ import { makeTripInstance } from '../../factories/trip-instance.factory';
 import { makeTripTemplate } from '../../factories/trip-template.factory';
 import { makeCreateTripInstanceDto } from '../../factories/create-trip-instance.dto.factory';
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
+import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -23,7 +24,11 @@ function makeMocks() {
     findById: jest.fn(),
   } as any as jest.Mocked<TripTemplateRepository>;
 
-  return { tripInstanceRepository, tripTemplateRepository };
+  const unitOfWork = {
+    execute: jest.fn().mockImplementation((fn: () => Promise<unknown>) => fn()),
+  } as any as jest.Mocked<UnitOfWork>;
+
+  return { tripInstanceRepository, tripTemplateRepository, unitOfWork };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
@@ -54,6 +59,7 @@ describe('CreateTripInstanceUseCase', () => {
     sut = new CreateTripInstanceUseCase(
       mocks.tripInstanceRepository,
       mocks.tripTemplateRepository,
+      mocks.unitOfWork,
     );
   });
 

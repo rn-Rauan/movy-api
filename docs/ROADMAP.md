@@ -2,7 +2,7 @@
 
 > 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
 
-**Última atualização:** 27 Abr 2026 
+**Última atualização:** 28 Abr 2026 
 
 ---
 
@@ -15,6 +15,14 @@ FASE 3: Abr 26             (1 dia)      ✅ COMPLETO (26 Abr 2026)
 FASE 4: Jun 02 - Jun 15    (2 semanas, final polish)  ⏳ FUTURO
 
 MVP PRONTO: 15 de Junho 2026
+
+Progresso em 28 Abr 2026:
+  Análise completa de concorrência: Auth (RegisterOrg + SetupOrg), Membership, Subscriptions, Trip
+  Auth e Subscriptions já protegidos via TransactionManager.runInTransaction (27 Abr)
+  Membership: sem necessidade de transação (escritas únicas)
+  Trip: UnitOfWork aplicado em TransitionTripInstanceStatusUseCase e CreateTripInstanceUseCase
+  AssignDriver/AssignVehicle confirmados seguros via FK onDelete: Restrict
+  15 testes passando após as mudanças
 
 Progresso em 27 Abr 2026:
   durationDays adicionado ao Plan (migration + entity + mapper + DTOs + prisma generate)
@@ -256,9 +264,10 @@ Progresso em 27 Abr 2026:
 | ✅ | Subscriptions — 4 use cases, duração via plan.durationDays, ADMIN-only | ✅ Pronto (26-27 Abr) |
 | ✅ | durationDays no Plan (migration + entity + mapper) | ✅ Pronto (27 Abr) |
 | ✅ | Refatoração de transações (UnitOfWork + DbContext; TransactionContext removido) | ✅ Pronto (27 Abr) |
+| ✅ | Correções de concorrência — análise completa (Auth/Membership/Subscriptions já protegidos; Trip: UnitOfWork em TransitionTripInstanceStatus + CreateTripInstance) | ✅ Pronto (28 Abr) |
 | ✅ | Testes Plans/Subscriptions (12 testes) | ✅ Pronto (27 Abr) |
 
-**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização. Infra de transações unificada (UnitOfWork + DbContext). 34 suites, 252 testes.
+**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização. Infra de transações unificada (UnitOfWork + DbContext). Correções de concorrência no Trip Module (28 Abr). 34 suites, 252 testes.
 
 ---
 

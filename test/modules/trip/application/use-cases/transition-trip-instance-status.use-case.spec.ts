@@ -8,6 +8,7 @@ import {
   TripInstanceRequiredFieldError,
 } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
 import { makeTripInstance } from '../../factories/trip-instance.factory';
+import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -17,7 +18,11 @@ function makeMocks() {
     update: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
-  return { tripInstanceRepository };
+  const unitOfWork = {
+    execute: jest.fn().mockImplementation((fn: () => Promise<unknown>) => fn()),
+  } as any as jest.Mocked<UnitOfWork>;
+
+  return { tripInstanceRepository, unitOfWork };
 }
 
 function setupHappyPath(
@@ -51,7 +56,10 @@ describe('TransitionTripInstanceStatusUseCase', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
-    sut = new TransitionTripInstanceStatusUseCase(mocks.tripInstanceRepository);
+    sut = new TransitionTripInstanceStatusUseCase(
+      mocks.tripInstanceRepository,
+      mocks.unitOfWork,
+    );
   });
 
   describe('happy path — DRAFT → SCHEDULED', () => {
