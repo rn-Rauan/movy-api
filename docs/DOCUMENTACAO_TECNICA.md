@@ -309,7 +309,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `FindUserByIdUseCase` | 3 | Happy path, UserNotFoundError (inexistente), UserNotFoundError (inativo) |
 | `CreateOrganizationUseCase` | 4 | Happy path (criação + save), CNPJ duplicado, slug duplicado |
 | `FindOrganizationByIdUseCase` | 6 | Happy path, bypass dev, OrganizationNotFoundError (inexistente + inativo), OrganizationForbiddenError |
-| `CreateBookingUseCase` | 18 | Happy path SCHEDULED/CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceNotFoundError, BookingCreationFailedError, PaymentCreationFailedError, transação atômica via TransactionManager |
+| `CreateBookingUseCase` | 18 | Happy path SCHEDULED/CONFIRMED, reinscrição após cancelamento, TripInstanceNotBookableError (DRAFT/CANCELED/IN_PROGRESS), BookingAlreadyExistsError, TripInstanceNotFoundError, BookingCreationFailedError, PaymentCreationFailedError, transação atômica via UnitOfWork (DbContext/AsyncLocalStorage) |
 | `CancelBookingUseCase` | 8 | Happy path (status INACTIVE), update chamado uma vez, entidade persistida com INACTIVE, BookingNotFoundError, BookingAccessForbiddenError, update retorna null |
 | `ConfirmPresenceUseCase` | 7 | Happy path org member (presenceConfirmed=true), update chamado uma vez, entidade persistida corretamente, owner bloqueado (2 testes), BookingNotFoundError, BookingAccessForbiddenError cross-org |
 | `FindBookingByIdUseCase` | 5 | Happy path, findById chamado com id correto, BookingNotFoundError, BookingAccessForbiddenError (cross-org), dados não expostos no forbidden |
@@ -846,9 +846,9 @@ Após a implementação inicial, o módulo passou por um ciclo de melhorias que 
 
 **Compilacao:** ✅ `npx tsc --noEmit` = 0 erros
 
-**Bugs identificados (pendentes):**
-- `CancelBookingUseCase`: nao bloqueia booking ja `INACTIVE`
-- `ConfirmPresenceUseCase`: nao bloqueia booking cancelado
+**Bugs corrigidos (27 Abr 2026):**
+- `CancelBookingUseCase`: bloqueia cancelamento de booking já `INACTIVE` (`BookingAlreadyInactiveError`)
+- `ConfirmPresenceUseCase`: bloqueia confirmação de presença em booking `INACTIVE` (`BookingAlreadyInactiveError`)
 
 **Domain Layer:**
 - `Booking` entity com `create()` (factory de criação) e `restore()` (hidratação), métodos `cancel()` (status → INACTIVE) e `confirmPresence()` (presenceConfirmed → true)
@@ -859,8 +859,8 @@ Após a implementação inicial, o módulo passou por um ciclo de melhorias que 
 
 **Infrastructure Layer:**
 - `PrismaBookingRepository`: implementa todos os métodos, queries paginadas via `$transaction([findMany, count])`
-- Quirk do schema: campo Prisma é `EnrollmentType` (E maiúsculo), mapeado explicitamente no `BookingMapper`
-- `findByUserAndTripInstance` filtra `status: 'ACTIVE'` — decisão de domínio que permite reinscrição após cancelamento sem alterar a query de criação
+- `enrollmentType` (Prisma) é mapeado para o `EnrollmentType` (domínio) via `BookingMapper`
+- `findByUserAndTripInstance` filtra `status: 'ACTIVE'`; o banco garante no máximo 1 inscrição ativa por `(userId, tripInstanceId)` via chave única em `activeKey` (múltiplas `INACTIVE` são permitidas)
 - `BookingMapper.toDomain()` hidrata `Money.restore(Number(raw.recordedPrice))`; `toPersistence()` extrai `entity.recordedPrice.toNumber()`
 
 **Application Layer:**
@@ -879,10 +879,11 @@ Após a implementação inicial, o módulo passou por um ciclo de melhorias que 
 **Fluxo `CreateBookingUseCase`:**
 ```
 findById(tripInstanceId) → 404 se não encontrado
-verifica organizationId → 403 se org diferente
 verifica tripStatus (SCHEDULED || CONFIRMED) → 400 se não bookable
+countActiveByTripInstance(tripInstanceId) → 409 se lotado
 findByUserAndTripInstance(userId, tripInstanceId) → 409 se já existe ATIVO
-Booking.create(...) → save() → 500 se save retorna null
+resolvePrice(tripTemplate, enrollmentType) → 400 se preço não disponível
+runInTransaction(() => booking.save() + payment.save()) → atômico
 ```
 
 **Endpoints REST:**
@@ -1057,90 +1058,58 @@ O `SubscribeToPlanUseCase` possuía a constante `SUBSCRIPTION_DURATION_DAYS = 30
 
 ---
 
-### TransactionManager — Gerenciamento de Transações sem Vazamento de Infraestrutura
+### UnitOfWork + DbContext — Transações com AsyncLocalStorage (sem vazamento)
 
-#### Problema
+#### Objetivo
 
-O `CreateBookingUseCase` precisava persistir um `Booking` e um `PaymentEntity` **atomicamente** — se um dos inserts falhasse, o outro deveria ser desfeito. A solução anterior injetava `PrismaService` diretamente no use case e chamava `prisma.$transaction(async (tx) => { tx.enrollment.create(...); tx.payment.create(...) })`. Isso violava a arquitetura em dois pontos:
+Permitir que um use case execute múltiplas escritas **atomicamente** (ex: criar `Booking` + `PaymentEntity`) sem que a camada de aplicação precise conhecer Prisma (`prisma.$transaction`) e sem alterar assinaturas dos repositórios.
 
-1. **O use case conhecia o Prisma** — acoplamento de infraestrutura na camada de aplicação
-2. **Os mappers (`BookingMapper`, `PaymentMapper`) eram chamados dentro do use case** — responsabilidade da camada de infraestrutura vazando para a aplicação
+#### Componentes
 
-#### Solução — `TransactionManager` com `AsyncLocalStorage`
+| Componente | Camada | Papel |
+|-----------|--------|-------|
+| `UnitOfWork` | Shared Domain (interface) | Expõe `execute(fn)` para rodar um bloco dentro de uma transação |
+| `PrismaUnitOfWork` | Shared Infra | Implementa `UnitOfWork` usando `prisma.$transaction(...)` |
+| `DbContext` | Shared Infra | Guarda o cliente Prisma ativo via `AsyncLocalStorage` e expõe `dbContext.client` |
 
-Em vez de introduzir o padrão Unit of Work completo (que exigiria refatorar todos os repositórios), foi implementada uma solução minimalista baseada em `AsyncLocalStorage` do Node.js:
+#### Como a transação funciona (simples)
 
 ```
 UseCase
-  └─ transactionManager.runInTransaction(async () => {
-       await bookingRepository.save(booking)      ← usa o tx client transparentemente
-       await paymentRepository.save(payment)      ← idem
+  └─ unitOfWork.execute(async () => {
+       await bookingRepository.save(booking)
+       await paymentRepository.save(payment)
      })
          ↓
-PrismaTransactionManager
+PrismaUnitOfWork
   └─ prisma.$transaction((tx) =>
-       transactionContext.run(tx, fn))            ← injeta o cliente de tx no contexto async
+       dbContext.run(tx, fn))         ← coloca o tx no AsyncLocalStorage
            ↓
-PrismaTxClient armazenado em AsyncLocalStorage
+DbContext (AsyncLocalStorage)
+  └─ client = tx durante a execução do callback
            ↓
-PrismaBookingRepository.save() / PrismaPaymentRepository.save()
-  └─ private get db() { return context.client ?? this.prisma }
-                                   ↑
-                        tx client se dentro de uma transação,
-                        PrismaService normal caso contrário
+Repository
+  └─ usa dbContext.client.<model>...  ← usa tx automaticamente
+           ↓
+Prisma (PostgreSQL)
 ```
 
-**Componentes implementados:**
+Na prática: fora de transação, `dbContext.client` aponta para o `PrismaService` (cliente raiz). Dentro da transação, aponta para o `tx` criado pelo Prisma.
 
-| Arquivo | Camada | Responsabilidade |
-|---------|--------|------------------|
-| `src/shared/infrastructure/database/transaction-context.ts` | Shared Infra | `AsyncLocalStorage<PrismaTxClient>` — armazena o cliente Prisma da transação ativa. Expõe `client` (getter) e `run(tx, fn)` |
-| `src/shared/infrastructure/database/transaction-manager.ts` | Shared Infra / Domínio de Aplicação | `abstract class TransactionManager` — token de DI. Método `runInTransaction<T>(fn: () => Promise<T>): Promise<T>` |
-| `src/shared/infrastructure/database/prisma-transaction-manager.ts` | Shared Infra | `PrismaTransactionManager` — implementação. Chama `prisma.$transaction((tx) => context.run(tx, fn))` |
+#### Fluxo completo
 
-**Alterações nos repositórios:**
+`UseCase → UnitOfWork → DbContext → Repository → Prisma`
 
-Ambos `PrismaBookingRepository` e `PrismaPaymentRepository` receberam `TransactionContext` por injeção de dependência e um getter privado `db`:
+#### Por que repositórios NÃO iniciam transações
 
-```typescript
-private get db() {
-  return this.transactionContext.client ?? this.prisma;
-}
-```
+1. **A fronteira transacional é do caso de uso**: é o use case que sabe quais operações precisam ser atômicas (ex: salvar em 2 tabelas).
+2. **Evita transações parciais**: se cada repositório abrisse sua própria transação, não haveria garantia de atomicidade entre repositórios diferentes.
+3. **Mantém interfaces simples**: repositórios não precisam receber “tx” como parâmetro e não mudam assinaturas.
+4. **Infra fica na infra**: repositórios só executam queries; o controle de transação fica centralizado e previsível.
 
-O método `save()` de cada repositório usa `this.db.enrollment.create(...)` em vez de `this.prisma.enrollment.create(...)`. Fora de uma transação, `context.client` é `null` e o comportamento é idêntico ao anterior.
+#### Observação (compatibilidade)
 
-**Registro no `PrismaModule` (`@Global`):**
-```typescript
-providers: [
-  PrismaService,
-  TransactionContext,
-  { provide: TransactionManager, useClass: PrismaTransactionManager },
-  ...
-],
-exports: [PrismaService, TransactionContext, TransactionManager, ...]
-```
-
-Como `PrismaModule` é `@Global`, `TransactionManager` fica disponível em todos os módulos sem necessidade de importação explícita.
-
-**`CreateBookingUseCase` refatorado:**
-```typescript
-const savedBooking = await this.transactionManager.runInTransaction(async () => {
-  const createdBooking = await this.bookingRepository.save(booking);
-  if (!createdBooking) throw new BookingCreationFailedError();
-
-  const createdPayment = await this.paymentRepository.save(payment);
-  if (!createdPayment) throw new PaymentCreationFailedError();
-
-  return createdBooking;
-});
-```
-
-Nenhuma importação de Prisma, nenhum mapper chamado no use case. O fluxo é `UseCase → Repository → Infra`.
-
-**Decisão Arquitetural — Por que não Unit of Work completo?**
-
-O padrão Unit of Work clássico exigiria que todos os repositórios aceitassem um `UnitOfWork` ou `Session` como parâmetro nos seus métodos, alterando todas as assinaturas de interface. Para um MVP/TCC com um único caso de uso que precisa de transação (CreateBooking), essa refatoração seria desproporcional. A abordagem com `AsyncLocalStorage` é transparente: os repositórios e suas interfaces permanecem inalterados externamente, e o contexto transacional é propagado implicitamente pelo runtime do Node.js.
+O token `TransactionManager` pode existir apenas como compat/alias para `UnitOfWork` durante a transição, mas o padrão recomendado é usar `UnitOfWork.execute(...)`.
 
 **Compilação:** ✅ `npx tsc --noEmit` = 0 erros. Testes: 34 suites, 252 testes.
 

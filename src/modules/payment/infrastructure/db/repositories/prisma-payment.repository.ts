@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
-import { TransactionContext } from 'src/shared/infrastructure/database/transaction-context';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -13,19 +12,14 @@ import { PaymentMapper } from '../mappers/payment.mapper';
  * Prisma-backed implementation of {@link PaymentRepository}.
  *
  * All I/O operations are performed via the Prisma Client targeting PostgreSQL.
- * This class is registered in the NestJS DI container as the concrete provider
- * for the `PaymentRepository` abstract token.
  */
 @Injectable()
 export class PrismaPaymentRepository implements PaymentRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly transactionContext: TransactionContext,
-  ) {}
+  constructor(private readonly dbContext: DbContext) {}
 
   /** Returns the transaction-scoped client when inside a transaction, or the root PrismaService. */
   private get db() {
-    return this.transactionContext.client ?? this.prisma;
+    return this.dbContext.client;
   }
 
   /**
@@ -47,7 +41,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
    * @returns The matching {@link PaymentEntity}, or `null` if not found
    */
   async findById(id: string): Promise<PaymentEntity | null> {
-    const result = await this.prisma.payment.findUnique({ where: { id } });
+    const result = await this.db.payment.findUnique({ where: { id } });
     return result ? PaymentMapper.toDomain(result) : null;
   }
 
@@ -60,7 +54,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
   async findByEnrollmentId(
     enrollmentId: string,
   ): Promise<PaymentEntity | null> {
-    const result = await this.prisma.payment.findUnique({
+    const result = await this.db.payment.findUnique({
       where: { enrollmentId },
     });
     return result ? PaymentMapper.toDomain(result) : null;
@@ -68,9 +62,6 @@ export class PrismaPaymentRepository implements PaymentRepository {
 
   /**
    * Returns a paginated list of payments for an organisation, ordered by `createdAt` descending.
-   *
-   * Uses a Prisma interactive transaction to guarantee consistency between the
-   * `findMany` result set and the `count` used for pagination metadata.
    *
    * @param organizationId - The organisation UUID
    * @param options - Pagination parameters `{ page, limit }`
@@ -83,14 +74,14 @@ export class PrismaPaymentRepository implements PaymentRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [payments, total] = await this.prisma.$transaction([
-      this.prisma.payment.findMany({
+    const [payments, total] = await Promise.all([
+      this.db.payment.findMany({
         where: { organizationId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.payment.count({ where: { organizationId } }),
+      this.db.payment.count({ where: { organizationId } }),
     ]);
 
     return {

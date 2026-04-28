@@ -326,6 +326,7 @@ model Enrollment {
   presenceConfirmed Boolean    @default(false)
   enrollmentType    EnrollmentType
   recordedPrice     Decimal    @db.Decimal(10, 2)
+  activeKey         String?    @unique
   userId            String
   tripInstanceId    String
   boardingStop      String     @db.VarChar(255)   // Ex: "A2"
@@ -340,7 +341,6 @@ model Enrollment {
   payment      Payment?     @relation("PaymentEnrollment")
   organization Organization @relation("EnrollmentOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, tripInstanceId])
   @@index([userId])
   @@index([tripInstanceId])
   @@index([organizationId])

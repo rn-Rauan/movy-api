@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -13,12 +13,15 @@ import { PlanMapper } from '../mappers/plan.mapper';
  * Prisma-backed implementation of {@link PlanRepository}.
  *
  * All I/O operations are performed via the Prisma Client targeting PostgreSQL.
- * This class is registered in the NestJS DI container as the concrete provider
- * for the `PlanRepository` abstract token.
  */
 @Injectable()
 export class PrismaPlanRepository implements PlanRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new plan row via `prisma.plan.create`.
@@ -28,7 +31,7 @@ export class PrismaPlanRepository implements PlanRepository {
    */
   async save(plan: PlanEntity): Promise<PlanEntity | null> {
     const data = PlanMapper.toPersistence(plan);
-    const result = await this.prisma.plan.create({ data });
+    const result = await this.db.plan.create({ data });
     return result ? PlanMapper.toDomain(result) : null;
   }
 
@@ -40,7 +43,7 @@ export class PrismaPlanRepository implements PlanRepository {
    */
   async update(plan: PlanEntity): Promise<PlanEntity | null> {
     const data = PlanMapper.toPersistence(plan);
-    const result = await this.prisma.plan.update({
+    const result = await this.db.plan.update({
       where: { id: plan.id },
       data,
     });
@@ -54,7 +57,7 @@ export class PrismaPlanRepository implements PlanRepository {
    * @returns The matching {@link PlanEntity}, or `null` if not found
    */
   async findById(id: number): Promise<PlanEntity | null> {
-    const result = await this.prisma.plan.findUnique({ where: { id } });
+    const result = await this.db.plan.findUnique({ where: { id } });
     return result ? PlanMapper.toDomain(result) : null;
   }
 
@@ -65,15 +68,12 @@ export class PrismaPlanRepository implements PlanRepository {
    * @returns The matching {@link PlanEntity}, or `null` if not found
    */
   async findByName(name: PlanName): Promise<PlanEntity | null> {
-    const result = await this.prisma.plan.findUnique({ where: { name } });
+    const result = await this.db.plan.findUnique({ where: { name } });
     return result ? PlanMapper.toDomain(result) : null;
   }
 
   /**
    * Returns a paginated list of plans ordered by `id` ascending.
-   *
-   * Uses a Prisma interactive transaction to guarantee consistency between the
-   * `findMany` result set and the `count` used for pagination metadata.
    *
    * @param options - Pagination parameters `{ page, limit }`
    * @returns A {@link PaginatedResponse} with the page of plan entities and pagination metadata
@@ -84,9 +84,9 @@ export class PrismaPlanRepository implements PlanRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [plans, total] = await this.prisma.$transaction([
-      this.prisma.plan.findMany({ orderBy: { id: 'asc' }, skip, take: limit }),
-      this.prisma.plan.count(),
+    const [plans, total] = await Promise.all([
+      this.db.plan.findMany({ orderBy: { id: 'asc' }, skip, take: limit }),
+      this.db.plan.count(),
     ]);
 
     return {

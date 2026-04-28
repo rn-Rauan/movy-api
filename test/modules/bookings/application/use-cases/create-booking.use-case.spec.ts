@@ -37,7 +37,9 @@ function makeMocks() {
   } as any as jest.Mocked<PaymentRepository>;
 
   const transactionManager = {
-    runInTransaction: jest.fn().mockImplementation((fn: () => Promise<unknown>) => fn()),
+    runInTransaction: jest
+      .fn()
+      .mockImplementation((fn: () => Promise<unknown>) => fn()),
   };
 
   return {

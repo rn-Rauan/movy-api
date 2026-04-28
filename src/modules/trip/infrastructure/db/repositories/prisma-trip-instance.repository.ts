@@ -5,19 +5,22 @@ import {
   PaginatedResponse,
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { TripInstanceMapper } from '../mappers/trip-instance.mapper';
 
 /**
  * Prisma-backed implementation of {@link TripInstanceRepository}.
  *
  * All I/O operations target the `tripInstance` table via the Prisma Client.
- * Uses interactive transactions (`$transaction`) for paginated list methods
- * to guarantee consistency between the `findMany` result and the `count`.
  */
 @Injectable()
 export class PrismaTripInstanceRepository implements TripInstanceRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new instance row via `prisma.tripInstance.create`.
@@ -26,7 +29,7 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
    * @returns The saved entity, or `null` on unexpected failure
    */
   async save(entity: TripInstance): Promise<TripInstance | null> {
-    const data = await this.prisma.tripInstance.create({
+    const data = await this.db.tripInstance.create({
       data: TripInstanceMapper.toPersistence(entity),
     });
 
@@ -40,7 +43,7 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   async update(entity: TripInstance): Promise<TripInstance | null> {
-    const data = await this.prisma.tripInstance.update({
+    const data = await this.db.tripInstance.update({
       where: { id: entity.id },
       data: TripInstanceMapper.toPersistence(entity),
     });
@@ -54,7 +57,7 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
    * @param id - UUID of the trip instance to delete
    */
   async delete(id: string): Promise<void> {
-    await this.prisma.tripInstance.delete({ where: { id } });
+    await this.db.tripInstance.delete({ where: { id } });
   }
 
   /**
@@ -64,7 +67,7 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
    * @returns The matching {@link TripInstance}, or `null` if not found
    */
   async findById(id: string): Promise<TripInstance | null> {
-    const data = await this.prisma.tripInstance.findUnique({
+    const data = await this.db.tripInstance.findUnique({
       where: { id },
     });
 
@@ -74,9 +77,7 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Returns a paginated list of all instances ordered by `departureTime` ascending.
-   *
-   * Uses an interactive transaction for count consistency.
+   * Returns a paginated list of all bookings ordered by `departureTime` ascending.
    *
    * @param options - Pagination parameters `{ page, limit }`
    * @returns A {@link PaginatedResponse} of {@link TripInstance} items
@@ -87,13 +88,13 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [instances, total] = await this.prisma.$transaction([
-      this.prisma.tripInstance.findMany({
+    const [instances, total] = await Promise.all([
+      this.db.tripInstance.findMany({
         orderBy: { departureTime: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.tripInstance.count(),
+      this.db.tripInstance.count(),
     ]);
 
     return {
@@ -120,14 +121,14 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [instances, total] = await this.prisma.$transaction([
-      this.prisma.tripInstance.findMany({
+    const [instances, total] = await Promise.all([
+      this.db.tripInstance.findMany({
         where: { organizationId },
         orderBy: { departureTime: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.tripInstance.count({ where: { organizationId } }),
+      this.db.tripInstance.count({ where: { organizationId } }),
     ]);
 
     return {
@@ -154,14 +155,14 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [instances, total] = await this.prisma.$transaction([
-      this.prisma.tripInstance.findMany({
+    const [instances, total] = await Promise.all([
+      this.db.tripInstance.findMany({
         where: { tripTemplateId: templateId },
         orderBy: { departureTime: 'asc' },
         skip,
         take: limit,
       }),
-      this.prisma.tripInstance.count({ where: { tripTemplateId: templateId } }),
+      this.db.tripInstance.count({ where: { tripTemplateId: templateId } }),
     ]);
 
     return {

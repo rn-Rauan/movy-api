@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { User } from 'src/modules/user/domain/entities';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
 import {
@@ -12,12 +12,15 @@ import {
  * Prisma-backed implementation of {@link UserRepository}.
  *
  * All I/O operations target the `user` table via the Prisma Client.
- * Uses parallel `$transaction` for paginated list methods to guarantee
- * consistency between the `findMany` result and the `count`.
  */
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new user row via `prisma.user.create`.
@@ -26,7 +29,7 @@ export class PrismaUserRepository implements UserRepository {
    * @returns The saved entity, or `null` on unexpected failure
    */
   async save(user: User): Promise<User | null> {
-    const userData = await this.prisma.user.create({
+    const userData = await this.db.user.create({
       data: UserMapper.toPersistence(user),
     });
 
@@ -40,7 +43,7 @@ export class PrismaUserRepository implements UserRepository {
    * @returns The matching {@link User}, or `null` if not found
    */
   async findById(id: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: {
         id: id,
       },
@@ -58,7 +61,7 @@ export class PrismaUserRepository implements UserRepository {
    * @returns The matching {@link User}, or `null` if not found
    */
   async findByEmail(email: string): Promise<User | null> {
-    const userData = await this.prisma.user.findUnique({
+    const userData = await this.db.user.findUnique({
       where: {
         email: email,
       },
@@ -76,7 +79,7 @@ export class PrismaUserRepository implements UserRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   async update(user: User): Promise<User | null> {
-    const userData = await this.prisma.user.update({
+    const userData = await this.db.user.update({
       where: {
         id: user.id,
       },
@@ -88,7 +91,6 @@ export class PrismaUserRepository implements UserRepository {
 
   /**
    * Returns a paginated list of `ACTIVE` users, ordered by `createdAt` descending.
-   * Uses a parallel transaction.
    *
    * @param options - Pagination parameters `{ page, limit }`
    * @returns A {@link PaginatedResponse} of active {@link User} items
@@ -99,8 +101,8 @@ export class PrismaUserRepository implements UserRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [users, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({
+    const [users, total] = await Promise.all([
+      this.db.user.findMany({
         where: {
           status: 'ACTIVE',
         },
@@ -110,7 +112,7 @@ export class PrismaUserRepository implements UserRepository {
         skip: skip,
         take: limit,
       }),
-      this.prisma.user.count({
+      this.db.user.count({
         where: {
           status: 'ACTIVE',
         },
@@ -128,7 +130,7 @@ export class PrismaUserRepository implements UserRepository {
 
   /**
    * Returns a paginated list of all users regardless of status,
-   * ordered by `createdAt` descending. Uses a parallel transaction.
+   * ordered by `createdAt` descending.
    *
    * @param options - Pagination parameters `{ page, limit }`
    * @returns A {@link PaginatedResponse} of all {@link User} items
@@ -137,15 +139,15 @@ export class PrismaUserRepository implements UserRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [users, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({
+    const [users, total] = await Promise.all([
+      this.db.user.findMany({
         orderBy: {
           createdAt: 'desc',
         },
         skip: skip,
         take: limit,
       }),
-      this.prisma.user.count(),
+      this.db.user.count(),
     ]);
 
     return {
@@ -163,7 +165,7 @@ export class PrismaUserRepository implements UserRepository {
    * @param id - UUID of the user to delete
    */
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({
+    await this.db.user.delete({
       where: {
         id: id,
       },

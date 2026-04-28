@@ -6,28 +6,21 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 import type { Status } from 'src/shared/domain/types';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
-import { TransactionContext } from 'src/shared/infrastructure/database/transaction-context';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { BookingMapper } from '../mappers/booking.mapper';
 
 /**
  * Prisma-backed implementation of {@link BookingRepository}.
  *
  * All I/O operations target the `enrollment` table via the Prisma Client.
- * Uses interactive transactions (`$transaction`) for `findAll`, `findByOrganizationId`,
- * `findByUserId`, and `findByTripInstanceId` to guarantee consistency between
- * the `findMany` result set and the `count` used for pagination metadata.
  */
 @Injectable()
 export class PrismaBookingRepository implements BookingRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly transactionContext: TransactionContext,
-  ) {}
+  constructor(private readonly dbContext: DbContext) {}
 
   /** Returns the transaction-scoped client when inside a transaction, or the root PrismaService. */
   private get db() {
-    return this.transactionContext.client ?? this.prisma;
+    return this.dbContext.client;
   }
 
   /**
@@ -87,8 +80,6 @@ export class PrismaBookingRepository implements BookingRepository {
   /**
    * Returns a paginated list of all bookings ordered by `enrollmentDate` descending.
    *
-   * Uses a Prisma interactive transaction for consistency between `findMany` and `count`.
-   *
    * @param options - Pagination parameters `{ page, limit }`
    * @returns A {@link PaginatedResponse} of {@link Booking} items
    */
@@ -98,13 +89,13 @@ export class PrismaBookingRepository implements BookingRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [bookings, total] = await this.prisma.$transaction([
-      this.prisma.enrollment.findMany({
+    const [bookings, total] = await Promise.all([
+      this.db.enrollment.findMany({
         orderBy: { enrollmentDate: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.enrollment.count(),
+      this.db.enrollment.count(),
     ]);
 
     return {
@@ -130,14 +121,14 @@ export class PrismaBookingRepository implements BookingRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [bookings, total] = await this.prisma.$transaction([
-      this.prisma.enrollment.findMany({
+    const [bookings, total] = await Promise.all([
+      this.db.enrollment.findMany({
         where: { organizationId },
         orderBy: { enrollmentDate: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.enrollment.count({ where: { organizationId } }),
+      this.db.enrollment.count({ where: { organizationId } }),
     ]);
 
     return {
@@ -168,14 +159,14 @@ export class PrismaBookingRepository implements BookingRepository {
     const skip = (page - 1) * limit;
     const where = status ? { userId, status } : { userId };
 
-    const [bookings, total] = await this.prisma.$transaction([
-      this.prisma.enrollment.findMany({
+    const [bookings, total] = await Promise.all([
+      this.db.enrollment.findMany({
         where,
         orderBy: { enrollmentDate: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.enrollment.count({ where }),
+      this.db.enrollment.count({ where }),
     ]);
 
     return {
@@ -201,14 +192,14 @@ export class PrismaBookingRepository implements BookingRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [bookings, total] = await this.prisma.$transaction([
-      this.prisma.enrollment.findMany({
+    const [bookings, total] = await Promise.all([
+      this.db.enrollment.findMany({
         where: { tripInstanceId },
         orderBy: { enrollmentDate: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.enrollment.count({ where: { tripInstanceId } }),
+      this.db.enrollment.count({ where: { tripInstanceId } }),
     ]);
 
     return {
@@ -244,9 +235,9 @@ export class PrismaBookingRepository implements BookingRepository {
 
   /**
    * Counts active bookings for a specific trip instance.
-   * Used to enforce vehicle capacity limits.
+   *
    * @param tripInstanceId - UUID of the trip instance
-   * @returns Number of active bookings
+   * @returns The number of active bookings
    */
   async countActiveByTripInstance(tripInstanceId: string): Promise<number> {
     return this.db.enrollment.count({

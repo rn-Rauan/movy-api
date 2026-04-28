@@ -49,6 +49,11 @@ export class BookingMapper {
    * @returns A plain persistence-layer object compatible with `prisma.enrollment.create({ data })`
    */
   static toPersistence(entity: Booking) {
+    const activeKey =
+      entity.status === 'ACTIVE'
+        ? `${entity.userId}:${entity.tripInstanceId}`
+        : null;
+
     return {
       id: entity.id,
       organizationId: entity.organizationId,
@@ -56,6 +61,7 @@ export class BookingMapper {
       tripInstanceId: entity.tripInstanceId,
       enrollmentDate: entity.enrollmentDate,
       status: entity.status,
+      activeKey,
       presenceConfirmed: entity.presenceConfirmed,
       enrollmentType: entity.enrollmentType,
       recordedPrice: entity.recordedPrice.toNumber(),

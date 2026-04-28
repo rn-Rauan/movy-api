@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -13,12 +13,15 @@ import { SubscriptionMapper } from '../mappers/subscription.mapper';
  * Prisma-backed implementation of {@link SubscriptionRepository}.
  *
  * All I/O operations are performed via the Prisma Client targeting PostgreSQL.
- * This class is registered in the NestJS DI container as the concrete provider
- * for the `SubscriptionRepository` abstract token.
  */
 @Injectable()
 export class PrismaSubscriptionRepository implements SubscriptionRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new subscription row via `prisma.subscription.create`.
@@ -30,7 +33,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     subscription: SubscriptionEntity,
   ): Promise<SubscriptionEntity | null> {
     const data = SubscriptionMapper.toPersistence(subscription);
-    const result = await this.prisma.subscription.create({ data });
+    const result = await this.db.subscription.create({ data });
     return result ? SubscriptionMapper.toDomain(result) : null;
   }
 
@@ -45,7 +48,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
   async update(
     subscription: SubscriptionEntity,
   ): Promise<SubscriptionEntity | null> {
-    const result = await this.prisma.subscription.update({
+    const result = await this.db.subscription.update({
       where: { id: subscription.id },
       data: { status: subscription.status, updatedAt: subscription.updatedAt },
     });
@@ -59,7 +62,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
    * @returns The matching {@link SubscriptionEntity}, or `null` if not found
    */
   async findById(id: string): Promise<SubscriptionEntity | null> {
-    const result = await this.prisma.subscription.findUnique({ where: { id } });
+    const result = await this.db.subscription.findUnique({ where: { id } });
     return result ? SubscriptionMapper.toDomain(result) : null;
   }
 
@@ -77,7 +80,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     organizationId: string,
     status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
   ): Promise<SubscriptionEntity | null> {
-    const result = await this.prisma.subscription.findFirst({
+    const result = await this.db.subscription.findFirst({
       where: { organizationId, status },
       orderBy: { createdAt: 'desc' },
     });
@@ -86,9 +89,6 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
 
   /**
    * Returns a paginated list of all subscriptions for an organisation, ordered by `createdAt` descending.
-   *
-   * Uses a Prisma interactive transaction to guarantee consistency between the
-   * `findMany` result set and the `count` used for pagination metadata.
    *
    * @param organizationId - The organisation UUID
    * @param options - Pagination parameters `{ page, limit }`
@@ -101,14 +101,14 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [subscriptions, total] = await this.prisma.$transaction([
-      this.prisma.subscription.findMany({
+    const [subscriptions, total] = await Promise.all([
+      this.db.subscription.findMany({
         where: { organizationId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.subscription.count({ where: { organizationId } }),
+      this.db.subscription.count({ where: { organizationId } }),
     ]);
 
     return {

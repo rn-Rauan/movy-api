@@ -18,10 +18,16 @@ MVP PRONTO: 15 de Junho 2026
 
 Progresso em 27 Abr 2026:
   durationDays adicionado ao Plan (migration + entity + mapper + DTOs + prisma generate)
-  TransactionManager implementado (AsyncLocalStorage — Clean Architecture no CreateBooking)
+  Refatoração de transações concluída (UnitOfWork + DbContext + AsyncLocalStorage; TransactionContext removido)
   Novos testes: CreatePlanUseCase (5), SubscribeToPlanUseCase (7)
   Total acumulado: 34 suites, 252 testes passando
 ```
+
+## ✅ Próximos Passos (após a refatoração de transações)
+
+- Frontend
+- Integração end-to-end (Frontend ↔ API)
+- Testes de integração (opcional)
 
 ---
 
@@ -249,10 +255,10 @@ Progresso em 27 Abr 2026:
 | ✅ | Payment — read-only API, criação pelo BookingsModule | ✅ Pronto (26 Abr) |
 | ✅ | Subscriptions — 4 use cases, duração via plan.durationDays, ADMIN-only | ✅ Pronto (26-27 Abr) |
 | ✅ | durationDays no Plan (migration + entity + mapper) | ✅ Pronto (27 Abr) |
-| ✅ | TransactionManager (AsyncLocalStorage, Clean Architecture no CreateBooking) | ✅ Pronto (27 Abr) |
+| ✅ | Refatoração de transações (UnitOfWork + DbContext; TransactionContext removido) | ✅ Pronto (27 Abr) |
 | ✅ | Testes Plans/Subscriptions (12 testes) | ✅ Pronto (27 Abr) |
 
-**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização. TransactionManager clean architecture. 34 suites, 252 testes.
+**Saída:** Módulos SaaS prontos — planos, histórico de pagamentos, assinaturas por organização. Infra de transações unificada (UnitOfWork + DbContext). 34 suites, 252 testes.
 
 ---
 

@@ -73,7 +73,8 @@ describe('CreatePlanUseCase', () => {
       await sut.execute(dto);
 
       // Assert - findByName must be called before save
-      const findOrder = mocks.planRepository.findByName.mock.invocationCallOrder[0];
+      const findOrder =
+        mocks.planRepository.findByName.mock.invocationCallOrder[0];
       const saveOrder = mocks.planRepository.save.mock.invocationCallOrder[0];
       expect(findOrder).toBeLessThan(saveOrder);
     });

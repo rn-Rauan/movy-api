@@ -3,7 +3,9 @@ import { PlanName } from 'src/modules/plans/domain/interfaces/enums/plan-name.en
 
 type CreatePlanDtoOverrides = Partial<CreatePlanDto>;
 
-export function makeCreatePlanDto(overrides: CreatePlanDtoOverrides = {}): CreatePlanDto {
+export function makeCreatePlanDto(
+  overrides: CreatePlanDtoOverrides = {},
+): CreatePlanDto {
   return {
     name: overrides.name ?? PlanName.BASIC,
     price: overrides.price ?? 49.9,

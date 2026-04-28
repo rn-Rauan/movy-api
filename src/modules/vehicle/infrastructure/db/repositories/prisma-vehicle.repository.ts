@@ -5,19 +5,22 @@ import {
   PaginatedResponse,
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { VehicleMapper } from '../mappers/vehicle.mapper';
 
 /**
  * Prisma-backed implementation of {@link VehicleRepository}.
  *
  * All I/O operations target the `vehicle` table via the Prisma Client.
- * Uses a parallel `$transaction` for paginated list queries to guarantee
- * consistency between the `findMany` result and the `count`.
  */
 @Injectable()
 export class PrismaVehicleRepository implements VehicleRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new vehicle row via `prisma.vehicle.create`.
@@ -26,7 +29,7 @@ export class PrismaVehicleRepository implements VehicleRepository {
    * @returns The saved entity, or `null` on unexpected failure
    */
   async save(vehicle: VehicleEntity): Promise<VehicleEntity | null> {
-    const vehicleData = await this.prisma.vehicle.create({
+    const vehicleData = await this.db.vehicle.create({
       data: VehicleMapper.toPersistence(vehicle),
     });
     return VehicleMapper.toDomain(vehicleData);
@@ -39,7 +42,7 @@ export class PrismaVehicleRepository implements VehicleRepository {
    * @returns The matching {@link VehicleEntity}, or `null` if not found
    */
   async findById(id: string): Promise<VehicleEntity | null> {
-    const vehicleData = await this.prisma.vehicle.findUnique({ where: { id } });
+    const vehicleData = await this.db.vehicle.findUnique({ where: { id } });
     if (!vehicleData) return null;
     return VehicleMapper.toDomain(vehicleData);
   }
@@ -51,7 +54,7 @@ export class PrismaVehicleRepository implements VehicleRepository {
    * @returns The matching {@link VehicleEntity}, or `null` if not found
    */
   async findByPlate(plate: string): Promise<VehicleEntity | null> {
-    const vehicleData = await this.prisma.vehicle.findUnique({
+    const vehicleData = await this.db.vehicle.findUnique({
       where: { plate },
     });
     if (!vehicleData) return null;
@@ -60,7 +63,7 @@ export class PrismaVehicleRepository implements VehicleRepository {
 
   /**
    * Returns a paginated list of vehicles for an organisation,
-   * ordered by `createdAt` descending. Uses a parallel transaction.
+   * ordered by `createdAt` descending.
    *
    * @param organizationId - UUID of the organisation
    * @param options - Pagination parameters `{ page, limit }`
@@ -73,14 +76,14 @@ export class PrismaVehicleRepository implements VehicleRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [vehicles, total] = await this.prisma.$transaction([
-      this.prisma.vehicle.findMany({
+    const [vehicles, total] = await Promise.all([
+      this.db.vehicle.findMany({
         where: { organizationId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.vehicle.count({ where: { organizationId } }),
+      this.db.vehicle.count({ where: { organizationId } }),
     ]);
 
     return {
@@ -99,7 +102,7 @@ export class PrismaVehicleRepository implements VehicleRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   async update(vehicle: VehicleEntity): Promise<VehicleEntity | null> {
-    const vehicleData = await this.prisma.vehicle.update({
+    const vehicleData = await this.db.vehicle.update({
       where: { id: vehicle.id },
       data: VehicleMapper.toPersistence(vehicle),
     });
@@ -112,6 +115,6 @@ export class PrismaVehicleRepository implements VehicleRepository {
    * @param id - UUID of the vehicle to delete
    */
   async delete(id: string): Promise<void> {
-    await this.prisma.vehicle.delete({ where: { id } });
+    await this.db.vehicle.delete({ where: { id } });
   }
 }

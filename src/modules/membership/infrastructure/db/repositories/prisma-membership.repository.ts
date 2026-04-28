@@ -7,7 +7,7 @@ import {
   PaginationOptions,
   PaginatedResponse,
 } from 'src/shared/domain/interfaces';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { MembershipMapper } from '../mappers/membership.mapper';
 import { Injectable } from '@nestjs/common';
 
@@ -15,12 +15,15 @@ import { Injectable } from '@nestjs/common';
  * Prisma-backed implementation of {@link MembershipRepository}.
  *
  * All I/O targets the `OrganizationMembership` table via the Prisma Client.
- * Paginated list methods use a parallel `$transaction([findMany, count])`
- * for consistency.
  */
 @Injectable()
 export class PrismaMembershipRepository implements MembershipRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new membership row via `prisma.organizationMembership.create`.
@@ -29,7 +32,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
    * @returns The saved entity
    */
   async save(membership: Membership): Promise<Membership> {
-    const membershipData = await this.prisma.organizationMembership.create({
+    const membershipData = await this.db.organizationMembership.create({
       data: MembershipMapper.toPersistence(membership),
     });
     return MembershipMapper.toDomain(membershipData);
@@ -48,7 +51,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     roleId: number,
     organizationId: string,
   ): Promise<Membership | null> {
-    const membershipData = await this.prisma.organizationMembership.findUnique({
+    const membershipData = await this.db.organizationMembership.findUnique({
       where: {
         userId_roleId_organizationId: {
           userId,
@@ -63,7 +66,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
 
   /**
    * Returns a paginated list of memberships for the given user,
-   * optionally filtered by organization. Uses a parallel `$transaction`.
+   * optionally filtered by organization.
    *
    * @param userId - UUID of the user
    * @param options - Pagination parameters `{ page, limit }`
@@ -79,13 +82,13 @@ export class PrismaMembershipRepository implements MembershipRepository {
     const skip = (page - 1) * limit;
     const where = organizationId ? { userId, organizationId } : { userId };
 
-    const [membershipData, total] = await this.prisma.$transaction([
-      this.prisma.organizationMembership.findMany({
+    const [membershipData, total] = await Promise.all([
+      this.db.organizationMembership.findMany({
         where,
         skip,
         take: limit,
       }),
-      this.prisma.organizationMembership.count({ where }),
+      this.db.organizationMembership.count({ where }),
     ]);
 
     return {
@@ -99,7 +102,6 @@ export class PrismaMembershipRepository implements MembershipRepository {
 
   /**
    * Returns a paginated list of all memberships for the given organization.
-   * Uses a parallel `$transaction`.
    *
    * @param organizationId - UUID of the organization
    * @param options - Pagination parameters `{ page, limit }`
@@ -112,13 +114,13 @@ export class PrismaMembershipRepository implements MembershipRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [membershipData, total] = await this.prisma.$transaction([
-      this.prisma.organizationMembership.findMany({
+    const [membershipData, total] = await Promise.all([
+      this.db.organizationMembership.findMany({
         where: { organizationId },
         skip,
         take: limit,
       }),
-      this.prisma.organizationMembership.count({
+      this.db.organizationMembership.count({
         where: { organizationId },
       }),
     ]);
@@ -140,7 +142,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
    * @returns The updated entity
    */
   async update(membership: Membership): Promise<Membership> {
-    const membershipData = await this.prisma.organizationMembership.update({
+    const membershipData = await this.db.organizationMembership.update({
       where: {
         userId_roleId_organizationId: {
           userId: membership.userId,
@@ -165,7 +167,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     userId: string,
     organizationId: string,
   ): Promise<Membership | null> {
-    const membershipData = await this.prisma.organizationMembership.findFirst({
+    const membershipData = await this.db.organizationMembership.findFirst({
       where: {
         userId,
         organizationId,
@@ -188,7 +190,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     roleId: number,
     organizationId: string,
   ): Promise<void> {
-    await this.prisma.organizationMembership.delete({
+    await this.db.organizationMembership.delete({
       where: {
         userId_roleId_organizationId: {
           userId,
@@ -213,7 +215,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
   async findFirstActiveByUserId(
     userId: string,
   ): Promise<FirstMembershipDTO | null> {
-    const membership = await this.prisma.organizationMembership.findFirst({
+    const membership = await this.db.organizationMembership.findFirst({
       where: {
         userId,
         removedAt: null,
@@ -244,7 +246,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
    * @returns Array of active membership DTOs
    */
   async findAllActiveByUserId(userId: string): Promise<FirstMembershipDTO[]> {
-    const memberships = await this.prisma.organizationMembership.findMany({
+    const memberships = await this.db.organizationMembership.findMany({
       where: {
         userId,
         removedAt: null,
@@ -275,7 +277,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     userId: string,
     organizationId: string,
   ): Promise<boolean> {
-    const count = await this.prisma.organizationMembership.count({
+    const count = await this.db.organizationMembership.count({
       where: {
         userId,
         organizationId,

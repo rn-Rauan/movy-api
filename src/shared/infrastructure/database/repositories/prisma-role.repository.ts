@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Role } from 'src/shared/domain/entities/role.entity';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
-import { PrismaService } from '../prisma.service';
+import { DbContext } from '../db-context';
 import { RoleMapper } from '../mappers/role.mapper';
 import { RoleName } from 'generated/prisma/enums';
 
@@ -11,14 +11,19 @@ import { RoleName } from 'generated/prisma/enums';
  */
 @Injectable()
 export class PrismaRoleRepository implements RoleRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * @param id - Numeric ID of the role
    * @returns Role entity or null if not found
    */
   async findById(id: number): Promise<Role | null> {
-    const role = await this.prisma.role.findUnique({
+    const role = await this.db.role.findUnique({
       where: { id },
     });
 
@@ -32,7 +37,7 @@ export class PrismaRoleRepository implements RoleRepository {
    * @returns Role entity or null if not found
    */
   async findByName(name: RoleName): Promise<Role | null> {
-    const role = await this.prisma.role.findUnique({
+    const role = await this.db.role.findUnique({
       where: { name },
     });
 

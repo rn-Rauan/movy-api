@@ -63,66 +63,67 @@ export class CreateBookingUseCase {
    * @throws BookingCreationFailedError if persistence fails
    */
   async execute(dto: CreateBookingDto, userId: string): Promise<Booking> {
-    const instance = await this.tripInstanceRepository.findById(
-      dto.tripInstanceId,
-    );
+    try {
+      return await this.transactionManager.runInTransaction(async () => {
+        const instance = await this.tripInstanceRepository.findById(
+          dto.tripInstanceId,
+        );
 
-    if (!instance) {
-      throw new TripInstanceNotFoundError(dto.tripInstanceId);
-    }
+        if (!instance) {
+          throw new TripInstanceNotFoundError(dto.tripInstanceId);
+        }
 
-    if (
-      instance.tripStatus !== TripStatus.SCHEDULED &&
-      instance.tripStatus !== TripStatus.CONFIRMED
-    ) {
-      throw new TripInstanceNotBookableError(
-        dto.tripInstanceId,
-        instance.tripStatus,
-      );
-    }
+        if (
+          instance.tripStatus !== TripStatus.SCHEDULED &&
+          instance.tripStatus !== TripStatus.CONFIRMED
+        ) {
+          throw new TripInstanceNotBookableError(
+            dto.tripInstanceId,
+            instance.tripStatus,
+          );
+        }
 
-    const activeCount = await this.bookingRepository.countActiveByTripInstance(
-      dto.tripInstanceId,
-    );
+        const activeCount =
+          await this.bookingRepository.countActiveByTripInstance(
+            dto.tripInstanceId,
+          );
 
-    if (activeCount >= instance.totalCapacity) {
-      throw new TripInstanceFullError(dto.tripInstanceId);
-    }
+        if (activeCount >= instance.totalCapacity) {
+          throw new TripInstanceFullError(dto.tripInstanceId);
+        }
 
-    const existing = await this.bookingRepository.findByUserAndTripInstance(
-      userId,
-      dto.tripInstanceId,
-    );
+        const existing = await this.bookingRepository.findByUserAndTripInstance(
+          userId,
+          dto.tripInstanceId,
+        );
 
-    if (existing) {
-      throw new BookingAlreadyExistsError(userId, dto.tripInstanceId);
-    }
+        if (existing) {
+          throw new BookingAlreadyExistsError(userId, dto.tripInstanceId);
+        }
 
-    const template = await this.tripTemplateRepository.findById(
-      instance.tripTemplateId,
-    );
+        const template = await this.tripTemplateRepository.findById(
+          instance.tripTemplateId,
+        );
 
-    const recordedPrice = this.resolvePrice(template, dto.enrollmentType);
+        const recordedPrice = this.resolvePrice(template, dto.enrollmentType);
 
-    const booking = Booking.create({
-      organizationId: instance.organizationId,
-      userId,
-      tripInstanceId: dto.tripInstanceId,
-      enrollmentType: dto.enrollmentType,
-      recordedPrice,
-      boardingStop: dto.boardingStop,
-      alightingStop: dto.alightingStop,
-    });
+        const booking = Booking.create({
+          organizationId: instance.organizationId,
+          userId,
+          tripInstanceId: dto.tripInstanceId,
+          enrollmentType: dto.enrollmentType,
+          recordedPrice,
+          boardingStop: dto.boardingStop,
+          alightingStop: dto.alightingStop,
+        });
 
-    const payment = PaymentEntity.create({
-      organizationId: instance.organizationId,
-      enrollmentId: booking.id,
-      method: dto.method,
-      amount: recordedPrice,
-    });
+        const payment = PaymentEntity.create({
+          organizationId: instance.organizationId,
+          enrollmentId: booking.id,
+          method: dto.method,
+          amount: recordedPrice,
+        });
 
-    const savedBooking = await this.transactionManager.runInTransaction(
-      async () => {
         const createdBooking = await this.bookingRepository.save(booking);
         if (!createdBooking) throw new BookingCreationFailedError();
 
@@ -130,10 +131,13 @@ export class CreateBookingUseCase {
         if (!createdPayment) throw new PaymentCreationFailedError();
 
         return createdBooking;
-      },
-    );
-
-    return savedBooking;
+      });
+    } catch (error: unknown) {
+      if (this.isUniqueConstraintViolation(error)) {
+        throw new BookingAlreadyExistsError(userId, dto.tripInstanceId);
+      }
+      throw error;
+    }
   }
 
   private resolvePrice(
@@ -157,5 +161,11 @@ export class CreateBookingUseCase {
     }
 
     return Money.create(price.toNumber());
+  }
+
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    if (!('code' in error)) return false;
+    return (error as { code?: unknown }).code === 'P2002';
   }
 }

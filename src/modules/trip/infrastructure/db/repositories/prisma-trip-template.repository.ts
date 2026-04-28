@@ -5,19 +5,22 @@ import {
   PaginatedResponse,
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { TripTemplateMapper } from '../mappers/trip-template.mapper';
 
 /**
  * Prisma-backed implementation of {@link TripTemplateRepository}.
  *
  * All I/O operations target the `tripTemplate` table via the Prisma Client.
- * Uses interactive transactions (`$transaction`) for paginated list methods
- * to guarantee consistency between the `findMany` result and the `count`.
  */
 @Injectable()
 export class PrismaTripTemplateRepository implements TripTemplateRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new template row via `prisma.tripTemplate.create`.
@@ -26,7 +29,7 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
    * @returns The saved entity, or `null` on unexpected failure
    */
   async save(tripTemplate: TripTemplate): Promise<TripTemplate | null> {
-    const tripTemplateData = await this.prisma.tripTemplate.create({
+    const tripTemplateData = await this.db.tripTemplate.create({
       data: TripTemplateMapper.toPersistence(tripTemplate),
     });
 
@@ -40,7 +43,7 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
    * @returns The matching {@link TripTemplate}, or `null` if not found
    */
   async findById(id: string): Promise<TripTemplate | null> {
-    const tripTemplateData = await this.prisma.tripTemplate.findUnique({
+    const tripTemplateData = await this.db.tripTemplate.findUnique({
       where: { id },
     });
 
@@ -51,7 +54,7 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
 
   /**
    * Returns a paginated list of all templates for an organisation,
-   * ordered by `createdAt` descending. Uses an interactive transaction.
+   * ordered by `createdAt` descending.
    *
    * @param organizationId - UUID of the organisation
    * @param options - Pagination parameters `{ page, limit }`
@@ -64,14 +67,14 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [tripTemplates, total] = await this.prisma.$transaction([
-      this.prisma.tripTemplate.findMany({
+    const [tripTemplates, total] = await Promise.all([
+      this.db.tripTemplate.findMany({
         where: { organizationId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.tripTemplate.count({ where: { organizationId } }),
+      this.db.tripTemplate.count({ where: { organizationId } }),
     ]);
 
     return {
@@ -87,7 +90,7 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
 
   /**
    * Returns a paginated list of `ACTIVE`-only templates for an organisation,
-   * ordered by `createdAt` descending. Uses an interactive transaction.
+   * ordered by `createdAt` descending.
    *
    * @param organizationId - UUID of the organisation
    * @param options - Pagination parameters `{ page, limit }`
@@ -100,8 +103,8 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [tripTemplates, total] = await this.prisma.$transaction([
-      this.prisma.tripTemplate.findMany({
+    const [tripTemplates, total] = await Promise.all([
+      this.db.tripTemplate.findMany({
         where: {
           organizationId,
           status: 'ACTIVE',
@@ -110,7 +113,7 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
         skip,
         take: limit,
       }),
-      this.prisma.tripTemplate.count({
+      this.db.tripTemplate.count({
         where: {
           organizationId,
           status: 'ACTIVE',
@@ -136,7 +139,7 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   async update(tripTemplate: TripTemplate): Promise<TripTemplate | null> {
-    const tripTemplateData = await this.prisma.tripTemplate.update({
+    const tripTemplateData = await this.db.tripTemplate.update({
       where: { id: tripTemplate.id },
       data: TripTemplateMapper.toPersistence(tripTemplate),
     });
@@ -150,6 +153,6 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
    * @param id - UUID of the trip template to delete
    */
   async delete(id: string): Promise<void> {
-    await this.prisma.tripTemplate.delete({ where: { id } });
+    await this.db.tripTemplate.delete({ where: { id } });
   }
 }

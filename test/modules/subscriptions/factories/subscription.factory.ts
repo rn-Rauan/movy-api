@@ -9,7 +9,9 @@ type SubscriptionOverrides = Partial<{
   expiresAt: Date;
 }>;
 
-export function makeSubscription(overrides: SubscriptionOverrides = {}): SubscriptionEntity {
+export function makeSubscription(
+  overrides: SubscriptionOverrides = {},
+): SubscriptionEntity {
   const now = new Date();
   const expiresAt = new Date(now);
   expiresAt.setDate(expiresAt.getDate() + 30);

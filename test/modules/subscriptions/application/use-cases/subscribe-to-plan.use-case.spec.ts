@@ -29,7 +29,9 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   const subscription = makeSubscription({ organizationId: ORG_ID, planId: 1 });
 
   mocks.planRepository.findById.mockResolvedValue(plan);
-  mocks.subscriptionRepository.findActiveByOrganizationId.mockResolvedValue(null);
+  mocks.subscriptionRepository.findActiveByOrganizationId.mockResolvedValue(
+    null,
+  );
   mocks.subscriptionRepository.save.mockResolvedValue(subscription);
 
   return { plan, subscription };
@@ -41,7 +43,10 @@ describe('SubscribeToPlanUseCase', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
-    sut = new SubscribeToPlanUseCase(mocks.subscriptionRepository, mocks.planRepository);
+    sut = new SubscribeToPlanUseCase(
+      mocks.subscriptionRepository,
+      mocks.planRepository,
+    );
   });
 
   describe('happy path', () => {
@@ -83,7 +88,9 @@ describe('SubscribeToPlanUseCase', () => {
       const savedEntity = mocks.subscriptionRepository.save.mock.calls[0][0];
       const expectedMinExpiry = new Date(before);
       expectedMinExpiry.setDate(expectedMinExpiry.getDate() + 59); // at least 59 days from now
-      expect(savedEntity.expiresAt.getTime()).toBeGreaterThan(expectedMinExpiry.getTime());
+      expect(savedEntity.expiresAt.getTime()).toBeGreaterThan(
+        expectedMinExpiry.getTime(),
+      );
     });
   });
 
@@ -93,7 +100,9 @@ describe('SubscribeToPlanUseCase', () => {
       mocks.planRepository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(sut.execute({ planId: 99 }, ORG_ID)).rejects.toThrow(PlanNotFoundError);
+      await expect(sut.execute({ planId: 99 }, ORG_ID)).rejects.toThrow(
+        PlanNotFoundError,
+      );
     });
 
     it('should NOT call save when plan not found', async () => {
@@ -101,7 +110,9 @@ describe('SubscribeToPlanUseCase', () => {
       mocks.planRepository.findById.mockResolvedValue(null);
 
       // Act
-      await expect(sut.execute({ planId: 99 }, ORG_ID)).rejects.toThrow(PlanNotFoundError);
+      await expect(sut.execute({ planId: 99 }, ORG_ID)).rejects.toThrow(
+        PlanNotFoundError,
+      );
 
       // Assert
       expect(mocks.subscriptionRepository.save).not.toHaveBeenCalled();
@@ -115,7 +126,9 @@ describe('SubscribeToPlanUseCase', () => {
       mocks.planRepository.findById.mockResolvedValue(inactivePlan);
 
       // Act & Assert
-      await expect(sut.execute({ planId: 1 }, ORG_ID)).rejects.toThrow(PlanNotFoundError);
+      await expect(sut.execute({ planId: 1 }, ORG_ID)).rejects.toThrow(
+        PlanNotFoundError,
+      );
     });
 
     it('should NOT call save when plan is inactive', async () => {
@@ -124,7 +137,9 @@ describe('SubscribeToPlanUseCase', () => {
       mocks.planRepository.findById.mockResolvedValue(inactivePlan);
 
       // Act
-      await expect(sut.execute({ planId: 1 }, ORG_ID)).rejects.toThrow(PlanNotFoundError);
+      await expect(sut.execute({ planId: 1 }, ORG_ID)).rejects.toThrow(
+        PlanNotFoundError,
+      );
 
       // Assert
       expect(mocks.subscriptionRepository.save).not.toHaveBeenCalled();

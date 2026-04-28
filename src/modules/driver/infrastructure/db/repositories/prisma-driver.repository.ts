@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
+import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { DriverRepository } from '../../../domain/interfaces';
 import { DriverEntity } from '../../../domain/entities/driver.entity';
 import { DriverMapper } from '../mappers/driver.mapper';
@@ -17,7 +17,12 @@ import {
  */
 @Injectable()
 export class PrismaDriverRepository implements DriverRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly dbContext: DbContext) {}
+
+  /** Returns the active Prisma client (transaction-scoped if active). */
+  private get db() {
+    return this.dbContext.client;
+  }
 
   /**
    * Inserts a new driver row via `prisma.driver.create`.
@@ -26,7 +31,7 @@ export class PrismaDriverRepository implements DriverRepository {
    * @returns The saved entity, or `null` on unexpected failure
    */
   async save(driver: DriverEntity): Promise<DriverEntity | null> {
-    const driverData = await this.prisma.driver.create({
+    const driverData = await this.db.driver.create({
       data: DriverMapper.toPersistence(driver),
     });
     return DriverMapper.toDomain(driverData);
@@ -39,7 +44,7 @@ export class PrismaDriverRepository implements DriverRepository {
    * @returns The matching {@link DriverEntity}, or `null` if not found
    */
   async findById(id: string): Promise<DriverEntity | null> {
-    const driverData = await this.prisma.driver.findUnique({ where: { id } });
+    const driverData = await this.db.driver.findUnique({ where: { id } });
     if (!driverData) return null;
     return DriverMapper.toDomain(driverData);
   }
@@ -51,7 +56,7 @@ export class PrismaDriverRepository implements DriverRepository {
    * @returns The matching {@link DriverEntity}, or `null` if not found
    */
   async findByUserId(userId: string): Promise<DriverEntity | null> {
-    const driverData = await this.prisma.driver.findUnique({
+    const driverData = await this.db.driver.findUnique({
       where: { userId },
     });
     if (!driverData) return null;
@@ -65,7 +70,7 @@ export class PrismaDriverRepository implements DriverRepository {
    * @returns The matching {@link DriverEntity}, or `null` if not found
    */
   async findByCnh(cnh: string): Promise<DriverEntity | null> {
-    const driverData = await this.prisma.driver.findUnique({
+    const driverData = await this.db.driver.findUnique({
       where: { cnh },
     });
     if (!driverData) return null;
@@ -74,7 +79,7 @@ export class PrismaDriverRepository implements DriverRepository {
 
   /**
    * Returns a paginated list of drivers linked to the given organization
-   * via an active `DRIVER` role membership. Uses a parallel `$transaction`.
+   * via an active `DRIVER` role membership.
    *
    * @param organizationId - UUID of the organization
    * @param options - Pagination parameters `{ page, limit }`
@@ -87,8 +92,8 @@ export class PrismaDriverRepository implements DriverRepository {
     const { page, limit } = options;
     const skip = (page - 1) * limit;
 
-    const [drivers, total] = await this.prisma.$transaction([
-      this.prisma.driver.findMany({
+    const [drivers, total] = await Promise.all([
+      this.db.driver.findMany({
         where: {
           user: {
             userRoles: {
@@ -104,7 +109,7 @@ export class PrismaDriverRepository implements DriverRepository {
         skip,
         take: limit,
       }),
-      this.prisma.driver.count({
+      this.db.driver.count({
         where: {
           user: {
             userRoles: {
@@ -135,7 +140,7 @@ export class PrismaDriverRepository implements DriverRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   async update(driver: DriverEntity): Promise<DriverEntity | null> {
-    const driverData = await this.prisma.driver.update({
+    const driverData = await this.db.driver.update({
       where: { id: driver.id },
       data: DriverMapper.toPersistence(driver),
     });
@@ -148,7 +153,7 @@ export class PrismaDriverRepository implements DriverRepository {
    * @param id - UUID of the driver to delete
    */
   async delete(id: string): Promise<void> {
-    await this.prisma.driver.delete({ where: { id } });
+    await this.db.driver.delete({ where: { id } });
   }
 
   /**
@@ -163,7 +168,7 @@ export class PrismaDriverRepository implements DriverRepository {
     driverId: string,
     organizationId: string,
   ): Promise<boolean> {
-    const count = await this.prisma.driver.count({
+    const count = await this.db.driver.count({
       where: {
         id: driverId,
         user: {

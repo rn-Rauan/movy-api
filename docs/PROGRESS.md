@@ -614,7 +614,7 @@ src/modules/trip/
 **Regras de Negócio Implementadas:**
 - ✅ Inscrição apenas em viagens `SCHEDULED` ou `CONFIRMED` (`TripInstanceNotBookableError`)
 - ✅ Prevenção de inscrição duplicada ativa (mesmo user, mesma instância) → `BookingAlreadyExistsError`
-- ✅ Reinscrição após cancelamento permitida (`findByUserAndTripInstance` filtra `status: ACTIVE`)
+- ✅ Reinscrição após cancelamento permitida (histórico múltiplo `INACTIVE`; banco garante no máximo 1 `ACTIVE` por `(userId, tripInstanceId)` via `activeKey`)
 - ✅ Controle de acesso: `hasOrgAccess || isOwner` — org members OU dono do booking
 - ✅ `userId` **nunca** vem do body — exclusivamente do JWT. `organizationId` derivado da instância (create) ou do JWT (cancel/confirm/findById)
 - ✅ Soft-delete via `booking.cancel()` (status → INACTIVE)
@@ -636,7 +636,7 @@ src/modules/trip/
 **Infrastructure Layer:**
 - ✅ `PrismaBookingRepository` com todos os métodos implementados
 - ✅ `$transaction([findMany, count])` para queries paginadas
-- ✅ `findByUserAndTripInstance` filtra `status: ACTIVE` (permite reinscrição após cancelamento)
+- ✅ `findByUserAndTripInstance` filtra `status: ACTIVE`; unicidade de inscrição ativa garantida por `activeKey` (permite múltiplas `INACTIVE`)
 - ✅ `findByUserId` aceita `status?` opcional — `where = status ? { userId, status } : { userId }`
 - ✅ `countActiveByTripInstance` conta apenas `status: ACTIVE`
 - ✅ `BookingMapper` com `toDomain()` (hidrata `Money.restore()`, cast `EnrollmentType`) e `toPersistence()`
@@ -657,8 +657,6 @@ src/modules/trip/
 - ✅ `create-booking.use-case.spec.ts` — atualizado (27 Abr): 18 testes (era 12 — adicionados testes de PaymentCreationFailedError + TransactionManager)
 
 **⚠️ Bugs identificados (pendentes de fix):**
-- ❌ `CancelBookingUseCase`: não bloqueia booking já `INACTIVE` — falta guard antes de `booking.cancel()`
-- ❌ `ConfirmPresenceUseCase`: não bloqueia booking cancelado — falta `if (booking.status === 'INACTIVE') throw ...`
 - ❌ `FindBookingsByOrganizationUseCase` e `FindBookingsByTripInstanceUseCase`: sem filtro por status na listagem
 
 **Arquivos:**
@@ -856,39 +854,39 @@ src/modules/subscriptions/
 - ✅ `SubscribeToPlanUseCase`: constante `SUBSCRIPTION_DURATION_DAYS = 30` removida → usa `plan.durationDays`
 - ✅ `prisma generate` executado, client regenerado
 
-### TransactionManager — Infraestrutura de Transações Sem Vazamento ✅ COMPLETO (27 Abr 2026)
+### Infra de Transações Unificada (UnitOfWork + DbContext) ✅ COMPLETO (27 Abr 2026)
 
-**Problema:** `CreateBookingUseCase` injetava `PrismaService` e chamava `prisma.$transaction(async tx => { tx.enrollment.create(); tx.payment.create() })` diretamente no use case — violação de Clean Architecture (infraestrutura na camada de aplicação). Além disso, `BookingMapper` e `PaymentMapper` eram chamados dentro do use case.
+**Objetivo:** transações atômicas sem “vazamento” de Prisma na camada de aplicação, com um único padrão para o projeto.
 
-**Solução:** `AsyncLocalStorage` do Node.js propaga o cliente Prisma da transação transparentemente pela call stack. Repositórios verificam `context.client ?? prisma`. Use case apenas chama `transactionManager.runInTransaction(fn)` — zero import de Prisma.
+**O que foi unificado:**
+- ✅ Use cases controlam a transação via `UnitOfWork.execute(fn)` *(ou `TransactionManager.runInTransaction(fn)` como compat)*
+- ✅ Remoção completa do `TransactionContext` (legado)
+- ✅ Repositórios agora recebem `DbContext` e usam `dbContext.client` (cliente raiz fora de transação, cliente de tx dentro)
+- ✅ `UnitOfWork` abre transações com `Serializable` e faz retry em conflitos transacionais (Prisma `P2034`)
 
-**Novos arquivos:**
+**Motivação (arquitetura):**
+- Evitar `prisma.$transaction(...)` diretamente no use case
+- Garantir que múltiplos repositórios participem da mesma transação (ex: Booking + Payment)
+
+**Como funciona (resumo):**
+- `UnitOfWork` abre `prisma.$transaction(...)`
+- O `tx` é armazenado no `DbContext` via `AsyncLocalStorage`
+- Dentro do callback, `dbContext.client` devolve `tx` e os repositórios usam o mesmo cliente automaticamente
+
+**Arquivos/componentes principais:**
 ```
 src/shared/infrastructure/database/
-├── transaction-context.ts         ✔ AsyncLocalStorage<PrismaTxClient>
-├── transaction-manager.ts         ✔ Abstract class (token de DI NestJS)
-└── prisma-transaction-manager.ts  ✔ prisma.$transaction + context.run(tx, fn)
+├── db-context.ts          ✔ AsyncLocalStorage<PrismaTxClient>
+├── prisma-unit-of-work.ts ✔ prisma.$transaction + dbContext.run(tx, fn)
+├── transaction-manager.ts ✔ token legado (compat)
+└── prisma.module.ts       ✔ exports: PrismaService + DbContext + UnitOfWork
 ```
 
-**Arquivos modificados:**
-- `src/shared/infrastructure/database/prisma.module.ts` — providers/exports: `TransactionContext`, `TransactionManager → PrismaTransactionManager`
-- `src/shared/index.ts` — re-export de `TransactionManager`
-- `src/modules/bookings/infrastructure/db/repositories/prisma-booking.repository.ts` — `TransactionContext` injetado, getter `db` adicionado, todos os writes usam `this.db`
-- `src/modules/payment/infrastructure/db/repositories/prisma-payment.repository.ts` — idem
-- `src/modules/bookings/application/use-cases/create-booking.use-case.ts` — `PrismaService` e mappers removidos, `PaymentRepository` + `TransactionManager` injetados
+**Impacto:**
+- Repositórios: migrados para `DbContext` (não iniciam transações; só executam queries)
+- Use cases com múltiplas escritas: envolvem persistência em `UnitOfWork.execute(...)`
 
-**Testes atualizados:**
-- `test/modules/bookings/application/use-cases/create-booking.use-case.spec.ts` — 18 testes (mock `transactionManager.runInTransaction` chama fn diretamente)
-- `test/modules/auth/.../register-organization-with-admin.use-case.spec.ts` — 8º argumento `organizationRepository` adicionado
-
-**Novos testes:**
-- `test/modules/plans/application/use-cases/create-plan.use-case.spec.ts` — 5 testes
-- `test/modules/subscriptions/application/use-cases/subscribe-to-plan.use-case.spec.ts` — 7 testes
-- `test/modules/plans/factories/plan.factory.ts` — `makePlan()` com `durationDays`
-- `test/modules/plans/factories/create-plan.dto.factory.ts` — `makeCreatePlanDto()`
-- `test/modules/subscriptions/factories/subscription.factory.ts` — `makeSubscription()`
-
-**Compilação:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes.**
+**Compilação/Testes:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes.**
 
 ### Testing 📋
 - [ ] Unit tests (target: 80%+)
