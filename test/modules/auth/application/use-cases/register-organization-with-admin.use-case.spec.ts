@@ -4,8 +4,6 @@ import { RegisterOrganizationWithAdminUseCase } from 'src/modules/auth/applicati
 import { CreateMembershipUseCase } from 'src/modules/membership/application/use-cases';
 import { CreateOrganizationUseCase } from 'src/modules/organization/application/use-cases';
 import { CreateUserUseCase } from 'src/modules/user/application/use-cases';
-import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
-import { OrganizationRepository } from 'src/modules/organization/domain/interfaces/organization.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
@@ -14,6 +12,8 @@ import { makeOrganization } from '../../../organization/factories/organization.f
 import { makeRole } from '../../../../shared/factories/role.factory';
 import { makeJwtPayload } from '../../factories/jwt-payload.factory';
 import { makeRegisterOrgDto } from '../../factories/register-org.dto.factory';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
+import { makeMembership } from 'test/modules/membership/factories/membership.factory';
 
 // ── Mock helpers ────────────────────────────────────────────
 
@@ -34,13 +34,9 @@ function makeMocks() {
   const jwtPayloadService = {
     enrichPayload: jest.fn(),
   } as any as jest.Mocked<JwtPayloadService>;
-  const userRepository = {
-    delete: jest.fn(),
-  } as any as jest.Mocked<UserRepository>;
-
-  const organizationRepository = {
-    delete: jest.fn(),
-  } as any as jest.Mocked<OrganizationRepository>;
+  const transactionManager = {
+    runInTransaction: jest.fn(async (fn: () => Promise<unknown>) => fn()),
+  } as any as jest.Mocked<TransactionManager>;
 
   return {
     createUserUseCase,
@@ -49,8 +45,7 @@ function makeMocks() {
     roleRepository,
     jwtService,
     jwtPayloadService,
-    userRepository,
-    organizationRepository,
+    transactionManager,
   };
 }
 
@@ -58,11 +53,12 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   const user = makeUser({ email: 'admin@stub.com' });
   const organization = makeOrganization();
   const adminRole = makeRole({ name: RoleName.ADMIN });
+  const membership = makeMembership();
 
   mocks.createUserUseCase.execute.mockResolvedValue(user);
   mocks.createOrganizationUseCase.execute.mockResolvedValue(organization);
   mocks.roleRepository.findByName.mockResolvedValue(adminRole);
-  mocks.createMembershipUseCase.execute.mockResolvedValue({} as any);
+  mocks.createMembershipUseCase.execute.mockResolvedValue(membership);
   mocks.jwtPayloadService.enrichPayload.mockResolvedValue(
     makeJwtPayload({
       sub: user.id,
@@ -92,8 +88,7 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
       mocks.roleRepository,
       mocks.jwtService,
       mocks.jwtPayloadService,
-      mocks.userRepository,
-      mocks.organizationRepository,
+      mocks.transactionManager,
     );
   });
 
@@ -158,8 +153,8 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
     });
   });
 
-  describe('compensation — org creation fails', () => {
-    it('should delete user and rethrow when createOrganization fails', async () => {
+  describe('error — org creation fails', () => {
+    it('should rethrow when createOrganization fails', async () => {
       // Arrange
       const dto = makeRegisterOrgDto();
       const user = makeUser({ email: dto.userEmail });
@@ -170,13 +165,13 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(dto)).rejects.toThrow(orgError);
-      expect(mocks.userRepository.delete).toHaveBeenCalledWith(user.id);
       expect(mocks.createMembershipUseCase.execute).not.toHaveBeenCalled();
+      expect(mocks.jwtService.sign).not.toHaveBeenCalled();
     });
   });
 
-  describe('compensation — membership creation fails', () => {
-    it('should delete user and rethrow when createMembership fails', async () => {
+  describe('error — membership creation fails', () => {
+    it('should rethrow when createMembership fails', async () => {
       // Arrange
       const dto = makeRegisterOrgDto();
       const user = makeUser({ email: dto.userEmail });
@@ -191,11 +186,10 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(dto)).rejects.toThrow(membershipError);
-      expect(mocks.userRepository.delete).toHaveBeenCalledWith(user.id);
       expect(mocks.jwtService.sign).not.toHaveBeenCalled();
     });
 
-    it('should delete user and rethrow when ADMIN role is not found', async () => {
+    it('should rethrow when ADMIN role is not found', async () => {
       // Arrange
       const dto = makeRegisterOrgDto();
       const user = makeUser({ email: dto.userEmail });
@@ -207,7 +201,7 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(dto)).rejects.toThrow(RoleNotFoundError);
-      expect(mocks.userRepository.delete).toHaveBeenCalledWith(user.id);
+      expect(mocks.jwtService.sign).not.toHaveBeenCalled();
     });
   });
 });

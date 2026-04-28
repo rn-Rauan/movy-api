@@ -3,14 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserUseCase } from '../../../user/application/use-cases';
 import { CreateOrganizationUseCase } from '../../../organization/application/use-cases';
 import { CreateMembershipUseCase } from '../../../membership/application/use-cases';
-import { UserRepository } from '../../../user/domain/interfaces/user.repository';
-import { OrganizationRepository } from '../../../organization/domain/interfaces/organization.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
 import { JwtPayloadService } from '../services/jwt-payload.service';
 import { RegisterOrganizationWithAdminDto } from '../dtos/register-organization.dto';
 import { TokenResponseDto } from '../dtos';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
 
 /**
  * Atomically registers a new user, an organization, and an `ADMIN` membership
@@ -39,8 +38,7 @@ export class RegisterOrganizationWithAdminUseCase {
     private readonly roleRepository: RoleRepository,
     private readonly jwtService: JwtService,
     private readonly jwtPayloadService: JwtPayloadService,
-    private readonly userRepository: UserRepository,
-    private readonly organizationRepository: OrganizationRepository,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   /**
@@ -55,52 +53,37 @@ export class RegisterOrganizationWithAdminUseCase {
   async execute(
     dto: RegisterOrganizationWithAdminDto,
   ): Promise<TokenResponseDto> {
-    // 1. Create the User
-    const user = await this.createUserUseCase.execute({
-      name: dto.userName,
-      email: dto.userEmail,
-      password: dto.userPassword,
-      telephone: dto.userTelephone,
-    });
+    const { user } = await this.transactionManager.runInTransaction(
+      async () => {
+        const user = await this.createUserUseCase.execute({
+          name: dto.userName,
+          email: dto.userEmail,
+          password: dto.userPassword,
+          telephone: dto.userTelephone,
+        });
 
-    // 2. Create the Organization
-    let organization;
-    try {
-      organization = await this.createOrganizationUseCase.execute({
-        name: dto.organizationName,
-        cnpj: dto.cnpj,
-        email: dto.organizationEmail,
-        telephone: dto.organizationTelephone,
-        address: dto.address,
-        slug: dto.slug,
-      });
-    } catch (error) {
-      this.logger.warn(
-        `[RegisterOrg] Organization creation failed, compensating: deleting user ${user.id}`,
-      );
-      await this.compensateUser(user.id);
-      throw error;
-    }
+        const organization = await this.createOrganizationUseCase.execute({
+          name: dto.organizationName,
+          cnpj: dto.cnpj,
+          email: dto.organizationEmail,
+          telephone: dto.organizationTelephone,
+          address: dto.address,
+          slug: dto.slug,
+        });
 
-    // 3. Create ADMIN membership linking user to organization
-    try {
-      const adminRole = await this.roleRepository.findByName(RoleName.ADMIN);
-      if (!adminRole) {
-        throw new RoleNotFoundError('ADMIN role not found');
-      }
+        const adminRole = await this.roleRepository.findByName(RoleName.ADMIN);
+        if (!adminRole) {
+          throw new RoleNotFoundError('ADMIN role not found');
+        }
 
-      await this.createMembershipUseCase.execute(
-        { userEmail: dto.userEmail, roleId: adminRole.id },
-        organization.id,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `[RegisterOrg] Membership creation failed, compensating: deleting org ${organization.id} and user ${user.id}`,
-      );
-      await this.compensateOrganization(organization.id);
-      await this.compensateUser(user.id);
-      throw error;
-    }
+        await this.createMembershipUseCase.execute(
+          { userEmail: dto.userEmail, roleId: adminRole.id },
+          organization.id,
+        );
+
+        return { user };
+      },
+    );
 
     // 4. Generate JWT directly (no re-authentication needed)
     const enrichedPayload = await this.jwtPayloadService.enrichPayload(user.id);
@@ -122,25 +105,5 @@ export class RegisterOrganizationWithAdminUseCase {
         email: user.email,
       },
     };
-  }
-
-  private async compensateOrganization(organizationId: string): Promise<void> {
-    try {
-      await this.organizationRepository.delete(organizationId);
-    } catch {
-      this.logger.error(
-        `[RegisterOrg] Compensation failed: could not delete organization ${organizationId}`,
-      );
-    }
-  }
-
-  private async compensateUser(userId: string): Promise<void> {
-    try {
-      await this.userRepository.delete(userId);
-    } catch {
-      this.logger.error(
-        `[RegisterOrg] Compensation failed: could not delete user ${userId}`,
-      );
-    }
   }
 }

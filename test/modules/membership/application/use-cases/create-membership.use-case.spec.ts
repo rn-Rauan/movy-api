@@ -223,5 +223,21 @@ describe('CreateMembershipUseCase', () => {
       );
       expect(mocks.membershipRepository.save).not.toHaveBeenCalled();
     });
+
+    it('should map P2002 on save to MembershipAlreadyExistsError', async () => {
+      // Arrange
+      const user = makeUser();
+      mocks.userRepository.findByEmail.mockResolvedValue(user);
+      mocks.roleRepository.findById.mockResolvedValue(makeRole());
+      mocks.membershipRepository.findByCompositeKey.mockResolvedValue(null);
+      mocks.membershipRepository.save.mockRejectedValue({ code: 'P2002' });
+
+      const dto = { userEmail: user.email, roleId: 1 };
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        MembershipAlreadyExistsError,
+      );
+    });
   });
 });

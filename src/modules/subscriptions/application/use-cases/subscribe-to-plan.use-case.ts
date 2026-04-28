@@ -9,6 +9,7 @@ import {
   SubscriptionCreationFailedError,
 } from '../../domain/errors/subscription.errors';
 import { CreateSubscriptionDto } from '../dtos';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
 
 /**
  * Subscribes an organisation to a plan, creating a new subscription.
@@ -24,6 +25,7 @@ export class SubscribeToPlanUseCase {
   constructor(
     private readonly subscriptionRepository: SubscriptionRepository,
     private readonly planRepository: PlanRepository,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   /**
@@ -38,38 +40,53 @@ export class SubscribeToPlanUseCase {
    * @throws {@link SubscriptionCreationFailedError} if the repository fails to persist the entity
    */
   async execute(dto: CreateSubscriptionDto, organizationId: string) {
-    const plan = await this.planRepository.findById(dto.planId);
-    if (!plan) {
-      throw new PlanNotFoundError(dto.planId);
+    try {
+      return await this.transactionManager.runInTransaction(async () => {
+        const plan = await this.planRepository.findById(dto.planId);
+        if (!plan) {
+          throw new PlanNotFoundError(dto.planId);
+        }
+
+        if (!plan.isActive) {
+          throw new PlanNotFoundError(dto.planId);
+        }
+
+        const existing =
+          await this.subscriptionRepository.findActiveByOrganizationId(
+            organizationId,
+            SubscriptionStatus.ACTIVE,
+          );
+        if (existing) {
+          throw new SubscriptionAlreadyActiveError(organizationId);
+        }
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
+
+        const subscription = SubscriptionEntity.create({
+          organizationId,
+          planId: dto.planId,
+          expiresAt,
+        });
+
+        const saved = await this.subscriptionRepository.save(subscription);
+        if (!saved) {
+          throw new SubscriptionCreationFailedError();
+        }
+
+        return saved;
+      });
+    } catch (error: unknown) {
+      if (this.isUniqueConstraintViolation(error)) {
+        throw new SubscriptionAlreadyActiveError(organizationId);
+      }
+      throw error;
     }
+  }
 
-    if (!plan.isActive) {
-      throw new PlanNotFoundError(dto.planId);
-    }
-
-    const existing =
-      await this.subscriptionRepository.findActiveByOrganizationId(
-        organizationId,
-        SubscriptionStatus.ACTIVE,
-      );
-    if (existing) {
-      throw new SubscriptionAlreadyActiveError(organizationId);
-    }
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
-
-    const subscription = SubscriptionEntity.create({
-      organizationId,
-      planId: dto.planId,
-      expiresAt,
-    });
-
-    const saved = await this.subscriptionRepository.save(subscription);
-    if (!saved) {
-      throw new SubscriptionCreationFailedError();
-    }
-
-    return saved;
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    if (!('code' in error)) return false;
+    return (error as { code?: unknown }).code === 'P2002';
   }
 }

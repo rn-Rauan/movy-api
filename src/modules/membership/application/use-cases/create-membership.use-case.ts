@@ -70,7 +70,18 @@ export class CreateMembershipUseCase {
     if (membershipExists) {
       if (membershipExists.removedAt !== null) {
         membershipExists.restoreMembership();
-        await this.membershipRepository.update(membershipExists);
+        try {
+          await this.membershipRepository.update(membershipExists);
+        } catch (error: unknown) {
+          if (this.isUniqueConstraintViolation(error)) {
+            throw new MembershipAlreadyExistsError(
+              user.id,
+              dto.roleId,
+              tenantOrganizationId,
+            );
+          }
+          throw error;
+        }
         return membershipExists;
       }
 
@@ -87,7 +98,24 @@ export class CreateMembershipUseCase {
       organizationId: tenantOrganizationId,
     });
 
-    await this.membershipRepository.save(membership);
+    try {
+      await this.membershipRepository.save(membership);
+    } catch (error: unknown) {
+      if (this.isUniqueConstraintViolation(error)) {
+        throw new MembershipAlreadyExistsError(
+          user.id,
+          dto.roleId,
+          tenantOrganizationId,
+        );
+      }
+      throw error;
+    }
     return membership;
+  }
+
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    if (!('code' in error)) return false;
+    return (error as { code?: unknown }).code === 'P2002';
   }
 }

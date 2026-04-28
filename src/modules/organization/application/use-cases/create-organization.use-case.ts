@@ -8,6 +8,7 @@ import {
   Address,
   Organization,
   OrganizationAlreadyExistsError,
+  OrganizationEmailAlreadyExistsError,
 } from '../../domain/entities';
 import { Telephone, Email } from 'src/shared/domain/entities/value-objects';
 
@@ -59,8 +60,49 @@ export class CreateOrganizationUseCase {
       slug: Slug.create(organizationDto.slug),
     });
 
-    await this.organizationRepository.save(organization);
+    try {
+      await this.organizationRepository.save(organization);
+    } catch (error: unknown) {
+      if (this.isUniqueConstraintViolation(error)) {
+        const targets = this.getUniqueTargets(error);
+
+        if (targets.includes('cnpj')) {
+          throw new OrganizationAlreadyExistsError(organizationDto.cnpj);
+        }
+        if (targets.includes('slug')) {
+          throw new OrganizationAlreadyExistsError(
+            `Slug '${organizationDto.slug}' already exists`,
+          );
+        }
+        if (targets.includes('email')) {
+          throw new OrganizationEmailAlreadyExistsError(organizationDto.email);
+        }
+
+        throw new OrganizationAlreadyExistsError(organizationDto.cnpj);
+      }
+      throw error;
+    }
 
     return organization;
+  }
+
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    if (!('code' in error)) return false;
+    return (error as { code?: unknown }).code === 'P2002';
+  }
+
+  private getUniqueTargets(error: unknown): string[] {
+    if (!error || typeof error !== 'object') return [];
+    if (!('meta' in error)) return [];
+
+    const meta = (error as { meta?: unknown }).meta;
+    if (!meta || typeof meta !== 'object') return [];
+    if (!('target' in meta)) return [];
+
+    const target = (meta as { target?: unknown }).target;
+    return Array.isArray(target)
+      ? target.filter((t) => typeof t === 'string')
+      : [];
   }
 }

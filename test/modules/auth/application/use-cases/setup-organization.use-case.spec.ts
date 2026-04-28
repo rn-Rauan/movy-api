@@ -12,6 +12,8 @@ import { makeOrganization } from '../../../organization/factories/organization.f
 import { makeRole } from '../../../../shared/factories/role.factory';
 import { makeJwtPayload } from '../../factories/jwt-payload.factory';
 import { makeSetupOrgDto } from '../../factories/setup-org.dto.factory';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
+import { makeMembership } from 'test/modules/membership/factories/membership.factory';
 
 // ── Mock helpers ────────────────────────────────────────────
 
@@ -40,6 +42,10 @@ function makeMocks() {
     enrichPayload: jest.fn(),
   } as any as jest.Mocked<JwtPayloadService>;
 
+  const transactionManager = {
+    runInTransaction: jest.fn(async (fn: () => Promise<unknown>) => fn()),
+  } as any as jest.Mocked<TransactionManager>;
+
   return {
     createOrganizationUseCase,
     createMembershipUseCase,
@@ -47,6 +53,7 @@ function makeMocks() {
     userRepository,
     jwtService,
     jwtPayloadService,
+    transactionManager,
   };
 }
 
@@ -54,11 +61,12 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   const user = makeUser();
   const organization = makeOrganization();
   const adminRole = makeRole({ name: RoleName.ADMIN });
+  const membership = makeMembership();
 
   mocks.userRepository.findById.mockResolvedValue(user);
   mocks.createOrganizationUseCase.execute.mockResolvedValue(organization);
   mocks.roleRepository.findByName.mockResolvedValue(adminRole);
-  mocks.createMembershipUseCase.execute.mockResolvedValue({} as any);
+  mocks.createMembershipUseCase.execute.mockResolvedValue(membership);
   mocks.jwtPayloadService.enrichPayload.mockResolvedValue(
     makeJwtPayload({
       sub: user.id,
@@ -90,6 +98,7 @@ describe('SetupOrganizationForExistingUserUseCase', () => {
       mocks.userRepository,
       mocks.jwtService,
       mocks.jwtPayloadService,
+      mocks.transactionManager,
     );
   });
 
@@ -180,7 +189,7 @@ describe('SetupOrganizationForExistingUserUseCase', () => {
   });
 
   describe('error — ADMIN role not found', () => {
-    it('should throw RoleNotFoundError and leave org orphan', async () => {
+    it('should throw RoleNotFoundError', async () => {
       // Arrange
       const user = makeUser();
       const organization = makeOrganization();

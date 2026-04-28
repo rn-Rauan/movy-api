@@ -48,9 +48,10 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
   async update(
     subscription: SubscriptionEntity,
   ): Promise<SubscriptionEntity | null> {
+    const data = SubscriptionMapper.toUpdatePersistence(subscription);
     const result = await this.db.subscription.update({
       where: { id: subscription.id },
-      data: { status: subscription.status, updatedAt: subscription.updatedAt },
+      data,
     });
     return result ? SubscriptionMapper.toDomain(result) : null;
   }

@@ -106,8 +106,45 @@ export class UpdateOrganizationUseCase {
       organization.setAddress(updateDto.address);
     }
 
-    await this.organizationRepository.update(organization);
+    try {
+      await this.organizationRepository.update(organization);
+    } catch (error: unknown) {
+      if (this.isUniqueConstraintViolation(error)) {
+        const targets = this.getUniqueTargets(error);
+
+        if (targets.includes('email') && updateDto.email) {
+          throw new OrganizationEmailAlreadyExistsError(updateDto.email);
+        }
+        if (targets.includes('slug') && updateDto.slug) {
+          throw new OrganizationSlugAlreadyExistsError(updateDto.slug);
+        }
+        if (targets.includes('cnpj') && updateDto.cnpj) {
+          throw new OrganizationAlreadyExistsError(updateDto.cnpj);
+        }
+      }
+      throw error;
+    }
 
     return organization;
+  }
+
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    if (!('code' in error)) return false;
+    return (error as { code?: unknown }).code === 'P2002';
+  }
+
+  private getUniqueTargets(error: unknown): string[] {
+    if (!error || typeof error !== 'object') return [];
+    if (!('meta' in error)) return [];
+
+    const meta = (error as { meta?: unknown }).meta;
+    if (!meta || typeof meta !== 'object') return [];
+    if (!('target' in meta)) return [];
+
+    const target = (meta as { target?: unknown }).target;
+    return Array.isArray(target)
+      ? target.filter((t) => typeof t === 'string')
+      : [];
   }
 }

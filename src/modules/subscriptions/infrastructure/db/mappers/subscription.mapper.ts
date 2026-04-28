@@ -46,8 +46,25 @@ export class SubscriptionMapper {
       organizationId: entity.organizationId,
       planId: entity.planId,
       status: entity.status,
+      activeKey: this.resolveActiveKey(entity),
       startDate: entity.startDate,
       expiresAt: entity.expiresAt,
     };
+  }
+
+  static toUpdatePersistence(
+    entity: SubscriptionEntity,
+  ): Pick<PrismaSubscription, 'status' | 'updatedAt' | 'activeKey'> {
+    return {
+      status: entity.status,
+      updatedAt: entity.updatedAt,
+      activeKey: this.resolveActiveKey(entity),
+    };
+  }
+
+  private static resolveActiveKey(entity: SubscriptionEntity): string | null {
+    return entity.status === SubscriptionStatus.ACTIVE
+      ? entity.organizationId
+      : null;
   }
 }

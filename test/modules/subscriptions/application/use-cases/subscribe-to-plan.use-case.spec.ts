@@ -8,6 +8,7 @@ import {
 } from 'src/modules/subscriptions/domain/errors/subscription.errors';
 import { makeSubscription } from '../../factories/subscription.factory';
 import { makePlan } from 'test/modules/plans/factories/plan.factory';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
 
 const ORG_ID = 'org-id-stub';
 
@@ -21,7 +22,11 @@ function makeMocks() {
     findById: jest.fn(),
   } as any as jest.Mocked<PlanRepository>;
 
-  return { subscriptionRepository, planRepository };
+  const transactionManager = {
+    runInTransaction: jest.fn(async (fn: () => Promise<unknown>) => fn()),
+  } as jest.Mocked<TransactionManager>;
+
+  return { subscriptionRepository, planRepository, transactionManager };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
@@ -46,6 +51,7 @@ describe('SubscribeToPlanUseCase', () => {
     sut = new SubscribeToPlanUseCase(
       mocks.subscriptionRepository,
       mocks.planRepository,
+      mocks.transactionManager,
     );
   });
 
@@ -72,6 +78,9 @@ describe('SubscribeToPlanUseCase', () => {
 
       // Assert
       expect(mocks.subscriptionRepository.save).toHaveBeenCalledTimes(1);
+      expect(mocks.transactionManager.runInTransaction).toHaveBeenCalledTimes(
+        1,
+      );
     });
 
     it('should set expiresAt based on plan.durationDays', async () => {
@@ -188,6 +197,17 @@ describe('SubscribeToPlanUseCase', () => {
       // Act & Assert
       await expect(sut.execute({ planId: 1 }, ORG_ID)).rejects.toThrow(
         SubscriptionCreationFailedError,
+      );
+    });
+
+    it('should throw SubscriptionAlreadyActiveError when save fails with P2002', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.subscriptionRepository.save.mockRejectedValue({ code: 'P2002' });
+
+      // Act & Assert
+      await expect(sut.execute({ planId: 1 }, ORG_ID)).rejects.toThrow(
+        SubscriptionAlreadyActiveError,
       );
     });
   });

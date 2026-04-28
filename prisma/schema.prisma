@@ -145,6 +145,7 @@ model Subscription {
   organizationId   String
   planId           Int
   status           SubscriptionStatus @default(ACTIVE)
+  activeKey        String?            @unique
   startDate        DateTime
   expiresAt        DateTime
   createdAt        DateTime           @default(now())

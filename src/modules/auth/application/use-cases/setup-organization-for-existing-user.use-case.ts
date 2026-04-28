@@ -9,6 +9,7 @@ import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
 import { JwtPayloadService } from '../services/jwt-payload.service';
 import { SetupOrganizationDto } from '../dtos/setup-organization.dto';
 import { TokenResponseDto } from '../dtos';
+import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
 
 /**
  * Creates an organization for an already-authenticated user and links them as `ADMIN`,
@@ -51,6 +52,7 @@ export class SetupOrganizationForExistingUserUseCase {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly jwtPayloadService: JwtPayloadService,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   /**
@@ -67,40 +69,35 @@ export class SetupOrganizationForExistingUserUseCase {
     dto: SetupOrganizationDto,
     userId: string,
   ): Promise<TokenResponseDto> {
-    // 1. Confirm user exists and is active
-    const user = await this.userRepository.findById(userId);
-    if (!user || user.status === 'INACTIVE') {
-      throw new Error('User not found or inactive');
-    }
+    const { user } = await this.transactionManager.runInTransaction(
+      async () => {
+        const user = await this.userRepository.findById(userId);
+        if (!user || user.status === 'INACTIVE') {
+          throw new Error('User not found or inactive');
+        }
 
-    // 2. Create the Organization
-    const organization = await this.createOrganizationUseCase.execute({
-      name: dto.organizationName,
-      cnpj: dto.cnpj,
-      email: dto.organizationEmail,
-      telephone: dto.organizationTelephone,
-      address: dto.address,
-      slug: dto.slug,
-    });
+        const organization = await this.createOrganizationUseCase.execute({
+          name: dto.organizationName,
+          cnpj: dto.cnpj,
+          email: dto.organizationEmail,
+          telephone: dto.organizationTelephone,
+          address: dto.address,
+          slug: dto.slug,
+        });
 
-    // 3. Create ADMIN membership linking user to organization
-    // If membership fails, org is left without an admin — compensate by removing org
-    try {
-      const adminRole = await this.roleRepository.findByName(RoleName.ADMIN);
-      if (!adminRole) {
-        throw new RoleNotFoundError('ADMIN role not found');
-      }
+        const adminRole = await this.roleRepository.findByName(RoleName.ADMIN);
+        if (!adminRole) {
+          throw new RoleNotFoundError('ADMIN role not found');
+        }
 
-      await this.createMembershipUseCase.execute(
-        { userEmail: user.email, roleId: adminRole.id },
-        organization.id,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `[SetupOrg] Membership creation failed for user ${userId}, org ${organization.id} left orphan — manual cleanup may be needed`,
-      );
-      throw error;
-    }
+        await this.createMembershipUseCase.execute(
+          { userEmail: user.email, roleId: adminRole.id },
+          organization.id,
+        );
+
+        return { user };
+      },
+    );
 
     // 4. Re-issue JWT with the new organization context
     const enrichedPayload = await this.jwtPayloadService.enrichPayload(userId);
