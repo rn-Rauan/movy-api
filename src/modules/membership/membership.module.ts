@@ -15,6 +15,7 @@ import { FindRoleByUserIdAndOrganizationIdUseCase } from './application/use-case
 import { SharedModule } from 'src/shared';
 import { UserModule } from '../user/user.module';
 import { DriverModule } from '../driver/driver.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 /**
  * NestJS module managing the {@link Membership} aggregate.
@@ -29,7 +30,12 @@ import { DriverModule } from '../driver/driver.module';
  * (e.g., `AuthModule`) can resolve memberships without importing the full module.
  */
 @Module({
-  imports: [SharedModule, forwardRef(() => UserModule), DriverModule],
+  imports: [
+    SharedModule,
+    forwardRef(() => UserModule),
+    DriverModule,
+    SubscriptionsModule,
+  ],
   controllers: [MembershipController],
   providers: [
     CreateMembershipUseCase,

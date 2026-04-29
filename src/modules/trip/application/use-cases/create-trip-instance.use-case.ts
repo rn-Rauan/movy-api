@@ -14,6 +14,7 @@ import {
 } from '../../domain/interfaces';
 import { CreateTripInstanceDto } from '../dtos';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 
 /**
  * Creates a new {@link TripInstance} (in `DRAFT` status) from an existing active {@link TripTemplate}.
@@ -27,6 +28,7 @@ export class CreateTripInstanceUseCase {
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly tripTemplateRepository: TripTemplateRepository,
     private readonly unitOfWork: UnitOfWork,
+    private readonly planLimitService: PlanLimitService,
   ) {}
 
   /**
@@ -62,6 +64,19 @@ export class CreateTripInstanceUseCase {
     if (!template.isActive()) {
       throw new TripTemplateInactiveError(input.tripTemplateId);
     }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyCount =
+      await this.tripInstanceRepository.countByOrganizationAndMonth(
+        organizationId,
+        startOfMonth,
+        now,
+      );
+    await this.planLimitService.assertMonthlyTripLimit(
+      organizationId,
+      monthlyCount,
+    );
 
     return this.unitOfWork.execute(async () => {
       const freshTemplate = await this.tripTemplateRepository.findById(

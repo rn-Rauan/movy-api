@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -27,6 +28,8 @@ import { PaymentPresenter } from '../mappers/payment.presenter';
 import {
   FindPaymentByIdUseCase,
   FindPaymentsByOrganizationUseCase,
+  ConfirmPaymentUseCase,
+  FailPaymentUseCase,
 } from '../../application/use-cases';
 
 /**
@@ -48,6 +51,8 @@ export class PaymentController {
   constructor(
     private readonly findPaymentById: FindPaymentByIdUseCase,
     private readonly findPaymentsByOrganization: FindPaymentsByOrganizationUseCase,
+    private readonly confirmPayment: ConfirmPaymentUseCase,
+    private readonly failPayment: FailPaymentUseCase,
   ) {}
 
   /**
@@ -65,6 +70,44 @@ export class PaymentController {
   @ApiResponse({ status: 200, type: PaymentResponseDto })
   async findOne(@Param('id') id: string): Promise<PaymentResponseDto> {
     return PaymentPresenter.toHTTP(await this.findPaymentById.execute(id));
+  }
+
+  /**
+   * Simulates payment confirmation (PENDING → COMPLETED). No gateway involved.
+   */
+  @Patch(':id/confirm')
+  @UseGuards(TenantFilterGuard, RolesGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Confirm a pending payment (simulated)' })
+  @ApiParam({ name: 'organizationId' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200, type: PaymentResponseDto })
+  async confirm(
+    @Param('id') id: string,
+    @GetUser() ctx: TenantContext,
+  ): Promise<PaymentResponseDto> {
+    return PaymentPresenter.toHTTP(
+      await this.confirmPayment.execute(id, ctx.organizationId!),
+    );
+  }
+
+  /**
+   * Simulates payment failure (PENDING → FAILED). No gateway involved.
+   */
+  @Patch(':id/fail')
+  @UseGuards(TenantFilterGuard, RolesGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Fail a pending payment (simulated)' })
+  @ApiParam({ name: 'organizationId' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200, type: PaymentResponseDto })
+  async fail(
+    @Param('id') id: string,
+    @GetUser() ctx: TenantContext,
+  ): Promise<PaymentResponseDto> {
+    return PaymentPresenter.toHTTP(
+      await this.failPayment.execute(id, ctx.organizationId!),
+    );
   }
 
   /**

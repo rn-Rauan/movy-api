@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 28 Abr 2026
+**Última atualização:** 29 Abr 2026
 
 ---
 
@@ -13,6 +13,9 @@ Total Módulos: 10
 Completo: 10 (100%) - User, Organization, Role Management, Membership, Driver, RBAC Guards, Auth, Vehicle, Trip, Bookings
 Em Progresso: 0
 Pendente: 0
+
+Mitigações críticas (29 Abr): Payment simulation ✅ | Subscription lazy expiration ✅ | Plan limits enforcement ✅ | Auto-FREE subscription ✅
+Testes: 37 suites, 280 testes ✅ | TypeScript: 0 erros ✅
 ```
 
 ---
@@ -897,7 +900,7 @@ src/shared/infrastructure/database/
 
 > Auth e Subscriptions usam `TransactionManager.runInTransaction` por serem implementações anteriores à padronização `UnitOfWork`. `TransactionManager` é um token compat que delega para o mesmo `PrismaUnitOfWork`.
 
-**Compilação/Testes:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes (27 Abr). 37 suites, 278 testes (28 Abr — guards: DevGuard, RolesGuard, TenantFilterGuard).**
+**Compilação/Testes:** ✅ `npx tsc --noEmit` = 0 erros. **Testes: 34 suites, 252 testes (27 Abr). 37 suites, 278 testes (28 Abr). 37 suites, 280 testes (29 Abr — mocks de PlanLimitService adicionados a 4 specs).**
 
 ---
 
@@ -936,6 +939,92 @@ src/shared/infrastructure/database/
 - ✅ Integridade referencial garantida a nível de banco — transações adicionais desnecessárias
 
 **Compilação/Testes:** ✅ 15/15 testes passando após as mudanças.
+
+---
+
+## 🔧 FASE 3.7: Mitigação de Defeitos Críticos (29 Abr 2026)
+
+> Três defeitos que tornavam o sistema não-demonstrável ponta a ponta foram corrigidos sem introduzir complexidade desnecessária (sem cron jobs, sem gateway de pagamento real).
+
+### Payment Simulation ✅ COMPLETO (29 Abr 2026)
+
+**Problema:** Todo booking criava um `Payment` com `status: PENDING` que nunca mudava. A banca veria "pagamento pendente" permanentemente.
+
+**Solução:** Dois endpoints PATCH de simulação, sem gateway externo.
+
+**Novos endpoints:**
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| `PATCH` | `/organizations/:organizationId/payments/:id/confirm` | JWT + ADMIN + TenantFilter | `PENDING → COMPLETED` |
+| `PATCH` | `/organizations/:organizationId/payments/:id/fail` | JWT + ADMIN + TenantFilter | `PENDING → FAILED` |
+
+**Mudanças:**
+- ✅ `PaymentEntity`: métodos `confirm()` e `fail()` — setam `status` e atualizam `updatedAt`
+- ✅ `payment.errors.ts`: `PaymentAlreadyProcessedError` (code `PAYMENT_ALREADY_PROCESSED_BAD_REQUEST` → HTTP 400)
+- ✅ `PaymentRepository`: método abstrato `update(payment)` adicionado
+- ✅ `PrismaPaymentRepository`: `update()` implementado (`prisma.payment.update`)
+- ✅ `ConfirmPaymentUseCase` e `FailPaymentUseCase` criados (guard: só pagamentos PENDING)
+- ✅ Endpoints registrados no `PaymentController` e use cases no `PaymentModule`
+
+---
+
+### Subscription Lazy Expiration ✅ COMPLETO (29 Abr 2026)
+
+**Problema:** `expiresAt` existia no banco mas nada mudava o status de `ACTIVE` para `PAST_DUE`. Orgs com assinatura vencida apareciam como ativas.
+
+**Solução:** Expiração lazy (on-demand) — verificação ocorre no momento da consulta, sem cron job.
+
+**Mudanças:**
+- ✅ `SubscriptionEntity`: getter `isExpired` + método `expire()` → status `PAST_DUE`, atualiza `updatedAt`
+- ✅ `subscription.errors.ts`: 4 novos erros — `NoActiveSubscriptionError` (`NO_ACTIVE_SUBSCRIPTION_FORBIDDEN` → 403), `VehicleLimitExceededError` (`VEHICLE_PLAN_LIMIT_FORBIDDEN` → 403), `DriverLimitExceededError` (`DRIVER_PLAN_LIMIT_FORBIDDEN` → 403), `MonthlyTripLimitExceededError` (`MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN` → 403)
+- ✅ Helper `resolveActiveSubscription(orgId, repo)` criado em `application/utils/` — encapsula busca + checagem de expiração + `expire()` + save + retorno null
+- ✅ `FindActiveSubscriptionUseCase`: substituída busca direta pelo helper (expiração automática na leitura)
+- ✅ `SubscriptionMapper`: status `PAST_DUE` → `activeKey = null` (unicidade respeitada)
+
+---
+
+### Plan Limits Enforcement ✅ COMPLETO (29 Abr 2026)
+
+**Problema:** `maxVehicles`, `maxDrivers`, `maxMonthlyTrips` existiam no `Plan` mas nenhum use case os verificava.
+
+**Solução:** `PlanLimitService` centralizado em `SubscriptionsModule`, injetado nos 3 use cases de criação.
+
+**`PlanLimitService`** (`src/modules/subscriptions/application/services/plan-limit.service.ts`):
+- Injeta `SubscriptionRepository` + `PlanRepository`
+- `assertVehicleLimit(orgId, count)` — lança `VehicleLimitExceededError` se `count >= plan.maxVehicles`
+- `assertDriverLimit(orgId, count)` — lança `DriverLimitExceededError` se `count >= plan.maxDrivers`
+- `assertMonthlyTripLimit(orgId, count)` — lança `MonthlyTripLimitExceededError` se `count >= plan.maxMonthlyTrips`
+- Privado `getActivePlan()` usa `resolveActiveSubscription` (lazy expiry) → lança `NoActiveSubscriptionError` se sem assinatura ativa
+
+**Contagem nos repositórios:**
+- ✅ `VehicleRepository`: `countActiveByOrganizationId(orgId)` — `status: ACTIVE`
+- ✅ `DriverRepository`: `countActiveByOrganizationId(orgId)` — `driverStatus: ACTIVE` + membership DRIVER ativa
+- ✅ `TripInstanceRepository`: `countByOrganizationAndMonth(orgId, start, end)` — mês calendário atual
+
+**Use cases atualizados:**
+- ✅ `CreateVehicleUseCase`: conta veículos ativos → `assertVehicleLimit` antes de `save()`
+- ✅ `CreateDriverUseCase`: conta drivers ativos → `assertDriverLimit` (requer `organizationId` como parâmetro opcional)
+- ✅ `CreateTripInstanceUseCase`: conta trips do mês → `assertMonthlyTripLimit` antes do `UnitOfWork`
+- ✅ Módulos: `VehicleModule`, `DriverModule`, `TripModule` agora importam `SubscriptionsModule`
+- ✅ `SubscriptionsModule`: `PlanLimitService` adicionado a `providers` e `exports`
+
+---
+
+### Auto-FREE Subscription no Registro ✅ COMPLETO (29 Abr 2026)
+
+**Problema:** Organizações eram criadas sem subscription, tornando o modelo de monetização invisível e fazendo `PlanLimitService` lançar `NoActiveSubscriptionError` na primeira criação de recurso.
+
+**Solução:** `RegisterOrganizationWithAdminUseCase` chama `SubscribeToPlanUseCase` com plano FREE **após** a transação principal (fora do Serializable para evitar transação aninhada). Falha silenciosa com log de alerta.
+
+**Mudanças:**
+- ✅ `RegisterOrganizationWithAdminUseCase`: injetado `SubscribeToPlanUseCase` + `PlanRepository`; auto-subscrição FREE pós-transação com try/catch não-fatal
+- ✅ `AuthModule`: importa `SubscriptionsModule` e `PlansModule`
+- ✅ `prisma/seed.ts`: 4 planos seedados via upsert — FREE(3v/3d/30t, R$0), BASIC(10/10/100, R$49,9), PRO(30/30/500, R$149,9), PREMIUM(100/100/9999, R$399,9)
+- ✅ `SubscriptionsModule`: `SubscribeToPlanUseCase` adicionado aos `exports`
+
+**Nota:** WARN `[RegisterOrg] FREE plan not found` nos testes é esperado — o mock retorna `null` para `findByName`, ativando o branch de falha silenciosa (comportamento correto).
+
+---
 
 ### Testing 📋
 - [ ] Unit tests (target: 80%+)

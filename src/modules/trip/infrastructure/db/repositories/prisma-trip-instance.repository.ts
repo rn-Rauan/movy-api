@@ -173,4 +173,26 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+  /**
+   * Counts trip instances created by an organisation within a date window.
+   * Used to enforce `maxMonthlyTrips` from the organisation's active plan.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param start - Window start (inclusive)
+   * @param end - Window end (inclusive)
+   * @returns Number of trip instances created in the window
+   */
+  async countByOrganizationAndMonth(
+    organizationId: string,
+    start: Date,
+    end: Date,
+  ): Promise<number> {
+    return this.db.tripInstance.count({
+      where: {
+        organizationId,
+        createdAt: { gte: start, lte: end },
+      },
+    });
+  }
 }

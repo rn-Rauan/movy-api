@@ -15,8 +15,8 @@ import {
  * @remarks
  * Enforces uniqueness: a user may only have one driver profile.
  * All three CNH fields are required and validated through Value Objects.
- * Throws {@link DriverAlreadyExistsError} if a profile already exists,
- * and {@link DriverCreationFailedError} if persistence fails.
+ * Plan limit enforcement (maxDrivers) is handled by CreateMembershipUseCase
+ * when a DRIVER role membership is created for an organisation.
  */
 @Injectable()
 export class CreateDriverUseCase {
@@ -31,7 +31,6 @@ export class CreateDriverUseCase {
    * @throws DriverCreationFailedError if persistence fails
    */
   async execute(userId: string, input: CreateDriverDto): Promise<DriverEntity> {
-    // Check if user already has a driver profile
     const existing = await this.driverRepository.findByUserId(userId);
     if (existing) {
       throw new DriverAlreadyExistsError(userId);

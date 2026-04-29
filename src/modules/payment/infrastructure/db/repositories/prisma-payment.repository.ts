@@ -92,4 +92,18 @@ export class PrismaPaymentRepository implements PaymentRepository {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+  /**
+   * Updates status and updatedAt of an existing payment via `prisma.payment.update`.
+   *
+   * @param payment - The {@link PaymentEntity} with mutated state
+   * @returns The updated entity, or `null` on unexpected failure
+   */
+  async update(payment: PaymentEntity): Promise<PaymentEntity | null> {
+    const result = await this.db.payment.update({
+      where: { id: payment.id },
+      data: { status: payment.status, updatedAt: payment.updatedAt },
+    });
+    return result ? PaymentMapper.toDomain(result) : null;
+  }
 }

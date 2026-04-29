@@ -3,12 +3,14 @@ import { MembershipRepository } from 'src/modules/membership/domain/interfaces/m
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
 import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 import { RoleName } from 'src/shared/domain/types';
 import {
   UserNotFoundForMembershipError,
   DriverNotFoundForMembershipError,
   MembershipAlreadyExistsError,
 } from 'src/modules/membership/domain/entities';
+import { DriverLimitExceededError } from 'src/modules/subscriptions/domain/errors/subscription.errors';
 import { makeUser } from '../../../user/factories/user.factory';
 import { makeRole } from '../../../../shared/factories/role.factory';
 import { makeMembership } from '../../factories/membership.factory';
@@ -29,17 +31,23 @@ function makeMocks() {
 
   const driverRepository = {
     findByUserId: jest.fn(),
+    countActiveByOrganizationId: jest.fn(),
   } as any as jest.Mocked<DriverRepository>;
 
   const roleRepository = {
     findById: jest.fn(),
   } as any as jest.Mocked<RoleRepository>;
 
+  const planLimitService = {
+    assertDriverLimit: jest.fn().mockResolvedValue(undefined),
+  } as any as jest.Mocked<PlanLimitService>;
+
   return {
     membershipRepository,
     userRepository,
     driverRepository,
     roleRepository,
+    planLimitService,
   };
 }
 
@@ -70,6 +78,7 @@ describe('CreateMembershipUseCase', () => {
       mocks.userRepository,
       mocks.driverRepository,
       mocks.roleRepository,
+      mocks.planLimitService,
     );
   });
 
@@ -104,10 +113,22 @@ describe('CreateMembershipUseCase', () => {
         mocks.membershipRepository.findByCompositeKey,
       ).toHaveBeenCalledWith(user.id, adminRole.id, ORG_ID);
     });
+
+    it('should NOT call assertDriverLimit for ADMIN role', async () => {
+      // Arrange
+      const { user } = setupHappyPath(mocks);
+      const dto = { userEmail: user.email, roleId: 1 };
+
+      // Act
+      await sut.execute(dto, ORG_ID);
+
+      // Assert
+      expect(mocks.planLimitService.assertDriverLimit).not.toHaveBeenCalled();
+    });
   });
 
   describe('happy path — DRIVER membership with driver profile', () => {
-    it('should create membership when user has a driver profile', async () => {
+    it('should create membership when user has a driver profile and limit not reached', async () => {
       // Arrange
       const user = makeUser();
       const driverRole = makeRole({ id: 2, name: RoleName.DRIVER });
@@ -116,6 +137,7 @@ describe('CreateMembershipUseCase', () => {
       mocks.userRepository.findByEmail.mockResolvedValue(user);
       mocks.roleRepository.findById.mockResolvedValue(driverRole);
       mocks.driverRepository.findByUserId.mockResolvedValue(driver);
+      mocks.driverRepository.countActiveByOrganizationId.mockResolvedValue(1);
       mocks.membershipRepository.findByCompositeKey.mockResolvedValue(null);
       mocks.membershipRepository.save.mockImplementation(async (m) => m);
 
@@ -128,6 +150,10 @@ describe('CreateMembershipUseCase', () => {
       expect(result.userId).toBe(user.id);
       expect(result.roleId).toBe(2);
       expect(mocks.driverRepository.findByUserId).toHaveBeenCalledWith(user.id);
+      expect(mocks.planLimitService.assertDriverLimit).toHaveBeenCalledWith(
+        ORG_ID,
+        1,
+      );
     });
   });
 
@@ -197,6 +223,31 @@ describe('CreateMembershipUseCase', () => {
       expect(
         mocks.membershipRepository.findByCompositeKey,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — DRIVER plan limit exceeded', () => {
+    it('should throw DriverLimitExceededError when org is at driver capacity', async () => {
+      // Arrange
+      const user = makeUser();
+      const driverRole = makeRole({ id: 2, name: RoleName.DRIVER });
+      const driver = makeDriver({ userId: user.id });
+
+      mocks.userRepository.findByEmail.mockResolvedValue(user);
+      mocks.roleRepository.findById.mockResolvedValue(driverRole);
+      mocks.driverRepository.findByUserId.mockResolvedValue(driver);
+      mocks.driverRepository.countActiveByOrganizationId.mockResolvedValue(3);
+      mocks.planLimitService.assertDriverLimit.mockRejectedValue(
+        new DriverLimitExceededError(3),
+      );
+
+      const dto = { userEmail: user.email, roleId: 2 };
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        DriverLimitExceededError,
+      );
+      expect(mocks.membershipRepository.save).not.toHaveBeenCalled();
     });
   });
 

@@ -7,6 +7,7 @@ import {
 import { CreateVehicleDto } from 'src/modules/vehicle/application/dtos';
 import { VehicleType } from 'src/modules/vehicle/domain/interfaces/enums/vehicle-type.enum';
 import { makeVehicle } from '../../factories/vehicle.factory';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -14,9 +15,14 @@ function makeMocks() {
   const vehicleRepository = {
     findByPlate: jest.fn(),
     save: jest.fn(),
+    countActiveByOrganizationId: jest.fn(),
   } as any as jest.Mocked<VehicleRepository>;
 
-  return { vehicleRepository };
+  const planLimitService = {
+    assertVehicleLimit: jest.fn(),
+  } as any as jest.Mocked<PlanLimitService>;
+
+  return { vehicleRepository, planLimitService };
 }
 
 function makeDto(overrides: Partial<CreateVehicleDto> = {}): CreateVehicleDto {
@@ -31,7 +37,9 @@ function makeDto(overrides: Partial<CreateVehicleDto> = {}): CreateVehicleDto {
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   mocks.vehicleRepository.findByPlate.mockResolvedValue(null);
+  mocks.vehicleRepository.countActiveByOrganizationId.mockResolvedValue(0);
   mocks.vehicleRepository.save.mockImplementation(async (entity) => entity);
+  mocks.planLimitService.assertVehicleLimit.mockResolvedValue(undefined);
 }
 
 // ── Tests ───────────────────────────────────────────────
@@ -44,7 +52,10 @@ describe('CreateVehicleUseCase', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
-    sut = new CreateVehicleUseCase(mocks.vehicleRepository);
+    sut = new CreateVehicleUseCase(
+      mocks.vehicleRepository,
+      mocks.planLimitService,
+    );
   });
 
   describe('happy path', () => {

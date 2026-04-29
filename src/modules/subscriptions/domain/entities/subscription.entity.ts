@@ -88,6 +88,20 @@ export class SubscriptionEntity {
     this.props.updatedAt = new Date();
   }
 
+  /**
+   * Transitions the subscription to `PAST_DUE` when `expiresAt` has passed.
+   * The mapper derives `activeKey = null` from the PAST_DUE status on next persist.
+   */
+  expire(): void {
+    this.props.status = SubscriptionStatus.PAST_DUE;
+    this.props.updatedAt = new Date();
+  }
+
+  /** Returns `true` when `expiresAt` is in the past relative to the current clock. */
+  get isExpired(): boolean {
+    return this.props.expiresAt < new Date();
+  }
+
   get id(): string {
     return this.props.id;
   }

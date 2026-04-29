@@ -11,6 +11,7 @@ import {
   SubscribeToPlanUseCase,
 } from './application/use-cases';
 import { SubscriptionController } from './presentation/controllers/subscription.controller';
+import { PlanLimitService } from './application/services/plan-limit.service';
 
 /**
  * NestJS module responsible for managing organisation subscriptions on the Movy platform.
@@ -32,7 +33,8 @@ import { SubscriptionController } from './presentation/controllers/subscription.
     CancelSubscriptionUseCase,
     FindActiveSubscriptionUseCase,
     FindSubscriptionsByOrganizationUseCase,
+    PlanLimitService,
   ],
-  exports: [SubscriptionRepository],
+  exports: [SubscriptionRepository, SubscribeToPlanUseCase, PlanLimitService],
 })
 export class SubscriptionsModule {}

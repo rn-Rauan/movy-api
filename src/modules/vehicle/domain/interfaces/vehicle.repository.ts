@@ -64,4 +64,13 @@ export abstract class VehicleRepository {
    * @param id - UUID of the vehicle to delete
    */
   abstract delete(id: string): Promise<void>;
+
+  /**
+   * Returns the count of ACTIVE vehicles belonging to an organisation.
+   * Used for plan limit enforcement before creating a new vehicle.
+   *
+   * @param organizationId - UUID of the organisation
+   * @returns Number of active vehicles
+   */
+  abstract countActiveByOrganizationId(organizationId: string): Promise<number>;
 }

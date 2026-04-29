@@ -82,4 +82,13 @@ export abstract class DriverRepository {
    * @param id - UUID of the driver to remove
    */
   abstract delete(id: string): Promise<void>;
+
+  /**
+   * Returns the count of ACTIVE drivers linked to an organisation via an active membership.
+   * Used for plan limit enforcement before creating a new driver.
+   *
+   * @param organizationId - UUID of the organisation
+   * @returns Number of active drivers
+   */
+  abstract countActiveByOrganizationId(organizationId: string): Promise<number>;
 }

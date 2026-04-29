@@ -6,6 +6,8 @@ import { PrismaPaymentRepository } from './infrastructure/db/repositories/prisma
 import {
   FindPaymentByIdUseCase,
   FindPaymentsByOrganizationUseCase,
+  ConfirmPaymentUseCase,
+  FailPaymentUseCase,
 } from './application/use-cases';
 import { PaymentController } from './presentation/controllers/payment.controller';
 
@@ -25,6 +27,8 @@ import { PaymentController } from './presentation/controllers/payment.controller
     { provide: PaymentRepository, useClass: PrismaPaymentRepository },
     FindPaymentByIdUseCase,
     FindPaymentsByOrganizationUseCase,
+    ConfirmPaymentUseCase,
+    FailPaymentUseCase,
   ],
   exports: [PaymentRepository],
 })

@@ -183,4 +183,23 @@ export class PrismaDriverRepository implements DriverRepository {
     });
     return count > 0;
   }
+
+  /**
+   * Counts ACTIVE drivers linked to an organisation via an active DRIVER membership.
+   *
+   * @param organizationId - UUID of the organisation
+   * @returns Number of active drivers
+   */
+  async countActiveByOrganizationId(organizationId: string): Promise<number> {
+    return this.db.driver.count({
+      where: {
+        driverStatus: 'ACTIVE',
+        user: {
+          userRoles: {
+            some: { organizationId, removedAt: null, role: { name: 'DRIVER' } },
+          },
+        },
+      },
+    });
+  }
 }

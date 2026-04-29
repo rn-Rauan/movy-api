@@ -12,12 +12,14 @@ import { makeTripTemplate } from '../../factories/trip-template.factory';
 import { makeCreateTripInstanceDto } from '../../factories/create-trip-instance.dto.factory';
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 
 // ── Mocks ───────────────────────────────────────────────
 
 function makeMocks() {
   const tripInstanceRepository = {
     save: jest.fn(),
+    countByOrganizationAndMonth: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
   const tripTemplateRepository = {
@@ -28,7 +30,16 @@ function makeMocks() {
     execute: jest.fn().mockImplementation((fn: () => Promise<unknown>) => fn()),
   } as any as jest.Mocked<UnitOfWork>;
 
-  return { tripInstanceRepository, tripTemplateRepository, unitOfWork };
+  const planLimitService = {
+    assertMonthlyTripLimit: jest.fn(),
+  } as any as jest.Mocked<PlanLimitService>;
+
+  return {
+    tripInstanceRepository,
+    tripTemplateRepository,
+    unitOfWork,
+    planLimitService,
+  };
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
@@ -39,9 +50,11 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   });
 
   mocks.tripTemplateRepository.findById.mockResolvedValue(template);
+  mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(0);
   mocks.tripInstanceRepository.save.mockImplementation(
     async (entity) => entity,
   );
+  mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(undefined);
 
   return { template, instance };
 }
@@ -60,6 +73,7 @@ describe('CreateTripInstanceUseCase', () => {
       mocks.tripInstanceRepository,
       mocks.tripTemplateRepository,
       mocks.unitOfWork,
+      mocks.planLimitService,
     );
   });
 

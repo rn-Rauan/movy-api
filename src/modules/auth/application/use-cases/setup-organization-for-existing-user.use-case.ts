@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CreateOrganizationUseCase } from '../../../organization/application/use-cases';
 import { CreateMembershipUseCase } from '../../../membership/application/use-cases';
+import { SubscribeToPlanUseCase } from '../../../subscriptions/application/use-cases';
+import { PlanRepository } from '../../../plans/domain/interfaces/plan.repository';
+import { PlanName } from '../../../plans/domain/interfaces/enums/plan-name.enum';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
@@ -53,6 +56,8 @@ export class SetupOrganizationForExistingUserUseCase {
     private readonly jwtService: JwtService,
     private readonly jwtPayloadService: JwtPayloadService,
     private readonly transactionManager: TransactionManager,
+    private readonly subscribeToPlanUseCase: SubscribeToPlanUseCase,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   /**
@@ -69,8 +74,8 @@ export class SetupOrganizationForExistingUserUseCase {
     dto: SetupOrganizationDto,
     userId: string,
   ): Promise<TokenResponseDto> {
-    const { user } = await this.transactionManager.runInTransaction(
-      async () => {
+    const { user, organization } =
+      await this.transactionManager.runInTransaction(async () => {
         const user = await this.userRepository.findById(userId);
         if (!user || user.status === 'INACTIVE') {
           throw new Error('User not found or inactive');
@@ -95,11 +100,34 @@ export class SetupOrganizationForExistingUserUseCase {
           organization.id,
         );
 
-        return { user };
-      },
-    );
+        return { user, organization };
+      });
 
-    // 4. Re-issue JWT with the new organization context
+    // Auto-subscribe to the FREE plan outside the main transaction to avoid
+    // nesting a Serializable transaction inside the parent transaction.
+    // Failure is non-fatal: the org is created; the admin can subscribe manually.
+    const freePlan = await this.planRepository.findByName(PlanName.FREE);
+    if (freePlan) {
+      try {
+        await this.subscribeToPlanUseCase.execute(
+          { planId: freePlan.id },
+          organization.id,
+        );
+        this.logger.log(
+          `[SetupOrg] Auto-subscribed org=${organization.id} to FREE plan`,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `[SetupOrg] Auto-subscribe FREE failed for org=${organization.id}: ${(err as Error).message}`,
+        );
+      }
+    } else {
+      this.logger.warn(
+        '[SetupOrg] FREE plan not found in database — run db:seed to fix this',
+      );
+    }
+
+    // Re-issue JWT with the new organization context
     const enrichedPayload = await this.jwtPayloadService.enrichPayload(userId);
     const accessToken = this.jwtService.sign(enrichedPayload);
     const refreshToken = this.jwtService.sign(enrichedPayload, {

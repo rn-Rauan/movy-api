@@ -117,4 +117,16 @@ export class PrismaVehicleRepository implements VehicleRepository {
   async delete(id: string): Promise<void> {
     await this.db.vehicle.delete({ where: { id } });
   }
+
+  /**
+   * Counts ACTIVE vehicles for an organisation via `prisma.vehicle.count`.
+   *
+   * @param organizationId - UUID of the organisation
+   * @returns Number of active vehicles
+   */
+  async countActiveByOrganizationId(organizationId: string): Promise<number> {
+    return this.db.vehicle.count({
+      where: { organizationId, status: 'ACTIVE' },
+    });
+  }
 }

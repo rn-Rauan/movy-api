@@ -101,4 +101,16 @@ export class PaymentEntity {
   get updatedAt(): Date {
     return this.props.updatedAt;
   }
+
+  /** Marks the payment as completed. Use-case must guard against double-processing. */
+  confirm(): void {
+    this.props.status = PaymentStatus.COMPLETED;
+    this.props.updatedAt = new Date();
+  }
+
+  /** Marks the payment as failed. Use-case must guard against double-processing. */
+  fail(): void {
+    this.props.status = PaymentStatus.FAILED;
+    this.props.updatedAt = new Date();
+  }
 }

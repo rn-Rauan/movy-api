@@ -25,3 +25,16 @@ export class PaymentCreationFailedError extends DomainError {
     super('Payment could not be persisted');
   }
 }
+
+/**
+ * Thrown when attempting to confirm or fail a payment that is no longer PENDING.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class PaymentAlreadyProcessedError extends DomainError {
+  readonly code = 'PAYMENT_ALREADY_PROCESSED_BAD_REQUEST';
+
+  constructor(id: string) {
+    super(`Payment "${id}" has already been processed and cannot be modified`);
+  }
+}

@@ -51,4 +51,12 @@ export abstract class PaymentRepository {
     organizationId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<PaymentEntity>>;
+
+  /**
+   * Persists status and timestamp changes to an existing payment record.
+   *
+   * @param payment - The {@link PaymentEntity} with updated state
+   * @returns The updated entity, or `null` on unexpected failure
+   */
+  abstract update(payment: PaymentEntity): Promise<PaymentEntity | null>;
 }

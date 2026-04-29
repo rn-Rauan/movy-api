@@ -5,6 +5,7 @@ import { UserRepository } from 'src/modules/user/domain/interfaces/user.reposito
 import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 import {
   Membership,
   MembershipAlreadyExistsError,
@@ -32,6 +33,7 @@ export class CreateMembershipUseCase {
     private readonly userRepository: UserRepository,
     private readonly driverRepository: DriverRepository,
     private readonly roleRepository: RoleRepository,
+    private readonly planLimitService: PlanLimitService,
   ) {}
 
   /**
@@ -59,6 +61,15 @@ export class CreateMembershipUseCase {
       if (!driver) {
         throw new DriverNotFoundForMembershipError(dto.userEmail);
       }
+
+      const activeDriverCount =
+        await this.driverRepository.countActiveByOrganizationId(
+          tenantOrganizationId,
+        );
+      await this.planLimitService.assertDriverLimit(
+        tenantOrganizationId,
+        activeDriverCount,
+      );
     }
 
     const membershipExists = await this.membershipRepository.findByCompositeKey(

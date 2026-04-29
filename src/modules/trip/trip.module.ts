@@ -3,6 +3,7 @@ import { SharedModule } from 'src/shared';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
 import { DriverModule } from 'src/modules/driver/driver.module';
 import { VehicleModule } from 'src/modules/vehicle/vehicle.module';
+import { SubscriptionsModule } from 'src/modules/subscriptions/subscriptions.module';
 import {
   CreateTripTemplateUseCase,
   UpdateTripTemplateUseCase,
@@ -51,7 +52,13 @@ import { TripTemplateController } from './presentation/controllers/trip-template
  * - `TripInstanceRepository` — consumed by {@link BookingsModule} for capacity checks
  */
 @Module({
-  imports: [PrismaModule, SharedModule, DriverModule, VehicleModule],
+  imports: [
+    PrismaModule,
+    SharedModule,
+    DriverModule,
+    VehicleModule,
+    SubscriptionsModule,
+  ],
   controllers: [TripTemplateController, TripInstanceController],
   providers: [
     // TripTemplate

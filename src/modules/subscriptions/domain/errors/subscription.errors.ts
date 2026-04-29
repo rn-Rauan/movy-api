@@ -54,3 +54,63 @@ export class SubscriptionForbiddenError extends DomainError {
     super(`You do not have access to subscription "${id}"`);
   }
 }
+
+/**
+ * Thrown when an operation requires an active subscription but none exists.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
+export class NoActiveSubscriptionError extends DomainError {
+  readonly code = 'NO_ACTIVE_SUBSCRIPTION_FORBIDDEN';
+
+  constructor(organizationId: string) {
+    super(
+      `Organization "${organizationId}" has no active subscription. Subscribe to a plan to continue.`,
+    );
+  }
+}
+
+/**
+ * Thrown when creating a vehicle would exceed the plan's `maxVehicles` limit.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
+export class VehicleLimitExceededError extends DomainError {
+  readonly code = 'VEHICLE_PLAN_LIMIT_FORBIDDEN';
+
+  constructor(limit: number) {
+    super(
+      `Your plan allows a maximum of ${limit} active vehicle(s). Upgrade your plan to add more.`,
+    );
+  }
+}
+
+/**
+ * Thrown when creating a driver would exceed the plan's `maxDrivers` limit.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
+export class DriverLimitExceededError extends DomainError {
+  readonly code = 'DRIVER_PLAN_LIMIT_FORBIDDEN';
+
+  constructor(limit: number) {
+    super(
+      `Your plan allows a maximum of ${limit} active driver(s). Upgrade your plan to add more.`,
+    );
+  }
+}
+
+/**
+ * Thrown when scheduling a trip instance would exceed the plan's `maxMonthlyTrips` limit.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
+export class MonthlyTripLimitExceededError extends DomainError {
+  readonly code = 'MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN';
+
+  constructor(limit: number) {
+    super(
+      `Your plan allows a maximum of ${limit} trip(s) per month. Upgrade your plan to schedule more.`,
+    );
+  }
+}

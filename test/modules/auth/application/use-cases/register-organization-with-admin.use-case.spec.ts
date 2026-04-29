@@ -4,6 +4,8 @@ import { RegisterOrganizationWithAdminUseCase } from 'src/modules/auth/applicati
 import { CreateMembershipUseCase } from 'src/modules/membership/application/use-cases';
 import { CreateOrganizationUseCase } from 'src/modules/organization/application/use-cases';
 import { CreateUserUseCase } from 'src/modules/user/application/use-cases';
+import { SubscribeToPlanUseCase } from 'src/modules/subscriptions/application/use-cases';
+import { PlanRepository } from 'src/modules/plans/domain/interfaces/plan.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
@@ -38,6 +40,14 @@ function makeMocks() {
     runInTransaction: jest.fn(async (fn: () => Promise<unknown>) => fn()),
   } as any as jest.Mocked<TransactionManager>;
 
+  const subscribeToPlanUseCase = {
+    execute: jest.fn().mockResolvedValue({}),
+  } as any as jest.Mocked<SubscribeToPlanUseCase>;
+
+  const planRepository = {
+    findByName: jest.fn().mockResolvedValue(null),
+  } as any as jest.Mocked<PlanRepository>;
+
   return {
     createUserUseCase,
     createOrganizationUseCase,
@@ -46,6 +56,8 @@ function makeMocks() {
     jwtService,
     jwtPayloadService,
     transactionManager,
+    subscribeToPlanUseCase,
+    planRepository,
   };
 }
 
@@ -89,6 +101,8 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
       mocks.jwtService,
       mocks.jwtPayloadService,
       mocks.transactionManager,
+      mocks.subscribeToPlanUseCase,
+      mocks.planRepository,
     );
   });
 

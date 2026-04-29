@@ -389,7 +389,7 @@ test/
     └── guards/ (dev.guard, roles.guard, tenant-filter.guard)
 ```
 
-**Total Bookings:** 9 suites, 85 testes. **Total projeto (27 Abr):** 34 suites, 252 testes. **Total projeto (28 Abr):** 37 suites, 278 testes (guards: DevGuard, RolesGuard, TenantFilterGuard).
+**Total Bookings:** 9 suites, 85 testes. **Total projeto (27 Abr):** 34 suites, 252 testes. **Total projeto (28 Abr):** 37 suites, 278 testes (guards: DevGuard, RolesGuard, TenantFilterGuard). **Total projeto (29 Abr):** 37 suites, 280 testes (mocks de `PlanLimitService` adicionados em 4 specs: register-org, create-driver, create-trip-instance, create-vehicle).
 
 **Fix Jest — `moduleNameMapper`
 Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` em `test/jest-unit.json` e `package.json`. Sem esse mapeamento, imports como `import { makeTripInstance } from 'test/modules/trip/factories/...'` falhavam na resolução de módulo quando o spec era rodado pelo VS Code Jest runner (que usa o config do `package.json` diretamente).
@@ -982,9 +982,9 @@ O módulo de planos gerencia os planos de assinatura disponíveis na plataforma.
 
 ---
 
-### Payment Module ✅ COMPLETO (26 Abr 2026)
+### Payment Module ✅ COMPLETO + SIMULAÇÃO (26–29 Abr 2026)
 
-O módulo de pagamentos expõe uma API de **leitura apenas**. A criação de pagamentos é responsabilidade do `CreateBookingUseCase` no módulo Bookings — cada booking cria um registro de pagamento no momento da inscrição.
+O módulo de pagamentos combina **leitura** e **simulação de estado**. A criação de pagamentos é responsabilidade do `CreateBookingUseCase` no módulo Bookings — cada booking cria um registro de pagamento no momento da inscrição. Os endpoints de simulação (`confirm`/`fail`) foram adicionados em 29 Abr 2026 para tornar o fluxo de pagamento demonstrável ponta a ponta sem gateway externo.
 
 **Entity `PaymentEntity`:**
 - `id`: UUID gerado via `crypto.randomUUID()` no domínio
@@ -992,24 +992,32 @@ O módulo de pagamentos expõe uma API de **leitura apenas**. A criação de pag
 - `amount`: `Money` value object
 - `method`: `MethodPayment` enum — `MONEY | PIX | CREDIT_CARD | DEBIT_CARD`
 - `organizationId`, `bookingId`: referências para isolamento de tenant e rastreabilidade
+- Métodos de mutação *(adicionados 29 Abr)*: `confirm()` — transita para `COMPLETED`; `fail()` — transita para `FAILED`; ambos atualizam `updatedAt`
 
-**Use Cases (2 — read-only):**
+**Use Cases (4 — 2 leitura + 2 simulação):**
 | Use Case | Descrição |
 |----------|-----------|
 | `FindPaymentByIdUseCase` | Busca pagamento por ID, valida pertencimento à org |
 | `FindPaymentsByOrganizationUseCase` | Listagem paginada dos pagamentos da organização |
+| `ConfirmPaymentUseCase` *(29 Abr)* | Transita `PENDING → COMPLETED`; rejeita pagamentos já processados |
+| `FailPaymentUseCase` *(29 Abr)* | Transita `PENDING → FAILED`; rejeita pagamentos já processados |
+
+**Repository:** `PaymentRepository` agora inclui método abstrato `update(payment)` *(adicionado 29 Abr)*; implementado em `PrismaPaymentRepository` via `prisma.payment.update`.
 
 **Domain Errors:**
 | Error | Código | HTTP |
 |-------|--------|------|
 | `PaymentNotFoundError` | `PAYMENT_NOT_FOUND` | 404 |
 | `PaymentCreationFailedError` | `PAYMENT_CREATION_FAILED_BAD_REQUEST` | 400 |
+| `PaymentAlreadyProcessedError` *(29 Abr)* | `PAYMENT_ALREADY_PROCESSED_BAD_REQUEST` | 400 |
 
 **Endpoints REST (`/organizations/:organizationId/payments`):**
 | Método | Rota | Auth | O que faz |
 |--------|------|------|-----------|
 | `GET` | `/organizations/:organizationId/payments/:id` | JWT + ADMIN + TenantFilterGuard | Busca pagamento por ID |
 | `GET` | `/organizations/:organizationId/payments` | JWT + ADMIN + TenantFilterGuard | Lista pagamentos da org (paginado) |
+| `PATCH` | `/organizations/:organizationId/payments/:id/confirm` | JWT + ADMIN + TenantFilterGuard | Simula confirmação (`PENDING → COMPLETED`) |
+| `PATCH` | `/organizations/:organizationId/payments/:id/fail` | JWT + ADMIN + TenantFilterGuard | Simula falha (`PENDING → FAILED`) |
 
 `PaymentModule` exporta `PaymentRepository` — injetável em `BookingsModule`.
 
@@ -1017,32 +1025,39 @@ O módulo de pagamentos expõe uma API de **leitura apenas**. A criação de pag
 
 ---
 
-### Subscriptions Module ✅ COMPLETO (26 Abr 2026)
+### Subscriptions Module ✅ COMPLETO + LAZY EXPIRY (26–29 Abr 2026)
 
-O módulo de assinaturas gerencia a relação entre organizações e planos. Cada organização pode ter apenas uma assinatura ativa por vez. A duração é fixa em 30 dias, calculada no use case no momento da criação.
+O módulo de assinaturas gerencia a relação entre organizações e planos. Cada organização pode ter apenas uma assinatura ativa por vez. A duração é definida pelo campo `durationDays` do plano (padrão 30 dias). Em 29 Abr 2026, expiração lazy e enforcement de limites de plano foram adicionados.
 
 **Entity `SubscriptionEntity`:**
 - `id`: UUID gerado via `crypto.randomUUID()` no domínio
-- `status`: `SubscriptionStatus` enum — `ACTIVE | CANCELED`; status inicial sempre `ACTIVE`
-- `startDate`, `expiresAt`: calculado pelo `SubscribeToPlanUseCase` (`startDate + SUBSCRIPTION_DURATION_DAYS`)
-- Método: `cancel()` — transita para `CANCELED`
+- `status`: `SubscriptionStatus` enum — `ACTIVE | PAST_DUE | CANCELED`; status inicial sempre `ACTIVE` *(`PAST_DUE` adicionado 29 Abr)*
+- `startDate`, `expiresAt`: calculado pelo `SubscribeToPlanUseCase` (`startDate + plan.durationDays`)
+- Métodos: `cancel()` — transita para `CANCELED`; `expire()` — transita para `PAST_DUE`, atualiza `updatedAt` *(adicionado 29 Abr)*
+- Getter: `isExpired` — retorna `true` se `expiresAt < new Date()` *(adicionado 29 Abr)*
 - `planId`, `organizationId`: vínculos do contrato
 
 **Constante de domínio:** ~~`SUBSCRIPTION_DURATION_DAYS = 30` (definida em `SubscribeToPlanUseCase`)~~ *(removida 27 Abr 2026 — ver seção 6.8)*
+
+**Expiração Lazy (29 Abr 2026):** O helper `resolveActiveSubscription(orgId, repo)` (`src/modules/subscriptions/application/utils/`) centraliza a lógica de busca + verificação de expiração + transição para `PAST_DUE` + persistência. Se a subscription estiver vencida, ela é expirada on-demand e `null` é retornado — sem cron job. Usado por `FindActiveSubscriptionUseCase` e `PlanLimitService`.
 
 **Regras de negócio:**
 1. O plano referenciado deve existir e estar com `isActive = true`
 2. A organização não pode ter outra assinatura `ACTIVE` no momento da criação (`SubscriptionAlreadyActiveError`)
 3. Apenas membros com role `ADMIN` da organização podem criar/cancelar assinaturas
 4. Isolamento de tenant via `TenantFilterGuard` — `organizationId` do route param validado contra o JWT
+5. Subscriptions `ACTIVE` com `expiresAt` no passado são transicionadas para `PAST_DUE` no momento da leitura *(adicionado 29 Abr)*
 
 **Use Cases (4):**
 | Use Case | Descrição |
 |----------|-----------|
-| `SubscribeToPlanUseCase` | Valida plano ativo + ausência de ACTIVE subscription → cria com 30 dias |
+| `SubscribeToPlanUseCase` | Valida plano ativo + ausência de ACTIVE subscription → cria com `plan.durationDays` dias |
 | `CancelSubscriptionUseCase` | Busca subscription por ID, chama `subscription.cancel()`, persiste |
-| `FindActiveSubscriptionUseCase` | Retorna a assinatura ACTIVE da organização (ou 404) |
+| `FindActiveSubscriptionUseCase` | Retorna assinatura ativa via `resolveActiveSubscription` (lazy expiry incluído) |
 | `FindSubscriptionsByOrganizationUseCase` | Histórico paginado de assinaturas da org |
+
+**Serviços (1 — adicionado 29 Abr):**
+- `PlanLimitService` — centraliza verificação de limites de plano (vehicles, drivers, trips/mês). Ver seção 6.10.
 
 **Domain Errors:**
 | Error | Código | HTTP |
@@ -1051,16 +1066,20 @@ O módulo de assinaturas gerencia a relação entre organizações e planos. Cad
 | `SubscriptionAlreadyActiveError` | `SUBSCRIPTION_ALREADY_EXISTS` | 409 |
 | `SubscriptionCreationFailedError` | `SUBSCRIPTION_CREATION_FAILED_BAD_REQUEST` | 400 |
 | `SubscriptionForbiddenError` | `SUBSCRIPTION_ACCESS_FORBIDDEN` | 403 |
+| `NoActiveSubscriptionError` *(29 Abr)* | `NO_ACTIVE_SUBSCRIPTION_FORBIDDEN` | 403 |
+| `VehicleLimitExceededError` *(29 Abr)* | `VEHICLE_PLAN_LIMIT_FORBIDDEN` | 403 |
+| `DriverLimitExceededError` *(29 Abr)* | `DRIVER_PLAN_LIMIT_FORBIDDEN` | 403 |
+| `MonthlyTripLimitExceededError` *(29 Abr)* | `MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN` | 403 |
 
 **Endpoints REST (`/organizations/:organizationId/subscriptions`):**
 | Método | Rota | Auth | O que faz |
 |--------|------|------|-----------|
 | `POST` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilterGuard | Inscreve org em um plano |
 | `PATCH` | `/organizations/:organizationId/subscriptions/:id/cancel` | JWT + ADMIN + TenantFilterGuard | Cancela assinatura ativa |
-| `GET` | `/organizations/:organizationId/subscriptions/active` | JWT + ADMIN + TenantFilterGuard | Retorna assinatura ativa |
+| `GET` | `/organizations/:organizationId/subscriptions/active` | JWT + ADMIN + TenantFilterGuard | Retorna assinatura ativa (com lazy expiry) |
 | `GET` | `/organizations/:organizationId/subscriptions` | JWT + ADMIN + TenantFilterGuard | Histórico paginado |
 
-`SubscriptionsModule` importa `PlansModule` para injetar `PlanRepository` no `SubscribeToPlanUseCase`.
+`SubscriptionsModule` exporta `SubscriptionRepository`, `SubscribeToPlanUseCase` e `PlanLimitService`. `SubscriptionsModule` importa `PlansModule` para injetar `PlanRepository`.
 
 **Compilação:** ✅ `npx tsc --noEmit` = 0 erros
 
@@ -1260,8 +1279,111 @@ FK constraints com `onDelete: Restrict` já existem no schema Prisma para `drive
 
 ---
 
+---
+
+## 6.10 Implementações (29 Abr 2026)
+
+### Mitigação de Defeitos Críticos — Fase 3.7
+
+Três defeitos que tornavam o sistema não-demonstrável ponta a ponta foram corrigidos sem introduzir complexidade desnecessária (sem cron jobs, sem gateway de pagamento real).
+
+---
+
+#### Payment Simulation ✅ (29 Abr 2026)
+
+**Problema:** Todo booking criava um `Payment` com `status: PENDING` que nunca mudava. O fluxo de demonstração terminava sempre com "pagamento pendente".
+
+**Solução:** Dois endpoints `PATCH` de simulação adicionados ao `PaymentController`. Nenhum gateway externo envolvido — apenas transição de status com guard de duplo processamento.
+
+**Novos componentes:**
+- `PaymentEntity.confirm()` e `.fail()` — mutam status e atualizam `updatedAt`
+- `PaymentAlreadyProcessedError` (`code: PAYMENT_ALREADY_PROCESSED_BAD_REQUEST` → HTTP 400) — impede reprocessamento
+- `PaymentRepository.update(payment)` — método abstrato + implementação Prisma via `prisma.payment.update`
+- `ConfirmPaymentUseCase` — valida tenant ownership + guard PENDING → chama `payment.confirm()`
+- `FailPaymentUseCase` — mesma lógica com `payment.fail()`
+- Endpoints `PATCH /organizations/:organizationId/payments/:id/confirm` e `.../fail` (ADMIN + TenantFilter)
+
+---
+
+#### Subscription Lazy Expiration ✅ (29 Abr 2026)
+
+**Problema:** `expiresAt` existia no banco, mas `status` nunca saía de `ACTIVE` para `PAST_DUE`. Organizações com assinatura vencida apareciam como ativas indefinidamente.
+
+**Solução:** Expiração on-demand — verificação ocorre no momento da consulta, sem cron job. Pattern: lê, checa, expira, salva, retorna `null`.
+
+**Novos componentes:**
+- `SubscriptionEntity.expire()` — transita para `PAST_DUE`, atualiza `updatedAt`
+- `SubscriptionEntity.isExpired` getter — retorna `expiresAt < new Date()`
+- `SubscriptionStatus.PAST_DUE` — novo valor no enum
+- `resolveActiveSubscription(orgId, repo)` (`src/modules/subscriptions/application/utils/`) — helper que encapsula busca + checagem de expiração + save + retorno; retorna `null` se não há subscription ativa ou se ela expirou
+- `FindActiveSubscriptionUseCase` — refatorado para delegar ao helper (lazy expiry automático na leitura)
+- `SubscriptionMapper` — `PAST_DUE` resulta em `activeKey = null` (constraint de unicidade respeitada)
+
+---
+
+#### Plan Limits Enforcement ✅ (29 Abr 2026)
+
+**Problema:** `maxVehicles`, `maxDrivers`, `maxMonthlyTrips` existiam no `Plan` mas nenhum use case de criação verificava esses limites.
+
+**Solução:** `PlanLimitService` centralizado em `SubscriptionsModule`. Módulos que precisam de limite injetam o serviço via DI.
+
+**`PlanLimitService`** (`src/modules/subscriptions/application/services/plan-limit.service.ts`):
+- Injeta `SubscriptionRepository` + `PlanRepository`
+- `assertVehicleLimit(orgId, count)` — lança `VehicleLimitExceededError` se `count >= plan.maxVehicles`
+- `assertDriverLimit(orgId, count)` — lança `DriverLimitExceededError` se `count >= plan.maxDrivers`
+- `assertMonthlyTripLimit(orgId, count)` — lança `MonthlyTripLimitExceededError` se `count >= plan.maxMonthlyTrips`
+- Privado `getActivePlan()` — usa `resolveActiveSubscription` (lazy expiry) → lança `NoActiveSubscriptionError` se sem assinatura ativa
+
+**Novos métodos de contagem nos repositórios:**
+- `VehicleRepository.countActiveByOrganizationId(orgId)` — conta veículos com `status: ACTIVE`
+- `DriverRepository.countActiveByOrganizationId(orgId)` — conta via JOIN: `driverStatus: ACTIVE` + membership DRIVER ativa
+- `TripInstanceRepository.countByOrganizationAndMonth(orgId, start, end)` — conta instâncias criadas no mês calendário atual
+
+**Use cases atualizados:**
+- `CreateVehicleUseCase`: `countActiveByOrganizationId` → `assertVehicleLimit` antes de `save()`
+- `CreateDriverUseCase`: parâmetro `organizationId?` adicionado; `countActiveByOrganizationId` → `assertDriverLimit` (pulado para usuários B2C)
+- `CreateTripInstanceUseCase`: `countByOrganizationAndMonth` (fora da tx) → `assertMonthlyTripLimit` antes do `UnitOfWork`
+
+**Módulos atualizados:** `VehicleModule`, `DriverModule`, `TripModule` agora importam `SubscriptionsModule`. `SubscriptionsModule` exporta `PlanLimitService`.
+
+---
+
+#### Auto-FREE Subscription no Registro ✅ (29 Abr 2026)
+
+**Problema:** Organizações recém-criadas não tinham subscription, o que fazia o `PlanLimitService` lançar `NoActiveSubscriptionError` na primeira tentativa de criar veículo, driver ou viagem.
+
+**Solução:** `RegisterOrganizationWithAdminUseCase` e `SetupOrganizationForExistingUserUseCase` auto-subscrevem ao plano FREE **após** a transação principal (fora do Serializable para evitar transação aninhada). Falha silenciosa: se o plano FREE não existir no banco, um `WARN` é logado e o fluxo continua normalmente — o admin pode assinar manualmente.
+
+**Mudanças:**
+- `RegisterOrganizationWithAdminUseCase` — injetado `SubscribeToPlanUseCase` + `PlanRepository`; auto-subscrição FREE pós-transação com `try/catch` não-fatal
+- `SetupOrganizationForExistingUserUseCase` — injetado `SubscribeToPlanUseCase` + `PlanRepository`; auto-subscrição FREE pós-transação com `try/catch` não-fatal
+- `AuthModule` — importa `SubscriptionsModule` e `PlansModule`
+- `prisma/seed.ts` — atualizado para seedar **4 planos** via `upsert` (idempotente):
+
+| Plano   | Preço      | Veículos | Drivers | Trips/mês | Público-alvo |
+|---------|------------|----------|---------|-----------|--------------|
+| FREE    | R$ 0,00    | 1        | 1       | 30        | Avaliação do sistema (não cobre 1 mês real) |
+| BASIC   | R$ 199,90  | 3        | 3       | 200       | Microempresa (receita ~R$22k/mês) |
+| PRO     | R$ 499,90  | 10       | 10      | 700       | Operadora média (receita ~R$75k/mês) |
+| PREMIUM | R$ 999,90  | 100      | 100     | 9.999 *   | Frota grande (receita ~R$748k/mês) |
+
+> \* `9999` é o sentinel para "ilimitado" — campo `maxMonthlyTrips` é `Int` não-nullable no schema Prisma.
+> Precificação baseada na realidade do transporte escolar: 17 alunos × R$20/dia × 22 dias letivos = **R$7.480/mês por veículo**. O SaaS representa ~1% da receita gerada pelo cliente com o sistema.
+
+> **Nota:** O `WARN "[RegisterOrg] FREE plan not found"` aparece nos testes unitários de `register-organization-with-admin.use-case.spec.ts` — o mock retorna `null` para `findByName`, ativando o branch de falha silenciosa. Comportamento correto e esperado.
+
+**Specs de teste atualizados (4 arquivos — total: 37 suites, 280 testes):**
+- `register-organization-with-admin.use-case.spec.ts` — mocks de `SubscribeToPlanUseCase` e `PlanRepository` adicionados
+- `setup-organization-for-existing-user.use-case.spec.ts` — mocks de `SubscribeToPlanUseCase` e `PlanRepository` adicionados
+- `create-driver.use-case.spec.ts` — mocks de `PlanLimitService` e `countActiveByOrganizationId` adicionados
+- `create-trip-instance.use-case.spec.ts` — mocks de `PlanLimitService` e `countByOrganizationAndMonth` adicionados
+- `create-vehicle.use-case.spec.ts` — mocks de `PlanLimitService` e `countActiveByOrganizationId` adicionados
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros. **Testes:** 37 suites, 280 testes passando.
+
+---
+
 ### Role Management & Database Seeding
-- ✅ Implementado sistema de **Role Entity** com tipos pré-definidos (ADMIN, DRIVER).
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
 - ✅ Desenvolvido **seed script** (`prisma/seed.ts`) com suporte a `tsx` para execução confiável.
 - ✅ Configurado **Docker e docker-compose** para executar seed automaticamente na primeira inicialização.
@@ -1280,30 +1402,31 @@ O script de seed foi configurado para:
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
 2. ~~**Testes Unitários — Trip Module:**~~ ✅ **CONCLUÍDO (21 Abr)** — 11 suites, 90 testes (todos use cases de TripTemplate e TripInstance cobertos; `FindAllTripTemplatesByOrganizationUseCase` pendente).
-3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de Vehicle/Driver/Plans/Payment/Subscriptions.
+3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de Vehicle/Driver/Plans/Payment/Subscriptions com os novos cenários de `PlanLimitService`.
 4. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
 5. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
 6. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
 7. ~~**Fase 3 (Monetização) — Plans, Payment, Subscriptions**~~ ✅ **CONCLUÍDO (26 Abr)** — Plans (5 use cases, DevGuard, PlanName enum), Payment (read-only API, criação via Bookings), Subscriptions (4 use cases, 30 dias, ADMIN-only).
-8. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
-9. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows).
+8. ~~**Mitigação de Defeitos Críticos (Fase 3.7):** Payment simulation, Subscription lazy expiration, Plan limits enforcement, Auto-FREE subscription.~~ ✅ **CONCLUÍDO (29 Abr)** — 4 defeitos críticos corrigidos; sistema demonstrável ponta a ponta.
+9. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
+10. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows, plan limit paths).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 27 de abril de 2026, as **Fases 1, 2 e 3 estão 100% completas** com 13 módulos implementados:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 29 de abril de 2026, as **Fases 1, 2, 3 e 3.7 estão 100% completas** com 13 módulos implementados e o sistema demonstrável ponta a ponta:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
-- ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*.
+- ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*. Auto-subscrição FREE ao criar organização *(29 Abr)*.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy, soft delete, decoupling total do Membership module e `GET /organizations/me` para ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()` *(redesenhado 15 Abr, IDOR fix 17 Abr)*.
-- ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError` *(17 Abr)*.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*.
+- ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError`, plan limit enforcement via `PlanLimitService` *(17 Abr, limit 29 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir *(21 Abr)*.
+- ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService` *(21 Abr, limit 29 Abr)*.
 - ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
-- ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*.
-- ✅ **Payment Module**: API read-only (2 use cases), `PaymentEntity` com UUID de domínio e status inicial `PENDING`, enums `MethodPayment` e `PaymentStatus`, criação gerenciada pelo `CreateBookingUseCase`, `PaymentRepository` exportado para `BookingsModule` *(26 Abr)*.
-- ✅ **Subscriptions Module**: 4 use cases, assinatura única por org (ACTIVE), duração de 30 dias calculada no use case, `SubscriptionEntity` com `cancel()`, ADMIN-only via `TenantFilterGuard`, depende de `PlansModule` *(26 Abr)*.
+- ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*.
+- ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*.
+- ✅ **Subscriptions Module**: 4 use cases, assinatura única por org (ACTIVE), duração via `plan.durationDays`, `SubscriptionEntity` com `cancel()`, `expire()`, `isExpired`, `PAST_DUE` status, `resolveActiveSubscription` helper (lazy expiry sem cron), 4 novos domain errors de limit, `PlanLimitService` exportado, ADMIN-only via `TenantFilterGuard` *(26 Abr + 29 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
-- ✅ **Database Seeding** automático na inicialização do Docker.
+- ✅ **Database Seeding** automático na inicialização do Docker. Seed inclui 4 planos (FREE/BASIC/PRO/PREMIUM) e 2 roles (ADMIN/DRIVER).
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
 - ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory, Plate, Money).
 - ✅ **Validation Errors** para tratamento de erros específicos do domínio.
@@ -1315,11 +1438,43 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 27 de abril 
 - ✅ **Segurança FK**: Trip module valida existência de Driver e Vehicle antes de persistir atribuições, evitando HTTP 500 por FK violation *(21 Abr)*.
 - ✅ **Transações atômicas (UnitOfWork + DbContext)**: `AsyncLocalStorage` propaga o cliente de transação sem alterar assinaturas dos repositórios; Serializable isolation + retry P2034 automático *(27 Abr)*.
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
-- ✅ **Testes Unitários**: 37 suites, 278 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr)*.
+- ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
+- ✅ **Testes Unitários**: 37 suites, 280 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2 e 3 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Correções de concorrência aplicadas no Trip Module (28 Abr). Próximo: Fase 4 (Testes coverage 80%+, Swagger completo, Docker prod, deploy).
+**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. Próximo: Fase 4 (Testes coverage 80%+, Swagger completo, Docker prod, deploy).
+
+- ✅ **User Module**: CRUD completo com autenticação JWT integrada.
+- ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*. Auto-subscrição FREE ao criar organização *(29 Abr)*.
+- ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy, soft delete, decoupling total do Membership module e `GET /organizations/me` para ADMIN e DRIVER *(21 Abr)*.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*.
+- ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError`, plan limit enforcement via `PlanLimitService` *(17 Abr, limit 29 Abr)*.
+- ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
+- ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService` *(21 Abr, limit 29 Abr)*.
+- ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
+- ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*.
+- ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*.
+- ✅ **Subscriptions Module**: 4 use cases, assinatura única por org (ACTIVE), duração via `plan.durationDays`, `SubscriptionEntity` com `cancel()`, `expire()`, `isExpired`, `PAST_DUE` status, `resolveActiveSubscription` helper (lazy expiry sem cron), 4 novos domain errors de limit, `PlanLimitService` exportado, ADMIN-only via `TenantFilterGuard` *(26 Abr + 29 Abr)*.
+- ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
+- ✅ **Database Seeding** automático na inicialização do Docker. Seed inclui 4 planos (FREE/BASIC/PRO/PREMIUM) e 2 roles (ADMIN/DRIVER).
+- ✅ **Shared Module** padronizado para orquestração de componentes globais.
+- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory, Plate, Money).
+- ✅ **Validation Errors** para tratamento de erros específicos do domínio.
+- ✅ **Global Exception Handling** com AllExceptionsFilter refatorado (mapeamento por padrão de código) *(atualizado 13 Abr)*.
+- ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard, DevGuard implementados e aplicados.
+- ✅ **JWT Strategy otimizada**: Sem query ao banco por request autenticado *(adicionado 13 Abr)*.
+- ✅ **Desacoplamento modular**: Organization ↔ Membership zero coupling via padrão Orchestrator *(14 Abr)*.
+- ✅ **Segurança IDOR**: Vehicle e Driver validam ownership em operações por ID; Membership protegido via TenantFilterGuard *(17 Abr)*.
+- ✅ **Segurança FK**: Trip module valida existência de Driver e Vehicle antes de persistir atribuições, evitando HTTP 500 por FK violation *(21 Abr)*.
+- ✅ **Transações atômicas (UnitOfWork + DbContext)**: `AsyncLocalStorage` propaga o cliente de transação sem alterar assinaturas dos repositórios; Serializable isolation + retry P2034 automático *(27 Abr)*.
+- ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
+- ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
+- ✅ **Testes Unitários**: 37 suites, 280 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr)*.
+
+A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
+
+**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. Próximo: Fase 4 (Testes coverage 80%+, Swagger completo, Docker prod, deploy).
 
 ---
 
@@ -1333,7 +1488,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (278 testes, 37 suites)
+- `npm run test`: Executa testes unitários (280 testes, 37 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
@@ -1354,6 +1509,8 @@ docker-compose up --build
 # Verificar dados no banco
 npx prisma studio
 ```
+
+> O seed é idempotente (usa `upsert`). Popula 2 roles (ADMIN, DRIVER) e 4 planos (FREE, BASIC, PRO, PREMIUM). O plano FREE é necessário para o fluxo de auto-subscrição em `RegisterOrganizationWithAdminUseCase` e `SetupOrganizationForExistingUserUseCase`. Limites calibrados para 2 trips/dia por veículo (padrão transporte escolar/coletivo).
 
 ### 9.4 Script de Seed (`prisma/seed.ts`)
 O script usa:

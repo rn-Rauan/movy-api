@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { SubscriptionRepository } from '../../domain/interfaces/subscription.repository';
-import { SubscriptionStatus } from '../../domain/interfaces/enums/subscription-status.enum';
+import { resolveActiveSubscription } from '../utils/resolve-active-subscription';
 
 /**
  * Returns the currently active subscription for a given organisation, if any.
+ *
+ * Lazily expires subscriptions whose `expiresAt` has passed: transitions them
+ * to PAST_DUE and persists the change before returning `null`.
  *
  * Returns `null` instead of throwing when no active subscription is found,
  * allowing callers to handle the absence gracefully.
@@ -15,18 +18,15 @@ export class FindActiveSubscriptionUseCase {
   ) {}
 
   /**
-   * Queries the repository for the most recent ACTIVE subscription of the organisation.
+   * Queries for the active subscription and expires it if overdue.
    *
    * @param organizationId - UUID of the organisation to query
-   * @returns The active {@link SubscriptionEntity}, or `null` if none exists
+   * @returns The active {@link SubscriptionEntity}, or `null` if none or expired
    */
   async execute(organizationId: string) {
-    const subscription =
-      await this.subscriptionRepository.findActiveByOrganizationId(
-        organizationId,
-        SubscriptionStatus.ACTIVE,
-      );
-
-    return subscription;
+    return resolveActiveSubscription(
+      organizationId,
+      this.subscriptionRepository,
+    );
   }
 }
