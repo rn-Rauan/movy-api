@@ -11,3 +11,4 @@ export * from './transition-trip-instance-status.use-case';
 export * from './assign-driver-to-trip-instance.use-case';
 export * from './assign-vehicle-to-trip-instance.use-case';
 export * from './find-public-trip-instances.use-case';
+export * from './find-public-trip-instances-by-org-slug.use-case';

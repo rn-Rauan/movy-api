@@ -66,6 +66,7 @@ export class SubscriptionController {
   @Post()
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Subscribe organization to a plan' })
   @ApiParam({ name: 'organizationId' })
   @ApiResponse({ status: 201, type: SubscriptionResponseDto })
   async subscribe(
@@ -87,7 +88,7 @@ export class SubscriptionController {
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
   @ApiOperation({
-    summary: 'Cancel a subscription (takes effect at expiresAt)',
+    summary: '[ADMIN] Cancel a subscription (takes effect at expiresAt)',
   })
   @ApiParam({ name: 'organizationId' })
   @ApiParam({ name: 'id' })
@@ -109,6 +110,7 @@ export class SubscriptionController {
   @Get('active')
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Get active subscription for organization' })
   @ApiParam({ name: 'organizationId' })
   @ApiResponse({ status: 200, type: SubscriptionResponseDto })
   async findActive(
@@ -123,7 +125,7 @@ export class SubscriptionController {
   @Get()
   @UseGuards(TenantFilterGuard, RolesGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'List all subscriptions for organization' })
+  @ApiOperation({ summary: '[ADMIN] List all subscriptions for organization' })
   @ApiParam({ name: 'organizationId' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })

@@ -18,6 +18,7 @@ import {
   AssignDriverToTripInstanceUseCase,
   AssignVehicleToTripInstanceUseCase,
   FindPublicTripInstancesUseCase,
+  FindPublicTripInstancesByOrgSlugUseCase,
 } from './application/use-cases';
 import {
   TripInstanceRepository,
@@ -88,6 +89,7 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     AssignDriverToTripInstanceUseCase,
     AssignVehicleToTripInstanceUseCase,
     FindPublicTripInstancesUseCase,
+    FindPublicTripInstancesByOrgSlugUseCase,
     {
       provide: TripInstanceRepository,
       useClass: PrismaTripInstanceRepository,

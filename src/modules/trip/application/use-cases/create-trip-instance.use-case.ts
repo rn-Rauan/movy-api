@@ -11,16 +11,18 @@ import {
 import {
   TripInstanceRepository,
   TripTemplateRepository,
+  TripStatus,
 } from '../../domain/interfaces';
 import { CreateTripInstanceDto } from '../dtos';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 
 /**
- * Creates a new {@link TripInstance} (in `DRAFT` status) from an existing active {@link TripTemplate}.
+ * Creates a new {@link TripInstance} from an existing active {@link TripTemplate}.
  *
  * Auto-cancel fields are derived from the template when the feature is enabled,
- * unless overridden in the DTO. Driver and vehicle assignment is optional at this stage.
+ * unless overridden in the DTO. Driver and vehicle assignment is optional unless
+ * `initialStatus = SCHEDULED`, which transitions the instance immediately.
  */
 @Injectable()
 export class CreateTripInstanceUseCase {
@@ -119,6 +121,10 @@ export class CreateTripInstanceUseCase {
         minRevenue,
         autoCancelAt,
       });
+
+      if (input.initialStatus === TripStatus.SCHEDULED) {
+        instance.transitionTo(TripStatus.SCHEDULED);
+      }
 
       const saved = await this.tripInstanceRepository.save(instance);
 

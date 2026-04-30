@@ -44,21 +44,17 @@ export interface PublicTripInstanceData {
  * Registered in the NestJS DI container as an abstract class token.
  */
 export abstract class PublicTripQueryService {
-  /**
-   * Returns a paginated list of bookable, public trip instances enriched with
-   * route and pricing data from their parent template.
-   *
-   * @remarks
-   * Only instances whose `tripStatus` is `SCHEDULED` or `CONFIRMED` **and**
-   * whose parent template has `isPublic = true` and `status = ACTIVE` are
-   * returned.  Results are ordered by `departureTime` ascending.
-   *
-   * @param options - Pagination parameters `{ page, limit }`
-   * @param organizationId - Optional UUID to scope results to a single organisation
-   * @returns A {@link PaginatedResponse} of {@link PublicTripInstanceData} items
-   */
   abstract findPublic(
     options: PaginationOptions,
     organizationId?: string,
+  ): Promise<PaginatedResponse<PublicTripInstanceData>>;
+
+  /**
+   * Returns SCHEDULED/CONFIRMED trips for a specific org identified by slug,
+   * regardless of `isPublic` — used for org-specific listing pages.
+   */
+  abstract findByOrgSlug(
+    options: PaginationOptions,
+    slug: string,
   ): Promise<PaginatedResponse<PublicTripInstanceData>>;
 }

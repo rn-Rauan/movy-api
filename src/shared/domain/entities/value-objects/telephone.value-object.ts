@@ -21,7 +21,7 @@ export class Telephone {
    * @throws InvalidTelephoneError if telephone format is invalid
    */
   static create(telephone: string): Telephone {
-    const telephoneRegex = /^\(?\d{2}\)?\s?9?\d{4}-?\d{4}$/;
+    const telephoneRegex = /^\+?[1-9]\d{6,14}$/;
 
     if (!telephoneRegex.test(telephone)) {
       throw new InvalidTelephoneError(telephone);

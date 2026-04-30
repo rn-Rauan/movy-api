@@ -85,7 +85,7 @@ export class TripTemplateController {
   @Post('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Create a new trip template for an organization' })
+  @ApiOperation({ summary: '[ADMIN] Create a new trip template for an organization' })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiResponse({
     status: 201,
@@ -106,7 +106,7 @@ export class TripTemplateController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'List all trip templates in an organization' })
+  @ApiOperation({ summary: '[ADMIN] List all trip templates in an organization' })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -135,7 +135,7 @@ export class TripTemplateController {
   @Get(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find a trip template by ID' })
+  @ApiOperation({ summary: '[ADMIN] Find a trip template by ID' })
   @ApiParam({ name: 'id', description: 'UUID of the trip template' })
   @ApiResponse({
     status: 200,
@@ -156,7 +156,7 @@ export class TripTemplateController {
   @Put(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Update a trip template' })
+  @ApiOperation({ summary: '[ADMIN] Update a trip template' })
   @ApiParam({ name: 'id', description: 'UUID of the trip template to update' })
   @ApiResponse({
     status: 200,
@@ -179,7 +179,7 @@ export class TripTemplateController {
   @Delete(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Deactivate a trip template (soft delete)' })
+  @ApiOperation({ summary: '[ADMIN] Deactivate a trip template (soft delete)' })
   @ApiParam({
     name: 'id',
     description: 'UUID of the trip template to deactivate',

@@ -56,6 +56,83 @@ export class PrismaPublicTripQueryService implements PublicTripQueryService {
    * @param organizationId - Optional UUID to scope results to a single organisation
    * @returns A {@link PaginatedResponse} of {@link PublicTripInstanceData} items
    */
+  async findByOrgSlug(
+    options: PaginationOptions,
+    slug: string,
+  ): Promise<PaginatedResponse<PublicTripInstanceData>> {
+    type PublicTripRow = PrismaTripInstance & {
+      tripTemplate: {
+        departurePoint: string;
+        destination: string;
+        priceOneWay: Prisma.Decimal | null;
+        priceReturn: Prisma.Decimal | null;
+        priceRoundTrip: Prisma.Decimal | null;
+        isRecurring: boolean;
+      };
+    };
+
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+
+    const bookableStatuses: TripStatus[] = [
+      TripStatus.SCHEDULED,
+      TripStatus.CONFIRMED,
+    ];
+
+    const where = {
+      tripStatus: { in: bookableStatuses },
+      organization: { slug },
+    };
+
+    const [rawRows, total] = await Promise.all([
+      this.db.tripInstance.findMany({
+        where,
+        include: {
+          tripTemplate: {
+            select: {
+              departurePoint: true,
+              destination: true,
+              priceOneWay: true,
+              priceReturn: true,
+              priceRoundTrip: true,
+              isRecurring: true,
+            },
+          },
+        },
+        orderBy: { departureTime: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.db.tripInstance.count({ where }),
+    ]);
+
+    const rows = rawRows as PublicTripRow[];
+
+    const data: PublicTripInstanceData[] = rows.map((row) => {
+      const { tripTemplate, ...instanceRow } = row;
+      return {
+        instance: TripInstanceMapper.toDomain(instanceRow),
+        departurePoint: tripTemplate.departurePoint,
+        destination: tripTemplate.destination,
+        priceOneWay:
+          tripTemplate.priceOneWay !== null
+            ? Number(tripTemplate.priceOneWay)
+            : null,
+        priceReturn:
+          tripTemplate.priceReturn !== null
+            ? Number(tripTemplate.priceReturn)
+            : null,
+        priceRoundTrip:
+          tripTemplate.priceRoundTrip !== null
+            ? Number(tripTemplate.priceRoundTrip)
+            : null,
+        isRecurring: tripTemplate.isRecurring,
+      };
+    });
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
   async findPublic(
     options: PaginationOptions,
     organizationId?: string,

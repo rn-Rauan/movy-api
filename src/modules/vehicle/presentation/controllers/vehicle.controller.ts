@@ -70,7 +70,7 @@ export class VehicleController {
   @Post('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Register a new vehicle for an organization' })
+  @ApiOperation({ summary: '[ADMIN] Register a new vehicle for an organization' })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiResponse({
     status: 201,
@@ -91,7 +91,7 @@ export class VehicleController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'List all vehicles in an organization' })
+  @ApiOperation({ summary: '[ADMIN] List all vehicles in an organization' })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -120,7 +120,7 @@ export class VehicleController {
   @Get(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Find a vehicle by ID' })
+  @ApiOperation({ summary: '[ADMIN] Find a vehicle by ID' })
   @ApiParam({ name: 'id', description: 'UUID of the vehicle' })
   @ApiResponse({
     status: 200,
@@ -141,7 +141,7 @@ export class VehicleController {
   @Put(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Update a vehicle' })
+  @ApiOperation({ summary: '[ADMIN] Update a vehicle' })
   @ApiParam({ name: 'id', description: 'UUID of the vehicle to update' })
   @ApiResponse({
     status: 200,
@@ -164,7 +164,7 @@ export class VehicleController {
   @Delete(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Deactivate a vehicle (soft delete)' })
+  @ApiOperation({ summary: '[ADMIN] Deactivate a vehicle (soft delete)' })
   @ApiParam({ name: 'id', description: 'UUID of the vehicle to deactivate' })
   @ApiResponse({
     status: 200,

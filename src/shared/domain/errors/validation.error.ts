@@ -63,8 +63,8 @@ export class StringLengthError extends ValidationError {
 }
 
 /**
- * Thrown when a phone number string fails Brazilian format validation.
- * Accepted patterns: `(XX) XXXXX-XXXX` or `(XX) XXXX-XXXX` (with optional formatting chars).
+ * Thrown when a phone number string fails E.164-like international format validation.
+ * Accepted pattern: optional `+` prefix, 7–15 digits, no spaces or formatting chars.
  */
 export class InvalidTelephoneError extends ValidationError {
   code = 'INVALID_TELEPHONE';

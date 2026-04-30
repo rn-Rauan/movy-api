@@ -1,29 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsPositive,
   IsUUID,
   Min,
-  IsNumber,
 } from 'class-validator';
+import { TripStatus } from '../../domain/interfaces';
 
-/**
- * Input DTO for `POST /trip-instances/organization/:organizationId`.
- *
- * @remarks
- * - The instance starts as `DRAFT` — driver and vehicle can be assigned later
- * - `autoCancelAt` is computed server-side from the template's `autoCancelOffset`
- * - `minRevenue` defaults to the template value when `autoCancelEnabled = true`;
- *   pass an explicit value to override it per-instance
- * @remarks
- * - The instance starts as `DRAFT` — driver and vehicle can be assigned later
- * - `autoCancelAt` is computed server-side from the template's `autoCancelOffset`
- * - `minRevenue` defaults to the template value when `autoCancelEnabled = true`;
- *   pass an explicit value to override it per-instance
- */
 export class CreateTripInstanceDto {
   @ApiProperty({
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
@@ -67,7 +55,7 @@ export class CreateTripInstanceDto {
 
   @ApiPropertyOptional({
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    description: 'UUID of the assigned driver (optional at DRAFT stage)',
+    description: 'UUID of the assigned driver',
     nullable: true,
   })
   @IsOptional()
@@ -76,7 +64,7 @@ export class CreateTripInstanceDto {
 
   @ApiPropertyOptional({
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    description: 'UUID of the assigned vehicle (optional at DRAFT stage)',
+    description: 'UUID of the assigned vehicle',
     nullable: true,
   })
   @IsOptional()
@@ -93,4 +81,18 @@ export class CreateTripInstanceDto {
   @IsNumber({}, { message: 'minRevenue must be a number' })
   @Min(0, { message: 'minRevenue must be >= 0' })
   minRevenue?: number | null;
+
+  @ApiPropertyOptional({
+    example: TripStatus.SCHEDULED,
+    description:
+      'Initial status after creation. Use SCHEDULED to publish the trip immediately ' +
+      '(requires driverId and vehicleId). Defaults to DRAFT.',
+    enum: [TripStatus.DRAFT, TripStatus.SCHEDULED],
+    default: TripStatus.DRAFT,
+  })
+  @IsOptional()
+  @IsIn([TripStatus.DRAFT, TripStatus.SCHEDULED], {
+    message: `initialStatus must be one of: ${TripStatus.DRAFT}, ${TripStatus.SCHEDULED}`,
+  })
+  initialStatus?: TripStatus.DRAFT | TripStatus.SCHEDULED;
 }
