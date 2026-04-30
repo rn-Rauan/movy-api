@@ -3,3 +3,4 @@ export * from './enums/shift.enum';
 export * from './enums/trip-status.enum';
 export * from './trip-instance.repository';
 export * from './trip-template.repository';
+export * from './public-trip-query.service';

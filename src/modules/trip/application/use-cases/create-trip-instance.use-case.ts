@@ -113,6 +113,7 @@ export class CreateTripInstanceUseCase {
         driverId: input.driverId ?? null,
         vehicleId: input.vehicleId ?? null,
         totalCapacity: input.totalCapacity,
+        isPublic: freshTemplate.isPublic,
         departureTime,
         arrivalEstimate,
         minRevenue,

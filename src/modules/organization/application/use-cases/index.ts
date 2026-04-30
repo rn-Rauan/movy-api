@@ -3,5 +3,6 @@ export { FindAllActiveOrganizationsUseCase } from './find-all-active-organizatio
 export { FindOrganizationByIdUseCase } from './find-organization-by-id.use-case';
 export { FindAllOrganizationsUseCase } from './find-all-organizations.use-case';
 export { FindOrganizationByUserUseCase } from './find-organization-by-user.use-case';
+export { FindOrganizationBySlugUseCase } from './find-organization-by-slug.use-case';
 export { UpdateOrganizationUseCase } from './update-organization.use-case';
 export { DisableOrganizationUseCase } from './disable-organization.use-case';

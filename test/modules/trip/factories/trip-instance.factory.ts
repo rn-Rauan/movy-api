@@ -13,6 +13,7 @@ type TripInstanceOverrides = Partial<{
   autoCancelAt: Date | null;
   forceConfirm: boolean;
   totalCapacity: number;
+  isPublic: boolean;
   departureTime: Date;
   arrivalEstimate: Date;
   createdAt: Date;
@@ -40,6 +41,7 @@ export function makeTripInstance(
     minRevenue: toMoney(overrides.minRevenue ?? null),
     autoCancelAt: overrides.autoCancelAt ?? null,
     totalCapacity: overrides.totalCapacity ?? 20,
+    isPublic: overrides.isPublic ?? false,
     departureTime: departure,
     arrivalEstimate: arrival,
   };

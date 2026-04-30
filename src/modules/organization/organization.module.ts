@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { OrganizationController } from './presentation/controllers/organization.controller';
+import { PublicOrganizationController } from './presentation/controllers/public-organization.controller';
 import {
   CreateOrganizationUseCase,
   FindOrganizationByIdUseCase,
   FindAllOrganizationsUseCase,
   FindAllActiveOrganizationsUseCase,
   FindOrganizationByUserUseCase,
+  FindOrganizationBySlugUseCase,
   UpdateOrganizationUseCase,
   DisableOrganizationUseCase,
 } from './application/use-cases';
@@ -28,13 +30,14 @@ import { SharedModule } from 'src/shared';
  */
 @Module({
   imports: [SharedModule],
-  controllers: [OrganizationController],
+  controllers: [OrganizationController, PublicOrganizationController],
   providers: [
     CreateOrganizationUseCase,
     FindOrganizationByIdUseCase,
     FindAllOrganizationsUseCase,
     FindAllActiveOrganizationsUseCase,
     FindOrganizationByUserUseCase,
+    FindOrganizationBySlugUseCase,
     UpdateOrganizationUseCase,
     DisableOrganizationUseCase,
     {

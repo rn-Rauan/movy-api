@@ -296,9 +296,10 @@ model TripInstance {
   forceConfirm           Boolean    @default(false)
 
   totalCapacity          Int        // Snapshot of vehicle capacity at scheduling time
+  isPublic               Boolean    @default(false)  // Snapshot of TripTemplate.isPublic at creation time
   departureTime          DateTime
   arrivalEstimate        DateTime
-  
+
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
@@ -314,6 +315,7 @@ model TripInstance {
   @@index([driverId, organizationId])
   @@index([vehicleId, organizationId])
   @@index([tripStatus])
+  @@index([isPublic])
   @@index([departureTime])
   @@index([autoCancelAt])
   @@index([organizationId])

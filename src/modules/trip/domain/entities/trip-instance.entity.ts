@@ -22,6 +22,8 @@ export interface TripInstanceProps {
   autoCancelAt: Date | null;
   forceConfirm: boolean;
   totalCapacity: number;
+  /** Snapshot of {@link TripTemplate.isPublic} at the moment this instance was created. */
+  isPublic: boolean;
   departureTime: Date;
   arrivalEstimate: Date;
   readonly createdAt?: Date;
@@ -42,6 +44,7 @@ interface TripInstanceState {
   autoCancelAt: Date | null;
   forceConfirm: boolean;
   totalCapacity: number;
+  isPublic: boolean;
   departureTime: Date;
   arrivalEstimate: Date;
   readonly createdAt: Date;
@@ -174,6 +177,9 @@ export class TripInstance {
   }
   get totalCapacity(): number {
     return this.props.totalCapacity;
+  }
+  get isPublic(): boolean {
+    return this.props.isPublic;
   }
   get departureTime(): Date {
     return this.props.departureTime;

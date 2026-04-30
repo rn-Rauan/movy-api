@@ -17,15 +17,19 @@ import {
   TransitionTripInstanceStatusUseCase,
   AssignDriverToTripInstanceUseCase,
   AssignVehicleToTripInstanceUseCase,
+  FindPublicTripInstancesUseCase,
 } from './application/use-cases';
 import {
   TripInstanceRepository,
   TripTemplateRepository,
+  PublicTripQueryService,
 } from './domain/interfaces';
 import { PrismaTripInstanceRepository } from './infrastructure/db/repositories/prisma-trip-instance.repository';
 import { PrismaTripTemplateRepository } from './infrastructure/db/repositories/prisma-trip-template.repository';
+import { PrismaPublicTripQueryService } from './infrastructure/db/services/prisma-public-trip-query.service';
 import { TripInstanceController } from './presentation/controllers/trip-instance.controller';
 import { TripTemplateController } from './presentation/controllers/trip-template.controller';
+import { PublicTripInstanceController } from './presentation/controllers/public-trip-instance.controller';
 
 /**
  * NestJS module that manages trip blueprints ({@link TripTemplate}) and their scheduled
@@ -59,7 +63,11 @@ import { TripTemplateController } from './presentation/controllers/trip-template
     VehicleModule,
     SubscriptionsModule,
   ],
-  controllers: [TripTemplateController, TripInstanceController],
+  controllers: [
+    TripTemplateController,
+    TripInstanceController,
+    PublicTripInstanceController,
+  ],
   providers: [
     // TripTemplate
     CreateTripTemplateUseCase,
@@ -79,9 +87,14 @@ import { TripTemplateController } from './presentation/controllers/trip-template
     TransitionTripInstanceStatusUseCase,
     AssignDriverToTripInstanceUseCase,
     AssignVehicleToTripInstanceUseCase,
+    FindPublicTripInstancesUseCase,
     {
       provide: TripInstanceRepository,
       useClass: PrismaTripInstanceRepository,
+    },
+    {
+      provide: PublicTripQueryService,
+      useClass: PrismaPublicTripQueryService,
     },
   ],
   exports: [TripTemplateRepository, TripInstanceRepository],

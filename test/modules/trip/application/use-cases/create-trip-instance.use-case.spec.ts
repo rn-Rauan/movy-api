@@ -148,6 +148,54 @@ describe('CreateTripInstanceUseCase', () => {
       expect(saved.driverId).toBe('driver-uuid');
       expect(saved.vehicleId).toBe('vehicle-uuid');
     });
+
+    it('should snapshot isPublic = true when template is public', async () => {
+      // Arrange
+      const template = makeTripTemplate({
+        organizationId: ORG_ID,
+        isPublic: true,
+      });
+      mocks.tripTemplateRepository.findById.mockResolvedValue(template);
+      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+        0,
+      );
+      mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
+      mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(
+        undefined,
+      );
+      const dto = makeCreateTripInstanceDto();
+
+      // Act
+      await sut.execute(dto, ORG_ID);
+
+      // Assert
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.isPublic).toBe(true);
+    });
+
+    it('should snapshot isPublic = false when template is not public', async () => {
+      // Arrange
+      const template = makeTripTemplate({
+        organizationId: ORG_ID,
+        isPublic: false,
+      });
+      mocks.tripTemplateRepository.findById.mockResolvedValue(template);
+      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+        0,
+      );
+      mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
+      mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(
+        undefined,
+      );
+      const dto = makeCreateTripInstanceDto();
+
+      // Act
+      await sut.execute(dto, ORG_ID);
+
+      // Assert
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.isPublic).toBe(false);
+    });
   });
 
   describe('happy path — with auto-cancel from template', () => {
