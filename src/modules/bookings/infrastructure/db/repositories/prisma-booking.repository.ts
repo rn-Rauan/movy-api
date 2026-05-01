@@ -244,4 +244,31 @@ export class PrismaBookingRepository implements BookingRepository {
       where: { tripInstanceId, status: 'ACTIVE' },
     });
   }
+
+  /**
+   * Returns a name + boarding-stop projection for all `ACTIVE` passengers of a trip instance.
+   *
+   * Uses a Prisma `select` with a user join — bypasses {@link BookingMapper} since no full
+   * domain entity is needed. Results are ordered by `boardingStop` ascending.
+   *
+   * @param tripInstanceId - UUID of the trip instance
+   * @returns Array of `{ name, boardingStop }` for every active booking on the trip
+   */
+  async findActivePassengersByTripInstanceId(
+    tripInstanceId: string,
+  ): Promise<Array<{ name: string; boardingStop: string }>> {
+    const rows = await this.db.enrollment.findMany({
+      where: { tripInstanceId, status: 'ACTIVE' },
+      select: {
+        boardingStop: true,
+        user: { select: { name: true } },
+      },
+      orderBy: { boardingStop: 'asc' },
+    });
+
+    return rows.map((r) => ({
+      name: r.user.name,
+      boardingStop: r.boardingStop,
+    }));
+  }
 }

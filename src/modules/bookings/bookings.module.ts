@@ -12,6 +12,7 @@ import {
   FindBookingsByOrganizationUseCase,
   FindBookingsByTripInstanceUseCase,
   FindBookingsByUserUseCase,
+  FindTripPassengersUseCase,
   GetBookingAvailabilityUseCase,
 } from './application/use-cases';
 import { BookingRepository } from './domain/interfaces';
@@ -42,6 +43,7 @@ import { BookingController } from './presentation/controllers/booking.controller
     FindBookingsByOrganizationUseCase,
     FindBookingsByTripInstanceUseCase,
     FindBookingsByUserUseCase,
+    FindTripPassengersUseCase,
     GetBookingAvailabilityUseCase,
     {
       provide: BookingRepository,

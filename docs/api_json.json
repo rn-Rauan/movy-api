@@ -1,0 +1,5039 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UserController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The user has been successfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new user (for dev only)",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "UserController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all users (for dev only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "UserController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Return current user profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get current user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "UserController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The user has been successfully updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update current user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_disableMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The user has been successfully disabled."
+          }
+        },
+        "summary": "Disable current user account",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/active": {
+      "get": {
+        "operationId": "UserController_findAllActive",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all active users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all active users (for dev only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "description": "This endpoint is deprecated. Please use GET /users/me instead.",
+        "operationId": "UserController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the user to find (for dev only)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a user by ID - DEPRECATED, use /users/me (for dev only)",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "description": "This endpoint is deprecated. Please use DELETE /users/me instead.",
+        "operationId": "UserController_disable",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the user to disable (for dev only)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user has been successfully disabled."
+          }
+        },
+        "summary": "Disable a user - DEPRECATED, use /users/me (for dev only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/organizations": {
+      "post": {
+        "operationId": "OrganizationController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The organization has been successfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new organization (dev only)",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "operationId": "OrganizationController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all organizations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all organizations of a tenant (for ADMIN)",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/me": {
+      "get": {
+        "operationId": "OrganizationController_findByUser",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all organizations associated with the current user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all organizations the authenticated user belongs to",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/active": {
+      "get": {
+        "operationId": "OrganizationController_findAllActive",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all active organizations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all active organizations",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{id}": {
+      "get": {
+        "operationId": "OrganizationController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization to find",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find an organization by ID (for ADMIN)",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "OrganizationController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization to update",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The organization has been successfully updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update an existing organization (for ADMIN)",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "delete": {
+        "operationId": "OrganizationController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization to disable",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The organization has been successfully disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Disable an organization (for ADMIN)",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/public/organizations/{slug}": {
+      "get": {
+        "description": "Resolves an organisation from its human-readable slug. Returns 404 for unknown slugs and for soft-deleted (`INACTIVE`) organisations.",
+        "operationId": "PublicOrganizationController_findBySlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "URL-friendly identifier generated when the organisation was created",
+            "schema": {
+              "example": "transport-xpto",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The active organisation matching the given slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active organisation found for the provided slug."
+          }
+        },
+        "summary": "Find active organisation by URL slug (no auth required)",
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/memberships/me/role/{organizationId}": {
+      "get": {
+        "operationId": "MembershipController_getMyRole",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the role of the current user in the organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get the role of the authenticated user within an organization",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/memberships": {
+      "post": {
+        "operationId": "MembershipController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The membership has been successfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new membership (for ADMIN)",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/memberships/user/{userId}": {
+      "get": {
+        "operationId": "MembershipController_findByUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return user memberships.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all memberships for a user (for ADMIN)",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/memberships/organization/{organizationId}": {
+      "get": {
+        "operationId": "MembershipController_findByOrganization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return organization memberships.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all memberships for an organization (for ADMIN)",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/memberships/{userId}/{roleId}/{organizationId}": {
+      "get": {
+        "operationId": "MembershipController_findByCompositeKey",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the role",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a membership by composite key (for ADMIN)",
+        "tags": [
+          "memberships"
+        ]
+      },
+      "delete": {
+        "operationId": "MembershipController_remove",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the role",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The membership has been successfully removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Remove a membership (soft delete) (for ADMIN)",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/memberships/{userId}/{roleId}/{organizationId}/restore": {
+      "patch": {
+        "operationId": "MembershipController_restore",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the role",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The membership has been successfully restored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Restore a removed membership (for ADMIN)",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/drivers": {
+      "post": {
+        "operationId": "DriverController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDriverDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Driver profile created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new driver profile",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/drivers/me": {
+      "get": {
+        "operationId": "DriverController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Return current driver profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get current driver profile",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/drivers/lookup": {
+      "get": {
+        "operationId": "DriverController_lookup",
+        "parameters": [
+          {
+            "name": "email",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "joao@email.com",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cnh",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "123456789",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver profile found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverLookupResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Lookup driver profile by email and CNH (Admin only)",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/drivers/organization/{organizationId}": {
+      "get": {
+        "operationId": "DriverController_findByOrganization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all drivers in organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find all drivers in an organization (for ADMIN)",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/drivers/{id}": {
+      "get": {
+        "operationId": "DriverController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the driver to find",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the driver.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a driver by ID (for ADMIN)",
+        "tags": [
+          "drivers"
+        ]
+      },
+      "put": {
+        "operationId": "DriverController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the driver to update",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDriverDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The driver has been successfully updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update a driver",
+        "tags": [
+          "drivers"
+        ]
+      },
+      "delete": {
+        "operationId": "DriverController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the driver to delete",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The driver has been successfully deleted."
+          }
+        },
+        "summary": "Delete a driver (for ADMIN)",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/subscriptions": {
+      "post": {
+        "operationId": "SubscriptionController_subscribe",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Subscribe organization to a plan",
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "get": {
+        "operationId": "SubscriptionController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] List all subscriptions for organization",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/subscriptions/{id}/cancel": {
+      "patch": {
+        "operationId": "SubscriptionController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Cancel a subscription (takes effect at expiresAt)",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/subscriptions/active": {
+      "get": {
+        "operationId": "SubscriptionController_findActive",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Get active subscription for organization",
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/plans": {
+      "post": {
+        "operationId": "PlanController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a plan (dev only)",
+        "tags": [
+          "plans"
+        ]
+      },
+      "get": {
+        "operationId": "PlanController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all plans",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/plans/{id}": {
+      "patch": {
+        "operationId": "PlanController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update a plan (dev only)",
+        "tags": [
+          "plans"
+        ]
+      },
+      "get": {
+        "operationId": "PlanController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a plan by id",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/plans/{id}/deactivate": {
+      "patch": {
+        "operationId": "PlanController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Deactivate a plan (dev only)",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User logged in successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "summary": "Login user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User already exists"
+          }
+        },
+        "summary": "Register new user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/register-organization": {
+      "post": {
+        "operationId": "AuthController_registerOrganization",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOrganizationWithAdminDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User and organization registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User or Organization already exists"
+          }
+        },
+        "summary": "Register new user and organization (Atomic)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/setup-organization": {
+      "post": {
+        "operationId": "AuthController_setupOrganization",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Organization created and new JWT issued with org context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Organization already exists"
+          }
+        },
+        "summary": "Create an organization for an already-authenticated user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid refresh token"
+          }
+        },
+        "summary": "Refresh access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Logged out successfully"
+          }
+        },
+        "summary": "Revoke refresh token (logout)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/vehicles/organization/{organizationId}": {
+      "post": {
+        "operationId": "VehicleController_create",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVehicleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vehicle registered successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Register a new vehicle for an organization",
+        "tags": [
+          "vehicles"
+        ]
+      },
+      "get": {
+        "operationId": "VehicleController_findByOrganization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of vehicles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] List all vehicles in an organization",
+        "tags": [
+          "vehicles"
+        ]
+      }
+    },
+    "/vehicles/{id}": {
+      "get": {
+        "operationId": "VehicleController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the vehicle",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Find a vehicle by ID",
+        "tags": [
+          "vehicles"
+        ]
+      },
+      "put": {
+        "operationId": "VehicleController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the vehicle to update",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVehicleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vehicle updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Update a vehicle",
+        "tags": [
+          "vehicles"
+        ]
+      },
+      "delete": {
+        "operationId": "VehicleController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the vehicle to deactivate",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle deactivated successfully."
+          }
+        },
+        "summary": "[ADMIN] Deactivate a vehicle (soft delete)",
+        "tags": [
+          "vehicles"
+        ]
+      }
+    },
+    "/trip-templates/organization/{organizationId}": {
+      "post": {
+        "operationId": "TripTemplateController_create",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTripTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Trip template created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripTemplateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Create a new trip template for an organization",
+        "tags": [
+          "trip-templates"
+        ]
+      },
+      "get": {
+        "operationId": "TripTemplateController_findByOrganization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of trip templates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] List all trip templates in an organization",
+        "tags": [
+          "trip-templates"
+        ]
+      }
+    },
+    "/trip-templates/{id}": {
+      "get": {
+        "operationId": "TripTemplateController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip template",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip template found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripTemplateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Find a trip template by ID",
+        "tags": [
+          "trip-templates"
+        ]
+      },
+      "put": {
+        "operationId": "TripTemplateController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip template to update",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTripTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip template updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripTemplateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Update a trip template",
+        "tags": [
+          "trip-templates"
+        ]
+      },
+      "delete": {
+        "operationId": "TripTemplateController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip template to deactivate",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip template deactivated successfully."
+          }
+        },
+        "summary": "[ADMIN] Deactivate a trip template (soft delete)",
+        "tags": [
+          "trip-templates"
+        ]
+      }
+    },
+    "/trip-instances/organization/{organizationId}": {
+      "post": {
+        "operationId": "TripInstanceController_create",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTripInstanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Trip instance created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripInstanceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Create a new trip instance from a trip template",
+        "tags": [
+          "trip-instances"
+        ]
+      },
+      "get": {
+        "operationId": "TripInstanceController_findByOrganization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of trip instances.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] List all trip instances in an organization",
+        "tags": [
+          "trip-instances"
+        ]
+      }
+    },
+    "/trip-instances/template/{templateId}": {
+      "get": {
+        "operationId": "TripInstanceController_findByTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip template",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of trip instances for the template.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] List all trip instances for a given template",
+        "tags": [
+          "trip-instances"
+        ]
+      }
+    },
+    "/trip-instances/{id}": {
+      "get": {
+        "operationId": "TripInstanceController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip instance found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripInstanceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a trip instance by ID",
+        "tags": [
+          "trip-instances"
+        ]
+      }
+    },
+    "/trip-instances/{id}/status": {
+      "patch": {
+        "operationId": "TripInstanceController_transitionStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionTripInstanceStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip instance status updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripInstanceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Transition trip instance to a new lifecycle status",
+        "tags": [
+          "trip-instances"
+        ]
+      }
+    },
+    "/trip-instances/{id}/driver": {
+      "put": {
+        "operationId": "TripInstanceController_assignDriver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "driverId",
+            "required": false,
+            "in": "query",
+            "description": "UUID of the driver to assign, omit to unassign",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Driver assignment updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripInstanceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Assign or unassign a driver to a trip instance",
+        "tags": [
+          "trip-instances"
+        ]
+      }
+    },
+    "/trip-instances/{id}/vehicle": {
+      "put": {
+        "operationId": "TripInstanceController_assignVehicle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vehicleId",
+            "required": false,
+            "in": "query",
+            "description": "UUID of the vehicle to assign, omit to unassign",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle assignment updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripInstanceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Assign or unassign a vehicle to a trip instance",
+        "tags": [
+          "trip-instances"
+        ]
+      }
+    },
+    "/public/trip-instances": {
+      "get": {
+        "description": "Returns SCHEDULED and CONFIRMED instances from isPublic=true templates, ordered by departure time. Optionally filter by organizationId.",
+        "operationId": "PublicTripInstanceController_findPublic",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": false,
+            "in": "query",
+            "description": "Optional org UUID to scope to a single organisation",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of public trip instances.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List public trips (home page)",
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/public/trip-instances/{id}": {
+      "get": {
+        "description": "Returns a single SCHEDULED or CONFIRMED trip instance without authentication. Returns 404 if the instance does not exist or is not in a bookable status.",
+        "operationId": "PublicTripInstanceController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Trip instance UUID",
+            "schema": {
+              "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip instance details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTripInstanceResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Trip instance not found or not bookable."
+          }
+        },
+        "summary": "Get public trip instance by ID",
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/public/trip-instances/org/{slug}": {
+      "get": {
+        "description": "Returns all SCHEDULED and CONFIRMED instances for the organisation identified by :slug, regardless of isPublic. Used for org-specific trip listing pages shared via a link (e.g. /trips/org-x).",
+        "operationId": "PublicTripInstanceController_findByOrgSlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Organisation slug",
+            "schema": {
+              "example": "org-x",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of trip instances for the organisation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List org trips by slug (org-specific page)",
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/bookings": {
+      "post": {
+        "operationId": "BookingController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Enroll authenticated user in a trip instance",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/organization/{organizationId}": {
+      "get": {
+        "operationId": "BookingController_findByOrganization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the organization",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of bookings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all bookings in an organization (paginated)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/user": {
+      "get": {
+        "operationId": "BookingController_findByUser",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter bookings by status",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "INACTIVE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of authenticated user's bookings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List bookings of the authenticated user (paginated)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/trip-instance/{tripInstanceId}": {
+      "get": {
+        "operationId": "BookingController_findByTripInstance",
+        "parameters": [
+          {
+            "name": "tripInstanceId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of bookings for the trip instance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all bookings for a given trip instance (paginated)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/availability/{tripInstanceId}": {
+      "get": {
+        "operationId": "BookingController_getAvailability",
+        "parameters": [
+          {
+            "name": "tripInstanceId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Availability data for the trip instance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingAvailabilityResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check available slots for a trip instance before booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "operationId": "BookingController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the booking",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a booking by ID",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/details": {
+      "get": {
+        "operationId": "BookingController_findDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the booking",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking with trip details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingDetailsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find a booking with enriched trip instance data (departure, status, available slots)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/cancel": {
+      "patch": {
+        "operationId": "BookingController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the booking",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cancel a booking (soft delete — status INACTIVE)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/confirm-presence": {
+      "patch": {
+        "operationId": "BookingController_confirmPresence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the booking",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Presence confirmed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Confirm passenger presence for a booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/payments/{id}": {
+      "get": {
+        "operationId": "PaymentController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Get payment by id",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/payments/{id}/confirm": {
+      "patch": {
+        "operationId": "PaymentController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Confirm a pending payment (simulated)",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/payments/{id}/fail": {
+      "patch": {
+        "operationId": "PaymentController_fail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Fail a pending payment (simulated)",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/organizations/{organizationId}/payments": {
+      "get": {
+        "operationId": "PaymentController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] List payments for organization",
+        "tags": [
+          "payments"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Movy API",
+    "description": "The Movy API documentation",
+    "version": "1.0",
+    "contact": {
+
+    }
+  },
+  "tags": [
+    {
+      "name": "users",
+      "description": ""
+    },
+    {
+      "name": "organizations",
+      "description": ""
+    },
+    {
+      "name": "auth",
+      "description": ""
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "The name of the user"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@example.com",
+            "description": "The email of the user"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "The password of the user",
+            "minLength": 8
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11999999999",
+            "description": "The telephone number of the user"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "telephone"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-v4"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@example.com"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11999999999"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "telephone",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@example.com"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11999999999"
+          },
+          "password": {
+            "type": "string",
+            "example": "newpassword123",
+            "minLength": 8
+          }
+        }
+      },
+      "PaginatedDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 100,
+            "description": "Total de itens"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Página atual"
+          },
+          "limit": {
+            "type": "number",
+            "example": 10,
+            "description": "Limite de itens por página"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 10,
+            "description": "Total de páginas"
+          }
+        },
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "CreateOrganizationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "My Organization"
+          },
+          "email": {
+            "type": "string",
+            "example": "contact@myorg.com"
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "12345678000199"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11999999999"
+          },
+          "slug": {
+            "type": "string",
+            "example": "my-org"
+          },
+          "address": {
+            "type": "string",
+            "example": "Rua Exemplo, 123"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "cnpj",
+          "telephone",
+          "slug",
+          "address"
+        ]
+      },
+      "OrganizationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-v4"
+          },
+          "name": {
+            "type": "string",
+            "example": "My Organization"
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "12345678000199"
+          },
+          "email": {
+            "type": "string",
+            "example": "contact@myorg.com"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11999999999"
+          },
+          "slug": {
+            "type": "string",
+            "example": "my-org"
+          },
+          "address": {
+            "type": "string",
+            "example": "Rua Exemplo, 123"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "cnpj",
+          "email",
+          "telephone",
+          "slug",
+          "address",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateOrganizationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "My Updated Organization"
+          },
+          "email": {
+            "type": "string",
+            "example": "newcontact@myorg.com"
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "12345678000199"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11988888888"
+          },
+          "slug": {
+            "type": "string",
+            "example": "new-slug"
+          },
+          "address": {
+            "type": "string",
+            "example": "Rua Nova, 456"
+          }
+        }
+      },
+      "RoleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "DRIVER"
+            ],
+            "example": "DRIVER"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "CreateMembershipDto": {
+        "type": "object",
+        "properties": {
+          "userEmail": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "roleId": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "userEmail",
+          "roleId"
+        ]
+      },
+      "MembershipResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "roleId": {
+            "type": "number",
+            "example": 1
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "assignedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "removedAt": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "userId",
+          "roleId",
+          "organizationId",
+          "assignedAt",
+          "removedAt"
+        ]
+      },
+      "CreateDriverDto": {
+        "type": "object",
+        "properties": {
+          "cnh": {
+            "type": "string",
+            "example": "123456789",
+            "description": "Driver license number (CNH)",
+            "minLength": 9,
+            "maxLength": 12
+          },
+          "cnhCategory": {
+            "type": "string",
+            "example": "B",
+            "description": "Driver license category (A, B, C, D, E)",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ]
+          },
+          "cnhExpiresAt": {
+            "type": "string",
+            "example": "2028-12-31",
+            "description": "CNH expiration date (YYYY-MM-DD)"
+          }
+        },
+        "required": [
+          "cnh",
+          "cnhCategory",
+          "cnhExpiresAt"
+        ]
+      },
+      "DriverResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "The unique identifier of the driver"
+          },
+          "userId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "The user ID associated with this driver"
+          },
+          "cnh": {
+            "type": "string",
+            "example": "123456789",
+            "description": "Driver license number (CNH)"
+          },
+          "cnhCategory": {
+            "type": "string",
+            "example": "B",
+            "description": "Driver license category"
+          },
+          "cnhExpiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2028-12-31T00:00:00.000Z",
+            "description": "CNH expiration date"
+          },
+          "driverStatus": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Current status of the driver"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-04-11T10:30:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-04-11T10:30:00.000Z",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "cnh",
+          "cnhCategory",
+          "cnhExpiresAt",
+          "driverStatus",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DriverLookupResponseDto": {
+        "type": "object",
+        "properties": {
+          "driverId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "The driver profile ID"
+          },
+          "userId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "The user ID (needed to create membership)"
+          },
+          "userName": {
+            "type": "string",
+            "example": "João Silva"
+          },
+          "userEmail": {
+            "type": "string",
+            "example": "joao@email.com"
+          },
+          "cnhCategory": {
+            "type": "string",
+            "example": "B"
+          },
+          "cnhExpiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2028-12-31T00:00:00.000Z"
+          },
+          "driverStatus": {
+            "type": "string",
+            "example": "ACTIVE",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SUSPENDED"
+            ]
+          }
+        },
+        "required": [
+          "driverId",
+          "userId",
+          "userName",
+          "userEmail",
+          "cnhCategory",
+          "cnhExpiresAt",
+          "driverStatus"
+        ]
+      },
+      "UpdateDriverDto": {
+        "type": "object",
+        "properties": {
+          "cnh": {
+            "type": "string",
+            "example": "123456789",
+            "description": "Driver license number (CNH)",
+            "minLength": 9,
+            "maxLength": 12
+          },
+          "cnhCategory": {
+            "type": "string",
+            "example": "B",
+            "description": "Driver license category (A, B, C, D, E)",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ]
+          },
+          "cnhExpiresAt": {
+            "type": "string",
+            "example": "2028-12-31",
+            "description": "CNH expiration date (YYYY-MM-DD)"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Driver status",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "SUSPENDED"
+            ]
+          }
+        }
+      },
+      "CreateSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "number",
+            "example": 2,
+            "description": "ID of the plan to subscribe to"
+          }
+        },
+        "required": [
+          "planId"
+        ]
+      },
+      "SubscriptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "CANCELED",
+              "PAST_DUE"
+            ]
+          },
+          "startDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "planId",
+          "status",
+          "startDate",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "BASIC",
+            "enum": [
+              "FREE",
+              "BASIC",
+              "PRO",
+              "PREMIUM"
+            ]
+          },
+          "price": {
+            "type": "number",
+            "example": 49.9,
+            "description": "Monthly price in BRL"
+          },
+          "maxVehicles": {
+            "type": "number",
+            "example": 2
+          },
+          "maxDrivers": {
+            "type": "number",
+            "example": 5
+          },
+          "maxMonthlyTrips": {
+            "type": "number",
+            "example": 60
+          },
+          "durationDays": {
+            "type": "number",
+            "example": 30,
+            "description": "Subscription duration in days"
+          }
+        },
+        "required": [
+          "name",
+          "price",
+          "maxVehicles",
+          "maxDrivers",
+          "maxMonthlyTrips",
+          "durationDays"
+        ]
+      },
+      "PlanResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "BASIC",
+              "PRO",
+              "PREMIUM"
+            ]
+          },
+          "price": {
+            "type": "number"
+          },
+          "maxVehicles": {
+            "type": "number"
+          },
+          "maxDrivers": {
+            "type": "number"
+          },
+          "maxMonthlyTrips": {
+            "type": "number"
+          },
+          "durationDays": {
+            "type": "number"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price",
+          "maxVehicles",
+          "maxDrivers",
+          "maxMonthlyTrips",
+          "durationDays",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdatePlanDto": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "number",
+            "example": 49.9,
+            "description": "Monthly price in BRL"
+          },
+          "maxVehicles": {
+            "type": "number",
+            "example": 2
+          },
+          "maxDrivers": {
+            "type": "number",
+            "example": 5
+          },
+          "maxMonthlyTrips": {
+            "type": "number",
+            "example": 60
+          },
+          "durationDays": {
+            "type": "number",
+            "example": 30,
+            "description": "Subscription duration in days"
+          }
+        }
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "john@example.com",
+            "description": "The email of the user"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "The password of the user"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "TokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "JWT access token"
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "JWT refresh token"
+          },
+          "user": {
+            "type": "object",
+            "example": {
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "name": "John Doe",
+              "email": "john@example.com"
+            },
+            "description": "User information"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ]
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "The name of the user"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@example.com",
+            "description": "The email of the user"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "The password of the user",
+            "minLength": 8
+          },
+          "telephone": {
+            "type": "string",
+            "example": "11999999999",
+            "description": "The telephone number of the user"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "telephone"
+        ]
+      },
+      "RegisterOrganizationWithAdminDto": {
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "The name of the user (Admin)"
+          },
+          "userEmail": {
+            "type": "string",
+            "example": "admin@mycompany.com",
+            "description": "The email of the user (Admin)"
+          },
+          "userPassword": {
+            "type": "string",
+            "example": "password123",
+            "description": "The password of the user (Admin)",
+            "minLength": 8
+          },
+          "userTelephone": {
+            "type": "string",
+            "example": "11999999999",
+            "description": "The telephone number of the user (Admin)"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "My Company",
+            "description": "The name of the organization"
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "12345678000199",
+            "description": "The CNPJ of the organization"
+          },
+          "organizationEmail": {
+            "type": "string",
+            "example": "contact@mycompany.com",
+            "description": "The contact email of the organization"
+          },
+          "organizationTelephone": {
+            "type": "string",
+            "example": "11888888888",
+            "description": "The contact telephone of the organization"
+          },
+          "address": {
+            "type": "string",
+            "example": "Main St, 123",
+            "description": "The address of the organization"
+          },
+          "slug": {
+            "type": "string",
+            "example": "my-company",
+            "description": "The slug for the organization URL"
+          }
+        },
+        "required": [
+          "userName",
+          "userEmail",
+          "userPassword",
+          "userTelephone",
+          "organizationName",
+          "cnpj",
+          "organizationEmail",
+          "organizationTelephone",
+          "address",
+          "slug"
+        ]
+      },
+      "SetupOrganizationDto": {
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string",
+            "example": "My Company"
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "12345678000199"
+          },
+          "organizationEmail": {
+            "type": "string",
+            "example": "contact@mycompany.com"
+          },
+          "organizationTelephone": {
+            "type": "string",
+            "example": "11888888888"
+          },
+          "address": {
+            "type": "string",
+            "example": "Main St, 123"
+          },
+          "slug": {
+            "type": "string",
+            "example": "my-company"
+          }
+        },
+        "required": [
+          "organizationName",
+          "cnpj",
+          "organizationEmail",
+          "organizationTelephone",
+          "address",
+          "slug"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "The refresh token issued during login"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "The refresh token to revoke"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "CreateVehicleDto": {
+        "type": "object",
+        "properties": {
+          "plate": {
+            "type": "string",
+            "example": "ABC1D23",
+            "description": "Brazilian vehicle plate (old: ABC1234 or Mercosul: ABC1D23)",
+            "maxLength": 7
+          },
+          "model": {
+            "type": "string",
+            "example": "Mercedes-Benz Sprinter",
+            "description": "Vehicle model description"
+          },
+          "type": {
+            "type": "string",
+            "example": "VAN",
+            "description": "Vehicle type",
+            "enum": [
+              "VAN",
+              "BUS",
+              "MINIBUS",
+              "CAR"
+            ]
+          },
+          "maxCapacity": {
+            "type": "number",
+            "example": 15,
+            "description": "Maximum number of passengers",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "plate",
+          "model",
+          "type",
+          "maxCapacity"
+        ]
+      },
+      "VehicleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Unique identifier of the vehicle"
+          },
+          "plate": {
+            "type": "string",
+            "example": "ABC1D23",
+            "description": "Vehicle plate"
+          },
+          "model": {
+            "type": "string",
+            "example": "Mercedes-Benz Sprinter",
+            "description": "Vehicle model"
+          },
+          "type": {
+            "type": "string",
+            "example": "VAN",
+            "description": "Vehicle type",
+            "enum": [
+              "VAN",
+              "BUS",
+              "MINIBUS",
+              "CAR"
+            ]
+          },
+          "maxCapacity": {
+            "type": "number",
+            "example": 15,
+            "description": "Maximum passenger capacity"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Current vehicle status",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Organization that owns this vehicle"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-04-17T10:30:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-04-17T10:30:00.000Z",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "plate",
+          "model",
+          "type",
+          "maxCapacity",
+          "status",
+          "organizationId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateVehicleDto": {
+        "type": "object",
+        "properties": {
+          "plate": {
+            "type": "string",
+            "example": "ABC1D23",
+            "description": "Brazilian vehicle plate (old: ABC1234 or Mercosul: ABC1D23)"
+          },
+          "model": {
+            "type": "string",
+            "example": "Mercedes-Benz Sprinter",
+            "description": "Vehicle model description"
+          },
+          "type": {
+            "type": "string",
+            "example": "VAN",
+            "description": "Vehicle type",
+            "enum": [
+              "VAN",
+              "BUS",
+              "MINIBUS",
+              "CAR"
+            ]
+          },
+          "maxCapacity": {
+            "type": "number",
+            "example": 15,
+            "description": "Maximum number of passengers",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Vehicle status",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          }
+        }
+      },
+      "CreateTripTemplateDto": {
+        "type": "object",
+        "properties": {
+          "departurePoint": {
+            "type": "string",
+            "example": "Terminal Rodoviário",
+            "description": "Starting location of the trip",
+            "maxLength": 255
+          },
+          "destination": {
+            "type": "string",
+            "example": "Universidade Federal",
+            "description": "Final destination of the trip",
+            "maxLength": 255
+          },
+          "stops": {
+            "example": [
+              "Terminal Rodoviário",
+              "Praça Central",
+              "Universidade Federal"
+            ],
+            "description": "Ordered list of stops (min 2)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shift": {
+            "type": "string",
+            "example": "MORNING",
+            "description": "Shift classification for the trip",
+            "enum": [
+              "MORNING",
+              "AFTERNOON",
+              "EVENING"
+            ]
+          },
+          "frequency": {
+            "type": "array",
+            "example": [
+              "MONDAY",
+              "WEDNESDAY",
+              "FRIDAY"
+            ],
+            "description": "Days of the week when the trip recurs",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SUNDAY",
+                "MONDAY",
+                "TUESDAY",
+                "WEDNESDAY",
+                "THURSDAY",
+                "FRIDAY",
+                "SATURDAY"
+              ]
+            }
+          },
+          "priceOneWay": {
+            "type": "number",
+            "example": 12.5,
+            "description": "Price for one-way enrollment (BRL)"
+          },
+          "priceReturn": {
+            "type": "number",
+            "example": 12.5,
+            "description": "Price for return enrollment (BRL)"
+          },
+          "priceRoundTrip": {
+            "type": "number",
+            "example": 20,
+            "description": "Price for round-trip enrollment (BRL)"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the trip is visible to all organizations"
+          },
+          "isRecurring": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the trip recurs on the defined frequency"
+          },
+          "autoCancelEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether auto-cancel based on minimum revenue is enabled"
+          },
+          "minRevenue": {
+            "type": "number",
+            "example": 100,
+            "description": "Minimum revenue threshold for auto-cancel (BRL). Required when autoCancelEnabled is true."
+          },
+          "autoCancelOffset": {
+            "type": "number",
+            "example": 60,
+            "description": "Minutes before departure to evaluate auto-cancel. Required when autoCancelEnabled is true."
+          }
+        },
+        "required": [
+          "departurePoint",
+          "destination",
+          "stops",
+          "shift"
+        ]
+      },
+      "TripTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Unique identifier of the trip template"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Organization that owns this trip template"
+          },
+          "departurePoint": {
+            "type": "string",
+            "example": "Terminal Rodoviário",
+            "description": "Starting location of the trip"
+          },
+          "destination": {
+            "type": "string",
+            "example": "Universidade Federal",
+            "description": "Final destination of the trip"
+          },
+          "stops": {
+            "example": [
+              "Terminal Rodoviário",
+              "Praça Central",
+              "Universidade Federal"
+            ],
+            "description": "Ordered list of stops",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shift": {
+            "type": "string",
+            "example": "MORNING",
+            "description": "Shift classification",
+            "enum": [
+              "MORNING",
+              "AFTERNOON",
+              "EVENING"
+            ]
+          },
+          "frequency": {
+            "type": "array",
+            "example": [
+              "MONDAY",
+              "WEDNESDAY",
+              "FRIDAY"
+            ],
+            "description": "Recurrence days",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SUNDAY",
+                "MONDAY",
+                "TUESDAY",
+                "WEDNESDAY",
+                "THURSDAY",
+                "FRIDAY",
+                "SATURDAY"
+              ]
+            }
+          },
+          "priceOneWay": {
+            "type": "object",
+            "example": 12.5,
+            "description": "Price for one-way enrollment (BRL)",
+            "nullable": true
+          },
+          "priceReturn": {
+            "type": "object",
+            "example": 12.5,
+            "description": "Price for return enrollment (BRL)",
+            "nullable": true
+          },
+          "priceRoundTrip": {
+            "type": "object",
+            "example": 22.99,
+            "description": "Price for round-trip enrollment (BRL)",
+            "nullable": true
+          },
+          "isPublic": {
+            "type": "boolean",
+            "example": false,
+            "description": "Visible to all organizations"
+          },
+          "isRecurring": {
+            "type": "boolean",
+            "example": true,
+            "description": "Recurs on defined frequency"
+          },
+          "autoCancelEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Auto-cancel based on minimum revenue"
+          },
+          "minRevenue": {
+            "type": "object",
+            "example": 100.99,
+            "description": "Minimum revenue threshold (BRL)",
+            "nullable": true
+          },
+          "autoCancelOffset": {
+            "type": "object",
+            "example": 60,
+            "description": "Minutes before departure to evaluate auto-cancel",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Current template status"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-04-17T10:30:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-04-17T10:30:00.000Z",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "departurePoint",
+          "destination",
+          "stops",
+          "shift",
+          "frequency",
+          "isPublic",
+          "isRecurring",
+          "autoCancelEnabled",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateTripTemplateDto": {
+        "type": "object",
+        "properties": {
+          "departurePoint": {
+            "type": "string",
+            "example": "Terminal Rodoviário",
+            "description": "Starting location of the trip",
+            "maxLength": 255
+          },
+          "destination": {
+            "type": "string",
+            "example": "Universidade Federal",
+            "description": "Final destination of the trip",
+            "maxLength": 255
+          },
+          "stops": {
+            "example": [
+              "Terminal Rodoviário",
+              "Praça Central",
+              "Universidade Federal"
+            ],
+            "description": "Ordered list of stops (min 2)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shift": {
+            "type": "string",
+            "example": "MORNING",
+            "description": "Shift classification for the trip",
+            "enum": [
+              "MORNING",
+              "AFTERNOON",
+              "EVENING"
+            ]
+          },
+          "frequency": {
+            "type": "array",
+            "example": [
+              "MONDAY",
+              "WEDNESDAY"
+            ],
+            "description": "Days of the week when the trip recurs",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SUNDAY",
+                "MONDAY",
+                "TUESDAY",
+                "WEDNESDAY",
+                "THURSDAY",
+                "FRIDAY",
+                "SATURDAY"
+              ]
+            }
+          },
+          "priceOneWay": {
+            "type": "number",
+            "example": 12.5,
+            "description": "Price for one-way enrollment (BRL)"
+          },
+          "priceReturn": {
+            "type": "number",
+            "example": 12.5,
+            "description": "Price for return enrollment (BRL)"
+          },
+          "priceRoundTrip": {
+            "type": "number",
+            "example": 20,
+            "description": "Price for round-trip enrollment (BRL)"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the trip is visible to all organizations"
+          },
+          "isRecurring": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the trip recurs on the defined frequency"
+          },
+          "autoCancelEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether auto-cancel based on minimum revenue is enabled"
+          },
+          "minRevenue": {
+            "type": "number",
+            "example": 100,
+            "description": "Minimum revenue threshold for auto-cancel (BRL)"
+          },
+          "autoCancelOffset": {
+            "type": "number",
+            "example": 60,
+            "description": "Minutes before departure to evaluate auto-cancel"
+          }
+        }
+      },
+      "CreateTripInstanceDto": {
+        "type": "object",
+        "properties": {
+          "tripTemplateId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the trip template this instance is based on"
+          },
+          "departureTime": {
+            "type": "string",
+            "example": "2026-05-10T07:30:00.000Z",
+            "description": "Scheduled departure date and time (ISO 8601)"
+          },
+          "arrivalEstimate": {
+            "type": "string",
+            "example": "2026-05-10T08:15:00.000Z",
+            "description": "Estimated arrival date and time (ISO 8601) — must be after departureTime"
+          },
+          "totalCapacity": {
+            "type": "number",
+            "example": 40,
+            "description": "Snapshot of the vehicle total seat capacity at scheduling time"
+          },
+          "driverId": {
+            "type": "object",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the assigned driver",
+            "nullable": true
+          },
+          "vehicleId": {
+            "type": "object",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the assigned vehicle",
+            "nullable": true
+          },
+          "minRevenue": {
+            "type": "object",
+            "example": 150,
+            "description": "Override for minimum revenue threshold (BRL). Defaults to template value if autoCancelEnabled.",
+            "nullable": true
+          },
+          "initialStatus": {
+            "type": "string",
+            "example": "SCHEDULED",
+            "description": "Initial status after creation. Use SCHEDULED to publish the trip immediately (requires driverId and vehicleId). Defaults to DRAFT.",
+            "enum": [
+              "DRAFT",
+              "SCHEDULED"
+            ],
+            "default": "DRAFT"
+          }
+        },
+        "required": [
+          "tripTemplateId",
+          "departureTime",
+          "arrivalEstimate",
+          "totalCapacity"
+        ]
+      },
+      "TripInstanceResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Unique identifier of the trip instance"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Organization that owns this trip instance"
+          },
+          "tripTemplateId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Trip template this instance was created from"
+          },
+          "driverId": {
+            "type": "object",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Assigned driver UUID, or null if not yet assigned",
+            "nullable": true
+          },
+          "vehicleId": {
+            "type": "object",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Assigned vehicle UUID, or null if not yet assigned",
+            "nullable": true
+          },
+          "tripStatus": {
+            "type": "string",
+            "example": "DRAFT",
+            "description": "Current lifecycle status of the trip instance",
+            "enum": [
+              "DRAFT",
+              "SCHEDULED",
+              "CONFIRMED",
+              "IN_PROGRESS",
+              "FINISHED",
+              "CANCELED"
+            ]
+          },
+          "minRevenue": {
+            "type": "object",
+            "example": 150,
+            "description": "Minimum revenue threshold for auto-cancel evaluation (BRL)",
+            "nullable": true
+          },
+          "autoCancelAt": {
+            "type": "object",
+            "example": "2026-05-10T06:30:00.000Z",
+            "description": "Timestamp at which auto-cancel is evaluated (before departure)",
+            "nullable": true
+          },
+          "forceConfirm": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the admin forced confirmation bypassing revenue checks"
+          },
+          "totalCapacity": {
+            "type": "number",
+            "example": 40,
+            "description": "Snapshot of vehicle seat capacity at scheduling time"
+          },
+          "departureTime": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-10T07:30:00.000Z",
+            "description": "Scheduled departure date and time"
+          },
+          "arrivalEstimate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-10T08:15:00.000Z",
+            "description": "Estimated arrival date and time"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "tripTemplateId",
+          "tripStatus",
+          "forceConfirm",
+          "totalCapacity",
+          "departureTime",
+          "arrivalEstimate",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TransitionTripInstanceStatusDto": {
+        "type": "object",
+        "properties": {
+          "newStatus": {
+            "type": "string",
+            "example": "SCHEDULED",
+            "description": "The new status to transition the trip instance to",
+            "enum": [
+              "DRAFT",
+              "SCHEDULED",
+              "CONFIRMED",
+              "IN_PROGRESS",
+              "FINISHED",
+              "CANCELED"
+            ]
+          }
+        },
+        "required": [
+          "newStatus"
+        ]
+      },
+      "PublicTripInstanceResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Unique identifier of the trip instance"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Unique identifier of the organization that owns the trip instance"
+          },
+          "tripTemplateId": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Unique identifier of the trip template that defines the trip instance"
+          },
+          "tripStatus": {
+            "type": "string",
+            "example": "SCHEDULED",
+            "description": "Current status of the trip instance"
+          },
+          "departureTime": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2023-01-01T10:00:00Z",
+            "description": "Scheduled departure time of the trip instance"
+          },
+          "arrivalEstimate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2023-01-01T12:00:00Z",
+            "description": "Estimated arrival time of the trip instance"
+          },
+          "totalCapacity": {
+            "type": "number",
+            "example": 20,
+            "description": "Total capacity of the trip instance"
+          },
+          "departurePoint": {
+            "type": "string",
+            "example": "Av. Paulista, 1000",
+            "description": "Departure point of the trip instance"
+          },
+          "destination": {
+            "type": "string",
+            "example": "Av. Faria Lima, 500",
+            "description": "Destination of the trip instance"
+          },
+          "priceOneWay": {
+            "type": "object",
+            "example": 15.5,
+            "description": "Price for a one-way trip"
+          },
+          "priceReturn": {
+            "type": "object",
+            "example": 15.5,
+            "description": "Price for a return trip"
+          },
+          "priceRoundTrip": {
+            "type": "object",
+            "example": 28,
+            "description": "Price for a round-trip"
+          },
+          "isRecurring": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the trip instance is recurring"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "tripTemplateId",
+          "tripStatus",
+          "departureTime",
+          "arrivalEstimate",
+          "totalCapacity",
+          "departurePoint",
+          "destination",
+          "isRecurring"
+        ]
+      },
+      "CreateBookingDto": {
+        "type": "object",
+        "properties": {
+          "tripInstanceId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the trip instance to enroll in"
+          },
+          "enrollmentType": {
+            "type": "string",
+            "example": "ONE_WAY",
+            "description": "Type of enrollment",
+            "enum": [
+              "ONE_WAY",
+              "RETURN",
+              "ROUND_TRIP"
+            ]
+          },
+          "boardingStop": {
+            "type": "string",
+            "example": "A2",
+            "description": "Boarding stop identifier"
+          },
+          "alightingStop": {
+            "type": "string",
+            "example": "B5",
+            "description": "Alighting stop identifier"
+          },
+          "method": {
+            "type": "string",
+            "example": "PIX",
+            "description": "Payment method for this booking",
+            "enum": [
+              "MONEY",
+              "PIX",
+              "CREDIT_CARD",
+              "DEBIT_CARD"
+            ]
+          }
+        },
+        "required": [
+          "tripInstanceId",
+          "enrollmentType",
+          "boardingStop",
+          "alightingStop",
+          "method"
+        ]
+      },
+      "BookingResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Unique identifier of the booking"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Organization that owns this booking"
+          },
+          "userId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the user who made the booking"
+          },
+          "tripInstanceId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the trip instance this booking is for"
+          },
+          "enrollmentDate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-10T07:30:00.000Z",
+            "description": "Date and time the booking was made"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Current status of the booking"
+          },
+          "presenceConfirmed": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the passenger presence has been confirmed"
+          },
+          "enrollmentType": {
+            "type": "string",
+            "example": "ONE_WAY",
+            "description": "Type of enrollment",
+            "enum": [
+              "ONE_WAY",
+              "RETURN",
+              "ROUND_TRIP"
+            ]
+          },
+          "recordedPrice": {
+            "type": "number",
+            "example": 49.9,
+            "description": "Price snapshot at the time of booking (BRL)"
+          },
+          "boardingStop": {
+            "type": "string",
+            "example": "A2",
+            "description": "Boarding stop identifier"
+          },
+          "alightingStop": {
+            "type": "string",
+            "example": "B5",
+            "description": "Alighting stop identifier"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "userId",
+          "tripInstanceId",
+          "enrollmentDate",
+          "status",
+          "presenceConfirmed",
+          "enrollmentType",
+          "recordedPrice",
+          "boardingStop",
+          "alightingStop",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "BookingAvailabilityResponseDto": {
+        "type": "object",
+        "properties": {
+          "tripInstanceId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the trip instance"
+          },
+          "tripStatus": {
+            "type": "string",
+            "example": "SCHEDULED",
+            "description": "Current status of the trip instance",
+            "enum": [
+              "DRAFT",
+              "SCHEDULED",
+              "CONFIRMED",
+              "IN_PROGRESS",
+              "FINISHED",
+              "CANCELED"
+            ]
+          },
+          "totalCapacity": {
+            "type": "number",
+            "example": 40,
+            "description": "Total passenger capacity of the vehicle"
+          },
+          "activeCount": {
+            "type": "number",
+            "example": 28,
+            "description": "Number of currently active bookings"
+          },
+          "availableSlots": {
+            "type": "number",
+            "example": 12,
+            "description": "Remaining available slots (totalCapacity - activeCount)"
+          },
+          "isBookable": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the trip instance is currently open for new bookings (SCHEDULED or CONFIRMED and not full)"
+          }
+        },
+        "required": [
+          "tripInstanceId",
+          "tripStatus",
+          "totalCapacity",
+          "activeCount",
+          "availableSlots",
+          "isBookable"
+        ]
+      },
+      "BookingDetailsResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Unique identifier of the booking"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "Organization that owns this booking"
+          },
+          "userId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the user who made the booking"
+          },
+          "tripInstanceId": {
+            "type": "string",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "description": "UUID of the trip instance this booking is for"
+          },
+          "enrollmentDate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-10T07:30:00.000Z",
+            "description": "Date and time the booking was made"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "description": "Current status of the booking"
+          },
+          "presenceConfirmed": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the passenger presence has been confirmed"
+          },
+          "enrollmentType": {
+            "type": "string",
+            "example": "ONE_WAY",
+            "description": "Type of enrollment",
+            "enum": [
+              "ONE_WAY",
+              "RETURN",
+              "ROUND_TRIP"
+            ]
+          },
+          "recordedPrice": {
+            "type": "number",
+            "example": 49.9,
+            "description": "Price snapshot at the time of booking (BRL)"
+          },
+          "boardingStop": {
+            "type": "string",
+            "example": "A2",
+            "description": "Boarding stop identifier"
+          },
+          "alightingStop": {
+            "type": "string",
+            "example": "B5",
+            "description": "Alighting stop identifier"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp"
+          },
+          "tripDepartureTime": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-06-15T07:30:00.000Z",
+            "description": "Scheduled departure time of the trip instance"
+          },
+          "tripArrivalEstimate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-06-15T09:00:00.000Z",
+            "description": "Estimated arrival time of the trip instance"
+          },
+          "tripStatus": {
+            "type": "string",
+            "example": "SCHEDULED",
+            "description": "Current status of the trip instance",
+            "enum": [
+              "DRAFT",
+              "SCHEDULED",
+              "CONFIRMED",
+              "IN_PROGRESS",
+              "FINISHED",
+              "CANCELED"
+            ]
+          },
+          "totalCapacity": {
+            "type": "number",
+            "example": 40,
+            "description": "Total passenger capacity of the vehicle"
+          },
+          "availableSlots": {
+            "type": "number",
+            "example": 12,
+            "description": "Remaining available slots in the trip instance"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "userId",
+          "tripInstanceId",
+          "enrollmentDate",
+          "status",
+          "presenceConfirmed",
+          "enrollmentType",
+          "recordedPrice",
+          "boardingStop",
+          "alightingStop",
+          "createdAt",
+          "updatedAt",
+          "tripDepartureTime",
+          "tripArrivalEstimate",
+          "tripStatus",
+          "totalCapacity",
+          "availableSlots"
+        ]
+      },
+      "PaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "enrollmentId": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "MONEY",
+              "PIX",
+              "CREDIT_CARD",
+              "DEBIT_CARD"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "enrollmentId",
+          "method",
+          "amount",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
+}

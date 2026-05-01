@@ -936,6 +936,65 @@ Após a implementação inicial, o módulo passou por um ciclo de melhorias que 
 
 **Compilacao:** ✅ `npx tsc --noEmit` = 0 erros
 
+---
+
+## 6.8 Implementações (01 Mai 2026)
+
+### Bookings Module — `FindTripPassengersUseCase` (01 Mai 2026)
+
+**Contexto:** o `BookingResponseDto` expõe apenas `userId`, tornando impossível para um passageiro ver o nome dos colegas de viagem sem um endpoint de lookup de usuário — que não existia. A solução foi um endpoint dedicado que faz o join enrollment → user no lado do banco e retorna apenas `name + boardingStop`, preservando privacidade.
+
+**Novo Use Case — `FindTripPassengersUseCase`:**
+
+Retorna a lista de passageiros com `ACTIVE` booking numa instância de viagem. Injeta `BookingRepository` + `TripInstanceRepository`.
+
+Regra de acesso (two-tier):
+1. Caller pertence à organização dona da trip instance → acesso liberado (org admin/driver).
+2. Caso contrário, verifica se o caller possui um `ACTIVE` booking na mesma viagem → acesso liberado (fellow passenger).
+3. Se nenhuma das condições for satisfeita → `BookingAccessForbiddenError` (HTTP 403).
+
+Throws: `TripInstanceNotFoundError` (404), `BookingAccessForbiddenError` (403).
+
+**Novo DTO — `TripPassengerResponseDto`:**
+
+```typescript
+{ name: string; boardingStop: string }
+```
+
+Omite intencionalmente `userId`, `email` e `telephone` — apenas nome de exibição e parada de embarque são expostos.
+
+**Novo método no repositório — `findActivePassengersByTripInstanceId`:**
+
+Query Prisma com `select { boardingStop, user: { select: { name } } }` + `where { status: 'ACTIVE' }`, ordenada por `boardingStop asc`. Não passa por `BookingMapper` — é uma projeção pura, não uma entidade de domínio.
+
+**Decisão Arquitetural — join no repositório vs. N+1 no use case:**
+Injetar `UserRepository` no use case e buscar cada usuário individualmente geraria N+1 queries e quebraria o encapsulamento entre módulos. O join via `select` do Prisma mantém tudo dentro do `BookingRepository` em uma única query, sem acoplamento cross-module.
+
+**Novo Endpoint REST:**
+
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| GET | `/bookings/trip-instance/:tripInstanceId/passengers` | JWT | Nomes + parada de embarque dos passageiros ativos da viagem |
+
+**Acesso:** qualquer usuário autenticado que tenha booking `ACTIVE` na viagem **ou** seja membro da organização dona. Usuários sem booking e sem vínculo org recebem HTTP 403.
+
+**Endpoints REST Finais (10 rotas):**
+
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| POST | `/bookings` | JWT | Cria inscrição (price server-side, capacity check) |
+| GET | `/bookings/user?status=ACTIVE\|INACTIVE` | JWT | Bookings do usuário (filtro por status) |
+| GET | `/bookings/availability/:tripInstanceId` | JWT | Verifica vagas disponíveis |
+| GET | `/bookings/trip-instance/:id` | JWT + ORG | Passageiros completos (só org members) |
+| GET | `/bookings/trip-instance/:id/passengers` | JWT | Nome + parada (booking ativo ou org member) |
+| GET | `/bookings/organization/:id` | JWT + ADMIN | Lista por org (paginado) |
+| GET | `/bookings/:id` | JWT | Detalhe básico (owner ou org) |
+| GET | `/bookings/:id/details` | JWT | Detalhe enriquecido com dados da viagem |
+| PATCH | `/bookings/:id/cancel` | JWT | Cancela (bloqueia IN_PROGRESS/FINISHED) |
+| PATCH | `/bookings/:id/confirm-presence` | JWT + ORG | Confirma presença (só org members) |
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
+
 **Bugs corrigidos (27 Abr 2026):**
 - `CancelBookingUseCase`: bloqueia cancelamento de booking já `INACTIVE` (`BookingAlreadyInactiveError`)
 - `ConfirmPresenceUseCase`: bloqueia confirmação de presença em booking `INACTIVE` (`BookingAlreadyInactiveError`)

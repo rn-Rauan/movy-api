@@ -116,4 +116,17 @@ export abstract class BookingRepository {
    * @returns The number of currently active bookings
    */
   abstract countActiveByTripInstance(tripInstanceId: string): Promise<number>;
+
+  /**
+   * Returns a name + boarding-stop projection for all `ACTIVE` passengers of a trip instance.
+   *
+   * Uses a joined query (enrollment → user) so only a lightweight projection is fetched —
+   * no full domain entity is hydrated. Results are ordered by `boardingStop` ascending.
+   *
+   * @param tripInstanceId - UUID of the trip instance
+   * @returns Array of `{ name, boardingStop }` for every active booking on the trip
+   */
+  abstract findActivePassengersByTripInstanceId(
+    tripInstanceId: string,
+  ): Promise<Array<{ name: string; boardingStop: string }>>;
 }

@@ -30,6 +30,7 @@ import {
   BookingDetailsResponseDto,
   BookingResponseDto,
   CreateBookingDto,
+  TripPassengerResponseDto,
 } from '../../application/dtos';
 import {
   CancelBookingUseCase,
@@ -40,6 +41,7 @@ import {
   FindBookingsByOrganizationUseCase,
   FindBookingsByTripInstanceUseCase,
   FindBookingsByUserUseCase,
+  FindTripPassengersUseCase,
   GetBookingAvailabilityUseCase,
 } from '../../application/use-cases';
 import { BookingPresenter } from '../mappers/booking.presenter';
@@ -55,6 +57,7 @@ import { BookingPresenter } from '../mappers/booking.presenter';
  * - `GET /bookings/organization/:organizationId` — org `ADMIN` only, scoped by `TenantFilterGuard`
  * - `GET /bookings/user` — any authenticated user (returns own bookings)
  * - `GET /bookings/trip-instance/:tripInstanceId` — org member of the owning org
+ * - `GET /bookings/trip-instance/:tripInstanceId/passengers` — active booking holder or org member
  * - `GET /bookings/availability/:tripInstanceId` — any authenticated user
  * - `GET /bookings/:id` — owner or org member
  * - `GET /bookings/:id/details` — owner or org member
@@ -76,6 +79,7 @@ export class BookingController {
     private readonly findBookingsByOrganizationUseCase: FindBookingsByOrganizationUseCase,
     private readonly findBookingsByTripInstanceUseCase: FindBookingsByTripInstanceUseCase,
     private readonly findBookingsByUserUseCase: FindBookingsByUserUseCase,
+    private readonly findTripPassengersUseCase: FindTripPassengersUseCase,
     private readonly getBookingAvailabilityUseCase: GetBookingAvailabilityUseCase,
   ) {}
 
@@ -195,6 +199,33 @@ export class BookingController {
       result.total,
       result.page,
       result.limit,
+    );
+  }
+
+  @Get('trip-instance/:tripInstanceId/passengers')
+  @ApiOperation({
+    summary:
+      'List active passengers (name + boarding stop) for a trip instance',
+  })
+  @ApiParam({
+    name: 'tripInstanceId',
+    description: 'UUID of the trip instance',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Passenger list. Requires an active booking on the trip or org membership.',
+    type: TripPassengerResponseDto,
+    isArray: true,
+  })
+  async findPassengers(
+    @Param('tripInstanceId') tripInstanceId: string,
+    @GetUser() context: TenantContext,
+  ): Promise<TripPassengerResponseDto[]> {
+    return this.findTripPassengersUseCase.execute(
+      tripInstanceId,
+      context.userId,
+      context.organizationId,
     );
   }
 
