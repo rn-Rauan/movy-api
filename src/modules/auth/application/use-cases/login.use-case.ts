@@ -1,10 +1,12 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { JwtPayloadService } from '../services/jwt-payload.service';
 import { LoginDto, TokenResponseDto } from '../dtos';
 import { UserNotFoundError } from '../../../user/domain/entities/errors/user.errors';
+import { RefreshTokenRepository } from 'src/modules/auth/domain/interfaces/refresh-token-repository.interface';
 
 /**
  * Authenticates a user by email and password, returning enriched JWT tokens.
@@ -17,20 +19,11 @@ import { UserNotFoundError } from '../../../user/domain/entities/errors/user.err
  * 4. Calls {@link JwtPayloadService.enrichPayload} to embed `organizationId`,
  *    `role`, and `isDev` into the JWT payload before signing.
  *
- * Access token expires in 1 h; refresh token in 7 d.
- */
-/**
- * Authenticates a user by email and password, returning enriched JWT tokens.
- *
- * @remarks
- * Validation order:
- * 1. Resolves user by email — throws {@link UserNotFoundError} if absent.
- * 2. Rejects `INACTIVE` users with `UnauthorizedException`.
- * 3. Compares the supplied password against the stored bcrypt hash.
- * 4. Calls {@link JwtPayloadService.enrichPayload} to embed `organizationId`,
- *    `role`, and `isDev` into the JWT payload before signing.
- *
- * Access token expires in 1 h; refresh token in 7 d.
+ * Token management:
+ * - Access token expires in 1 h (stateless — no DB record).
+ * - Refresh token expires in 7 d and includes a `jti` (UUID) claim.
+ *   The JTI is persisted via {@link RefreshTokenRepository} so that
+ *   {@link LogoutUseCase} can revoke the session server-side.
  */
 @Injectable()
 export class LoginUseCase {
@@ -41,6 +34,7 @@ export class LoginUseCase {
     private readonly hashProvider: HashProvider,
     private readonly jwtService: JwtService,
     private readonly jwtPayloadService: JwtPayloadService,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
   ) {}
 
   /**
@@ -74,15 +68,19 @@ export class LoginUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // ✅ NOVO: Enriquecer payload (não apenas { sub, email })
     this.logger.debug(`[Login] Enriching JWT payload for userId: ${user.id}`);
     const enrichedPayload = await this.jwtPayloadService.enrichPayload(user.id);
 
-    // Assinar JWTs com payload enriquecido
+    const jti = randomUUID();
+    const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
     const accessToken = this.jwtService.sign(enrichedPayload);
-    const refreshToken = this.jwtService.sign(enrichedPayload, {
-      expiresIn: '7d',
-    });
+    const refreshToken = this.jwtService.sign(
+      { ...enrichedPayload, jti },
+      { expiresIn: '7d' },
+    );
+
+    await this.refreshTokenRepository.save(jti, user.id, refreshExpiresAt);
 
     this.logger.log(
       `[Login] SUCCESS: userId=${user.id}, org=${enrichedPayload.organizationId || 'B2C'}, role=${enrichedPayload.role || 'none'}, isDev=${enrichedPayload.isDev}`,

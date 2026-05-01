@@ -1,7 +1,8 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   LoginDto,
+  LogoutDto,
   RefreshTokenDto,
   RegisterDto,
   SetupOrganizationDto,
@@ -13,6 +14,7 @@ import { RegisterUseCase } from '../../application/use-cases/register.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { RegisterOrganizationWithAdminUseCase } from '../../application/use-cases';
 import { SetupOrganizationForExistingUserUseCase } from '../../application/use-cases';
+import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { JwtAuthGuard } from 'src/shared/infrastructure/guards/jwt.guard';
 import { GetUser } from 'src/shared/infrastructure/decorators/get-user.decorator';
 import type { TenantContext } from 'src/shared/infrastructure/types/tenant-context.interface';
@@ -60,6 +62,7 @@ export class AuthController {
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly registerOrganizationWithAdminUseCase: RegisterOrganizationWithAdminUseCase,
     private readonly setupOrganizationForExistingUserUseCase: SetupOrganizationForExistingUserUseCase,
+    private readonly logoutUseCase: LogoutUseCase,
   ) {}
 
   @Post('login')
@@ -136,5 +139,13 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   async refresh(@Body() dto: RefreshTokenDto): Promise<TokenResponseDto> {
     return this.refreshTokenUseCase.execute(dto.refreshToken);
+  }
+
+  @Post('logout')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Revoke refresh token (logout)' })
+  @ApiResponse({ status: 204, description: 'Logged out successfully' })
+  async logout(@Body() dto: LogoutDto): Promise<void> {
+    await this.logoutUseCase.execute(dto.refreshToken);
   }
 }

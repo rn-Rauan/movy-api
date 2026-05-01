@@ -2,6 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayloadService } from 'src/modules/auth/application/services/jwt-payload.service';
 import { RefreshTokenUseCase } from 'src/modules/auth/application/use-cases/refresh-token.use-case';
+import { RefreshTokenRepository } from 'src/modules/auth/domain/interfaces/refresh-token-repository.interface';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
 import { makeUser } from '../../../user/factories/user.factory';
 import { makeJwtPayload } from '../../factories/jwt-payload.factory';
@@ -22,13 +23,25 @@ function makeMocks() {
     enrichPayload: jest.fn(),
   } as any as jest.Mocked<JwtPayloadService>;
 
-  return { jwtService, userRepository, jwtPayloadService };
+  const refreshTokenRepository = {
+    findByJti: jest.fn(),
+    deleteByJti: jest.fn(),
+    save: jest.fn(),
+  } as any as jest.Mocked<RefreshTokenRepository>;
+
+  return {
+    jwtService,
+    userRepository,
+    jwtPayloadService,
+    refreshTokenRepository,
+  };
 }
 
 function setupHappyPath(
   mocks: ReturnType<typeof makeMocks>,
   user: ReturnType<typeof makeUser>,
 ) {
+  // makeJwtPayload has no jti, so the JTI DB check is skipped in the use case
   mocks.jwtService.verify.mockReturnValue(
     makeJwtPayload({ sub: user.id, email: user.email }),
   );
@@ -36,6 +49,7 @@ function setupHappyPath(
   mocks.jwtPayloadService.enrichPayload.mockResolvedValue(
     makeJwtPayload({ sub: user.id, email: user.email }),
   );
+  mocks.refreshTokenRepository.save.mockResolvedValue(undefined);
   mocks.jwtService.sign
     .mockReturnValueOnce('new-access-token')
     .mockReturnValueOnce('new-refresh-token');
@@ -55,6 +69,7 @@ describe('RefreshTokenUseCase', () => {
       mocks.jwtService,
       mocks.userRepository,
       mocks.jwtPayloadService,
+      mocks.refreshTokenRepository,
     );
   });
 
@@ -94,7 +109,7 @@ describe('RefreshTokenUseCase', () => {
       expect(mocks.jwtService.sign).toHaveBeenCalledTimes(2);
     });
 
-    it('should sign the refresh token with expiresIn 7d', async () => {
+    it('should sign the refresh token with expiresIn 7d and a jti', async () => {
       // Arrange
       const user = makeUser();
       setupHappyPath(mocks, user);
@@ -107,7 +122,10 @@ describe('RefreshTokenUseCase', () => {
       // Assert
       expect(mocks.jwtService.sign).toHaveBeenNthCalledWith(
         2,
-        enrichedPayload,
+        expect.objectContaining({
+          ...enrichedPayload,
+          jti: expect.any(String) as unknown as string,
+        }),
         { expiresIn: '7d' },
       );
     });

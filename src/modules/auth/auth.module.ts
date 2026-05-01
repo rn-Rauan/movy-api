@@ -19,8 +19,11 @@ import {
   RegisterUseCase,
   SetupOrganizationForExistingUserUseCase,
 } from './application/use-cases';
+import { LogoutUseCase } from './application/use-cases/logout.use-case';
 import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
+import { RefreshTokenRepository } from './domain/interfaces/refresh-token-repository.interface';
+import { PrismaRefreshTokenRepository } from './infrastructure/db/repositories/prisma-refresh-token.repository';
 
 /**
  * NestJS module providing all authentication and JWT infrastructure.
@@ -82,11 +85,16 @@ import { JwtStrategy } from './infrastructure/jwt.strategy';
     RegisterOrganizationWithAdminUseCase,
     SetupOrganizationForExistingUserUseCase,
     RefreshTokenUseCase,
-    JwtPayloadService, // ✅ NOVO: Serviço para enriquecer JWTs
+    LogoutUseCase,
+    JwtPayloadService,
     JwtStrategy,
     {
       provide: HashProvider,
       useClass: BcryptHashProvider,
+    },
+    {
+      provide: RefreshTokenRepository,
+      useClass: PrismaRefreshTokenRepository,
     },
   ],
   exports: [JwtStrategy, PassportModule, JwtModule],

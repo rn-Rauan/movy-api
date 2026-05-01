@@ -184,13 +184,26 @@ model User {
   updatedAt      DateTime     @updatedAt
 
   // Relations
-  userRoles    OrganizationMembership[]     @relation("UserToMembership")
-  driver       Driver?        @relation("DriverUser")
-  enrollments  Enrollment[]   @relation("EnrollmentUser")
-  auditLogs    AuditLog[]     @relation("AuditLogUser")
+  userRoles      OrganizationMembership[] @relation("UserToMembership")
+  driver         Driver?                  @relation("DriverUser")
+  enrollments    Enrollment[]             @relation("EnrollmentUser")
+  auditLogs      AuditLog[]               @relation("AuditLogUser")
+  refreshTokens  RefreshToken[]           @relation("UserRefreshTokens")
 
   @@index([status])
   @@map("user")
+}
+
+model RefreshToken {
+  jti       String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation("UserRefreshTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model OrganizationMembership {

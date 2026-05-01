@@ -2,6 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayloadService } from 'src/modules/auth/application/services/jwt-payload.service';
 import { LoginUseCase } from 'src/modules/auth/application/use-cases';
+import { RefreshTokenRepository } from 'src/modules/auth/domain/interfaces/refresh-token-repository.interface';
 import { UserNotFoundError } from 'src/modules/user/domain/entities/errors/user.errors';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
@@ -21,8 +22,17 @@ function makeMocks() {
   const jwtPayloadService = {
     enrichPayload: jest.fn(),
   } as any as jest.Mocked<JwtPayloadService>;
+  const refreshTokenRepository = {
+    save: jest.fn(),
+  } as any as jest.Mocked<RefreshTokenRepository>;
 
-  return { userRepository, hashProvider, jwtService, jwtPayloadService };
+  return {
+    userRepository,
+    hashProvider,
+    jwtService,
+    jwtPayloadService,
+    refreshTokenRepository,
+  };
 }
 
 function setupHappyPath(
@@ -37,6 +47,7 @@ function setupHappyPath(
   mocks.jwtService.sign
     .mockReturnValueOnce('access-token-stub')
     .mockReturnValueOnce('refresh-token-stub');
+  mocks.refreshTokenRepository.save.mockResolvedValue(undefined);
 }
 
 // ── Tests ───────────────────────────────────────────────────
@@ -54,6 +65,7 @@ describe('LoginUseCase', () => {
       mocks.hashProvider,
       mocks.jwtService,
       mocks.jwtPayloadService,
+      mocks.refreshTokenRepository,
     );
   });
 

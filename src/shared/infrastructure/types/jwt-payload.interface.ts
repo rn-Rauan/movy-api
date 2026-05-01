@@ -15,6 +15,7 @@
  * | `role` | Role in `organizationId`; `null` for B2C/dev users |
  * | `isDev` | `true` when email is in `DEV_EMAILS` env var |
  * | `userStatus` | `'ACTIVE' \| 'INACTIVE'` |
+ * | `jti` | UUID uniquely identifying the refresh token session; present only on refresh tokens. Used by {@link RefreshTokenRepository} for server-side revocation. Access tokens do not carry `jti`. |
  */
 export interface JwtPayload {
   sub: string;
@@ -24,6 +25,7 @@ export interface JwtPayload {
   role?: 'ADMIN' | 'DRIVER' | null;
   isDev: boolean;
   userStatus: string;
+  jti?: string;
 }
 
 /**

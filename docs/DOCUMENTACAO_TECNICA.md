@@ -106,22 +106,71 @@ O módulo de autenticação implementa um sistema completo de login, registro, r
 **Endpoints REST:**
 - **`POST /auth/login`**: Autenticação de usuário com email e senha, retornando access token e refresh token.
 - **`POST /auth/register`**: Registro de novo usuário com validação de dados e hashing de senha.
-- **`POST /auth/refresh`**: Renovação de access token utilizando refresh token válido.
+- **`POST /auth/refresh`**: Renovação de access token utilizando refresh token válido. A partir de 01 Mai 2026, valida o `jti` do token no banco antes de aceitar.
+- **`POST /auth/logout`**: Revogação do refresh token atual (logout da sessão corrente). Retorna `204 No Content`. Operação idempotente — token inválido ou já revogado não gera erro. Endpoint público (sem `JwtAuthGuard`) — permite logout mesmo após expiração do access token. *(adicionado 01 Mai 2026)*
 - **`POST /auth/register-organization`**: Fluxo unificado de registro — cria usuário (admin), organização e membership ADMIN em uma única chamada, retornando os tokens de acesso diretamente *(adicionado 12 Abr 2026)*.
 - **`POST /auth/setup-organization`**: Fluxo para usuário já autenticado (sem org) criar uma organização — retorna novo JWT com o contexto da org embutido *(adicionado 14 Abr 2026)*.
 
 **Use Cases Implementados:**
-1. `LoginUseCase`: Validação de credenciais, geração de tokens JWT e retorno de dados do usuário.
+1. `LoginUseCase`: Validação de credenciais, geração de tokens JWT e retorno de dados do usuário. Gera um `jti` (UUID) e persiste o refresh token no banco via `RefreshTokenRepository`. *(atualizado 01 Mai 2026)*
 2. `RegisterUseCase`: Criação de novo usuário com validação de email único e hashing de senha.
-3. `RefreshTokenUseCase`: Validação de refresh token e geração de novo par de tokens.
-4. `RegisterOrganizationWithAdminUseCase`: Orquestra criação de usuário + organização + membership ADMIN + login automático **atomicamente via `TransactionManager.runInTransaction`** — rollback automático pelo Prisma se qualquer etapa falhar *(atualizado 27 Abr 2026: compensação manual substituída por transação).*
-5. `SetupOrganizationForExistingUserUseCase`: Cria organização para usuário já autenticado, gera membership ADMIN e re-emite JWT com o novo `organizationId` no payload *(adicionado 14 Abr 2026)*.
+3. `RefreshTokenUseCase`: Valida assinatura JWT, verifica o `jti` no banco (rejeita tokens revogados), rotaciona o par de tokens (apaga JTI antigo, salva novo). *(atualizado 01 Mai 2026)*
+4. `LogoutUseCase`: Recebe o refresh token, extrai o `jti` e o remove do banco — revogando a sessão corrente. Operação idempotente: token inválido/expirado ou `jti` ausente são tratados como no-op. *(adicionado 01 Mai 2026)*
+5. `RegisterOrganizationWithAdminUseCase`: Orquestra criação de usuário + organização + membership ADMIN + login automático **atomicamente via `TransactionManager.runInTransaction`** — rollback automático pelo Prisma se qualquer etapa falhar *(atualizado 27 Abr 2026: compensação manual substituída por transação).*
+6. `SetupOrganizationForExistingUserUseCase`: Cria organização para usuário já autenticado, gera membership ADMIN e re-emite JWT com o novo `organizationId` no payload *(adicionado 14 Abr 2026)*.
 
 **Infraestrutura de Segurança:**
 - **JWT Strategy**: Implementação customizada com Passport.js para validação de tokens. *Otimizado em 13 Abr 2026* — a query ao banco (`userRepository.findById`) foi removida do ciclo de validação. A strategy agora confia exclusivamente no payload do JWT (enriquecido no momento do login), resultando em melhoria significativa de performance por eliminar uma consulta ao banco a cada request autenticado.
 - **Bcrypt**: Hashing seguro de senhas com salt rounds configuráveis.
 - **JwtAuthGuard**: Guard global para proteção de rotas autenticadas.
 - **Token Response**: DTO estruturado com access token, refresh token e dados do usuário.
+- **Revogação de Refresh Token via JTI** *(adicionado 01 Mai 2026)*: Cada refresh token inclui um claim `jti` (JWT ID, UUID v4) persistido na tabela `refresh_tokens`. O `RefreshTokenUseCase` valida a existência do JTI antes de aceitar o token; o `LogoutUseCase` apaga o JTI para revogar a sessão. O access token permanece válido até seu vencimento natural de 1 h (trade-off padrão para tokens stateless de curta duração).
+
+**Mecanismo JTI — Fluxo Completo (01 Mai 2026):**
+```
+Login
+  └─ gera jti = randomUUID()
+  └─ sign(refreshToken, { ...payload, jti }, { expiresIn: '7d' })
+  └─ refreshTokenRepository.save(jti, userId, expiresAt)
+
+POST /auth/refresh
+  ├─ jwtService.verify(refreshToken)          ← valida assinatura + exp
+  ├─ refreshTokenRepository.findByJti(jti)    ← rejeita se ausente (revogado)
+  ├─ userRepository.findById(sub)             ← confirma usuário ativo
+  ├─ refreshTokenRepository.deleteByJti(jti)  ← remove JTI antigo
+  ├─ newJti = randomUUID()
+  └─ refreshTokenRepository.save(newJti, ...)  ← salva JTI novo (rotação)
+
+POST /auth/logout
+  ├─ jwtService.verify(refreshToken)          ← se inválido → no-op (idempotente)
+  └─ refreshTokenRepository.deleteByJti(jti)  ← revoga a sessão
+```
+
+**Camada de Domínio — `RefreshTokenRepository` (abstrato):**
+| Método | Descrição |
+|---|---|
+| `save(jti, userId, expiresAt)` | Persiste um novo JTI |
+| `findByJti(jti)` | Verifica se o JTI ainda é válido (não revogado) |
+| `deleteByJti(jti)` | Revoga uma sessão específica |
+| `deleteByUserId(userId)` | Revoga todas as sessões do usuário |
+
+**Schema Prisma — modelo `RefreshToken`:**
+```prisma
+model RefreshToken {
+  jti       String   @id           // UUID do claim jti
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation("UserRefreshTokens", fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+```
+
+**`JwtPayload` — campo adicionado:**
+| Campo | Notas |
+|---|---|
+| `jti?` | UUID presente apenas nos refresh tokens. Ausente nos access tokens e em tokens legados emitidos antes de 01 Mai 2026. |
 
 **Camadas de Implementação:**
 - **Domínio**: Regras de negócio para autenticação e geração de tokens.
