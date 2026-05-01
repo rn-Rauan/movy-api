@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PublicTripQueryService, PublicTripInstanceData } from '../../domain/interfaces';
+import {
+  PublicTripQueryService,
+  PublicTripInstanceData,
+} from '../../domain/interfaces';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -7,7 +10,9 @@ import {
 
 @Injectable()
 export class FindPublicTripInstancesByOrgSlugUseCase {
-  constructor(private readonly publicTripQueryService: PublicTripQueryService) {}
+  constructor(
+    private readonly publicTripQueryService: PublicTripQueryService,
+  ) {}
 
   async execute(
     options: PaginationOptions,

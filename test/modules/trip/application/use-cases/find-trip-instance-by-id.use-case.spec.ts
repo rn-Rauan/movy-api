@@ -79,6 +79,20 @@ describe('FindTripInstanceByIdUseCase', () => {
     });
   });
 
+  describe('happy path — no organizationId (passenger)', () => {
+    it('should return the trip instance without org check when organizationId is omitted', async () => {
+      // Arrange
+      const instance = makeTripInstance({ organizationId: 'any-org' });
+      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+
+      // Act
+      const result = await sut.execute(INSTANCE_ID);
+
+      // Assert
+      expect(result).toBe(instance);
+    });
+  });
+
   describe('error — cross-org access', () => {
     it('should throw TripInstanceAccessForbiddenError when instance belongs to another org', async () => {
       // Arrange

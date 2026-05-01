@@ -70,7 +70,9 @@ export class VehicleController {
   @Post('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Register a new vehicle for an organization' })
+  @ApiOperation({
+    summary: '[ADMIN] Register a new vehicle for an organization',
+  })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiResponse({
     status: 201,

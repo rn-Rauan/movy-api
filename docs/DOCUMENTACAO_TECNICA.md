@@ -295,7 +295,7 @@ Foi implementada uma infraestrutura completa de testes unitários utilizando Jes
 | `FindTripTemplateByIdUseCase` | 4 | Happy path, TripTemplateNotFoundError, TripTemplateAccessForbiddenError, acesso por org |
 | `UpdateTripTemplateUseCase` | 8 | Happy path, campos atualizados, save once, NotFoundError, AccessForbiddenError, InactiveError, update null, sem campos |
 | `DeactivateTripTemplateUseCase` | 4 | Happy path, TripTemplateNotFoundError, TripTemplateAccessForbiddenError, template já inativo |
-| `CreateTripInstanceUseCase` | 15 | Happy path, campos propagados do template, TripInstanceCreationFailedError, validações de capacidade e datas |
+| `CreateTripInstanceUseCase` | 25 | Happy path (com e sem driver/vehicle), campos propagados do template (autoCancelAt, minRevenue, isPublic), TripInstanceCreationFailedError, DriverNotFoundError, DriverAccessForbiddenError (driver sem membership ativa na org), VehicleNotFoundError, VehicleAccessForbiddenError (vehicle pertence a outra org) |
 | `FindTripInstanceByIdUseCase` | 5 | Happy path, TripInstanceNotFoundError, TripInstanceAccessForbiddenError, retorno de campos corretos |
 | `FindAllTripInstancesByOrganizationUseCase` | 4 | Happy path, paginação, lista vazia, campos corretos |
 | `FindTripInstancesByTemplateUseCase` | 8 | Happy path, paginação, lista vazia, filtro por templateId, campos corretos |
@@ -389,7 +389,7 @@ test/
     └── guards/ (dev.guard, roles.guard, tenant-filter.guard)
 ```
 
-**Total Bookings:** 9 suites, 85 testes. **Total projeto (27 Abr):** 34 suites, 252 testes. **Total projeto (28 Abr):** 37 suites, 278 testes (guards: DevGuard, RolesGuard, TenantFilterGuard). **Total projeto (29 Abr):** 37 suites, 280 testes (mocks de `PlanLimitService` adicionados em 4 specs: register-org, create-driver, create-trip-instance, create-vehicle).
+**Total Bookings:** 9 suites, 85 testes. **Total projeto (27 Abr):** 34 suites, 252 testes. **Total projeto (28 Abr):** 37 suites, 278 testes (guards: DevGuard, RolesGuard, TenantFilterGuard). **Total projeto (29 Abr):** 37 suites, 280 testes (mocks de `PlanLimitService` adicionados em 4 specs: register-org, create-driver, create-trip-instance, create-vehicle). **Total projeto (30 Abr):** 37 suites, 290 testes (+10 em `CreateTripInstanceUseCase`: validação de ownership de driver via `belongsToOrganization` e de vehicle via `organizationId`).
 
 **Fix Jest — `moduleNameMapper`
 Adicionado `"^test/(.*)$": "<rootDir>/test/$1"` em `test/jest-unit.json` e `package.json`. Sem esse mapeamento, imports como `import { makeTripInstance } from 'test/modules/trip/factories/...'` falhavam na resolução de módulo quando o spec era rodado pelo VS Code Jest runner (que usa o config do `package.json` diretamente).
@@ -765,6 +765,25 @@ A entidade `TripInstance` encapsula as regras de transição. Toda mudança de s
 | PUT | `/trip-instances/:id/status` | Transitar status da viagem |
 | PUT | `/trip-instances/:id/driver` | Atribuir/desatribuir motorista |
 | PUT | `/trip-instances/:id/vehicle` | Atribuir/desatribuir veículo |
+
+**Endpoints REST — Public TripInstance (sem autenticação):**
+| Método | Rota | Descrição |
+|--------|------|----------|
+| GET | `/public/trip-instances` | Viagens públicas da plataforma — SCHEDULED e CONFIRMED de templates com `isPublic=true`, ordenadas por `departureTime`. Query param `organizationId` opcional para filtrar por org. |
+| GET | `/public/trip-instances/org/:slug` | Viagens da org identificada pelo `slug` — SCHEDULED e CONFIRMED independentemente de `isPublic`. Usado em páginas de divulgação da própria organização (ex: link compartilhável `/trips/org-x`). |
+
+**Use Cases Públicos:**
+- `FindPublicTripInstancesUseCase` — delega para `PublicTripQueryService.findPublic(options, organizationId?)`. Retorna `PublicTripInstanceData` (instância + campos do template: `departurePoint`, `destination`, `priceOneWay`, `priceReturn`, `priceRoundTrip`, `isRecurring`).
+- `FindPublicTripInstancesByOrgSlugUseCase` — delega para `PublicTripQueryService.findByOrgSlug(options, slug)`. Resolve o slug para a org no banco e retorna todas as viagens ativas da org.
+
+**`PublicTripQueryService`** (abstract class no domínio, implementação em `infrastructure/db/services/`):
+- Cross-aggregate read service — realiza JOIN entre `TripInstance` e `TripTemplate` no banco, evitando que `TripInstanceRepository` carregue dados de outro agregado (SRP).
+- `findPublic(options, organizationId?)` — filtra `tripStatus IN (SCHEDULED, CONFIRMED)` + `template.isPublic = true`.
+- `findByOrgSlug(options, slug)` — filtra `tripStatus IN (SCHEDULED, CONFIRMED)` + `org.slug = slug`, sem restrição de `isPublic`.
+
+**Segurança:** Ambos os endpoints ficam em `@Controller('public/trip-instances')` e **não possuem nenhum guard de autenticação**, sendo intencionalmente acessíveis ao público. A ausência de JWT é esperada — os endpoints expõem apenas dados que o dono da org optou por tornar públicos (ou compartilhou via link de slug).
+
+---
 
 ### Bug Fix — FK Violations nas Atribuições de Driver/Vehicle (OWASP A05 — Security Misconfiguration)
 Os endpoints `PUT /trip-instances/:id/driver` e `PUT /trip-instances/:id/vehicle` chamavam `tripInstanceRepository.update()` com um `driverId` ou `vehicleId` inexistente, causando violação de FK no Postgres e retornando HTTP 500 para o cliente.
@@ -1275,7 +1294,7 @@ FK constraints com `onDelete: Restrict` já existem no schema Prisma para `drive
 **Testes atualizados:**
 - `transition-trip-instance-status.use-case.spec.ts` — `UnitOfWork` mock adicionado (transparente: `execute` chama o callback diretamente)
 - `create-trip-instance.use-case.spec.ts` — `UnitOfWork` mock adicionado; `tripTemplateRepository.findById` chamado duas vezes (uma fora, uma dentro do `execute`)
-- **15/15 testes passando** após as mudanças
+- **15/15 testes passando** após as mudanças *(expandido para 25 testes em 30 Abr com validação de ownership de driver/vehicle)*
 
 ---
 
@@ -1383,6 +1402,47 @@ Três defeitos que tornavam o sistema não-demonstrável ponta a ponta foram cor
 
 ---
 
+---
+
+## 6.11 Implementações (30 Abr 2026)
+
+### CreateTripInstance — Validação de Ownership de Driver e Vehicle
+
+**Problema:** O `CreateTripInstanceUseCase` verificava existência de driver e vehicle (`findById → 404`), mas não validava se os recursos pertenciam à organização do caller. Um admin poderia atribuir drivers ou veículos de outras organizações a uma nova viagem.
+
+**Solução:**
+
+**Driver:** Após confirmar existência, chama `driverRepository.belongsToOrganization(driverId, organizationId)`. O método consulta `driver.user.userRoles` via JOIN — necessário porque `Driver` não tem `organizationId` direto (vínculo é via `OrganizationMembership`). Se retornar `false`, lança `DriverAccessForbiddenError` → HTTP 403.
+
+**Vehicle:** Após confirmar existência, compara diretamente `vehicle.organizationId !== organizationId`. Vehicles armazenam o vínculo como campo próprio. Se divergir, lança `VehicleAccessForbiddenError` → HTTP 403.
+
+```typescript
+// Padrão adotado (dentro do unitOfWork.execute):
+if (input.driverId) {
+  driver = await this.driverRepository.findById(input.driverId);
+  if (!driver) throw new DriverNotFoundError(input.driverId);
+  const belongs = await this.driverRepository.belongsToOrganization(input.driverId, organizationId);
+  if (!belongs) throw new DriverAccessForbiddenError(input.driverId);
+}
+if (input.vehicleId) {
+  vehicle = await this.vehicleRepository.findById(input.vehicleId);
+  if (!vehicle) throw new VehicleNotFoundError(input.vehicleId);
+  if (vehicle.organizationId !== organizationId) throw new VehicleAccessForbiddenError(input.vehicleId);
+}
+```
+
+**Novos imports:** `DriverAccessForbiddenError` (já existia em `driver.errors.ts`), `VehicleAccessForbiddenError` (já existia em `vehicle.errors.ts`). Nenhum novo erro de domínio foi necessário.
+
+**Testes:** `create-trip-instance.use-case.spec.ts` expandido de 15 para 25 testes:
+- `makeMocks()` atualizado com `driverRepository.belongsToOrganization` e `vehicleRepository.findById`
+- Construtor atualizado para 6 dependências
+- Teste "with driverId and vehicleId" corrigido para setup individual dos mocks de driver/vehicle
+- 4 novos describes (2 testes cada): driver não encontrado, driver não pertence à org, vehicle não encontrado, vehicle pertence a outra org
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros. **Testes:** 37 suites, 290 testes passando.
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
 - ✅ Desenvolvido **seed script** (`prisma/seed.ts`) com suporte a `tsx` para execução confiável.
@@ -1404,7 +1464,7 @@ O script de seed foi configurado para:
 2. ~~**Testes Unitários — Trip Module:**~~ ✅ **CONCLUÍDO (21 Abr)** — 11 suites, 90 testes (todos use cases de TripTemplate e TripInstance cobertos; `FindAllTripTemplatesByOrganizationUseCase` pendente).
 3. **Testes Unitários (restantes):** Implementar specs para RegisterUseCase, RefreshTokenUseCase e CRUDs de Vehicle/Driver/Plans/Payment/Subscriptions com os novos cenários de `PlanLimitService`.
 4. ~~**Módulo de Veículos:** Cadastro e gerenciamento de frotas com CRUD completo.~~ ✅ **CONCLUÍDO (17 Abr)** — CRUD completo + IDOR fix + VehicleInactiveError.
-5. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 12 endpoints REST, 12 use cases, status machine, FK violation fixes.
+5. ~~**Módulo de Viagens (Templates e Instâncias):** Lógica para criação de viagens recorrentes e instâncias de execução (COMPLEXO).~~ ✅ **CONCLUÍDO (21 Abr)** — 14 endpoints REST (12 autenticados + 2 públicos), 14 use cases, status machine, FK violation fixes, public listing por org slug *(30 Abr)*.
 6. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
 7. ~~**Fase 3 (Monetização) — Plans, Payment, Subscriptions**~~ ✅ **CONCLUÍDO (26 Abr)** — Plans (5 use cases, DevGuard, PlanName enum), Payment (read-only API, criação via Bookings), Subscriptions (4 use cases, 30 dias, ADMIN-only).
 8. ~~**Mitigação de Defeitos Críticos (Fase 3.7):** Payment simulation, Subscription lazy expiration, Plan limits enforcement, Auto-FREE subscription.~~ ✅ **CONCLUÍDO (29 Abr)** — 4 defeitos críticos corrigidos; sistema demonstrável ponta a ponta.
@@ -1420,7 +1480,7 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 29 de abril 
 - ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*.
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError`, plan limit enforcement via `PlanLimitService` *(17 Abr, limit 29 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService` *(21 Abr, limit 29 Abr)*.
+- ✅ **Trip Module**: TripTemplate + TripInstance completos — 14 endpoints REST (12 autenticados + 2 públicos sem auth), 14 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK e ownership antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService`, endpoints públicos `GET /public/trip-instances` e `GET /public/trip-instances/org/:slug` via `PublicTripQueryService` *(21 Abr, limit 29 Abr, public routes + ownership validation 30 Abr)*.
 - ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
 - ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*.
 - ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*.
@@ -1451,7 +1511,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*.
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError`, plan limit enforcement via `PlanLimitService` *(17 Abr, limit 29 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Trip Module**: TripTemplate + TripInstance completos — 12 endpoints REST, 12 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService` *(21 Abr, limit 29 Abr)*.
+- ✅ **Trip Module**: TripTemplate + TripInstance completos — 14 endpoints REST (12 autenticados + 2 públicos sem auth), 14 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK e ownership antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService`, endpoints públicos `GET /public/trip-instances` e `GET /public/trip-instances/org/:slug` via `PublicTripQueryService` *(21 Abr, limit 29 Abr, public routes + ownership validation 30 Abr)*.
 - ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), 9 use cases, 85 testes unitários *(25 Abr)*.
 - ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*.
 - ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*.

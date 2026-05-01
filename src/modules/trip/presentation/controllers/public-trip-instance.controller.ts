@@ -6,9 +6,16 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { FindPublicTripInstancesUseCase } from '../../application/use-cases/find-public-trip-instances.use-case';
 import { FindPublicTripInstancesByOrgSlugUseCase } from '../../application/use-cases/find-public-trip-instances-by-org-slug.use-case';
+import { FindPublicTripInstanceByIdUseCase } from '../../application/use-cases/find-public-trip-instance-by-id.use-case';
 import { PublicTripInstancePresenter } from '../mappers/public-trip-instance.presenter';
 import { PublicTripInstanceResponseDto } from '../../application/dtos/public-trip-instance-response.dto';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
@@ -19,6 +26,7 @@ export class PublicTripInstanceController {
   constructor(
     private readonly findPublicTripInstancesUseCase: FindPublicTripInstancesUseCase,
     private readonly findPublicTripInstancesByOrgSlugUseCase: FindPublicTripInstancesByOrgSlugUseCase,
+    private readonly findPublicTripInstanceByIdUseCase: FindPublicTripInstanceByIdUseCase,
   ) {}
 
   @Get()
@@ -57,6 +65,34 @@ export class PublicTripInstanceController {
     );
   }
 
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get public trip instance by ID',
+    description:
+      'Returns a single SCHEDULED or CONFIRMED trip instance without authentication. ' +
+      'Returns 404 if the instance does not exist or is not in a bookable status.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Trip instance UUID',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Trip instance details.',
+    type: PublicTripInstanceResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Trip instance not found or not bookable.',
+  })
+  async findById(
+    @Param('id') id: string,
+  ): Promise<PublicTripInstanceResponseDto> {
+    const data = await this.findPublicTripInstanceByIdUseCase.execute(id);
+    return PublicTripInstancePresenter.toHTTP(data);
+  }
+
   @Get('/org/:slug')
   @ApiOperation({
     summary: 'List org trips by slug (org-specific page)',
@@ -65,7 +101,11 @@ export class PublicTripInstanceController {
       ':slug, regardless of isPublic. Used for org-specific trip listing pages ' +
       'shared via a link (e.g. /trips/org-x).',
   })
-  @ApiParam({ name: 'slug', description: 'Organisation slug', example: 'org-x' })
+  @ApiParam({
+    name: 'slug',
+    description: 'Organisation slug',
+    example: 'org-x',
+  })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   @ApiResponse({

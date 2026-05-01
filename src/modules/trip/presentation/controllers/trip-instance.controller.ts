@@ -93,7 +93,9 @@ export class TripInstanceController {
   @Post('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Create a new trip instance from a trip template' })
+  @ApiOperation({
+    summary: '[ADMIN] Create a new trip instance from a trip template',
+  })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiResponse({
     status: 201,
@@ -114,7 +116,9 @@ export class TripInstanceController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] List all trip instances in an organization' })
+  @ApiOperation({
+    summary: '[ADMIN] List all trip instances in an organization',
+  })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -143,7 +147,9 @@ export class TripInstanceController {
   @Get('template/:templateId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] List all trip instances for a given template' })
+  @ApiOperation({
+    summary: '[ADMIN] List all trip instances for a given template',
+  })
   @ApiParam({
     name: 'templateId',
     description: 'UUID of the trip template',
@@ -175,9 +181,7 @@ export class TripInstanceController {
   }
 
   @Get(':id')
-  @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Find a trip instance by ID' })
+  @ApiOperation({ summary: 'Find a trip instance by ID' })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiResponse({
     status: 200,
@@ -190,7 +194,7 @@ export class TripInstanceController {
   ): Promise<TripInstanceResponseDto> {
     const instance = await this.findTripInstanceByIdUseCase.execute(
       id,
-      context.organizationId!,
+      context.organizationId,
     );
     return TripInstancePresenter.toHTTP(instance);
   }
@@ -223,7 +227,9 @@ export class TripInstanceController {
   @Put(':id/driver')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Assign or unassign a driver to a trip instance' })
+  @ApiOperation({
+    summary: '[ADMIN] Assign or unassign a driver to a trip instance',
+  })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiQuery({
     name: 'driverId',
@@ -251,7 +257,9 @@ export class TripInstanceController {
   @Put(':id/vehicle')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Assign or unassign a vehicle to a trip instance' })
+  @ApiOperation({
+    summary: '[ADMIN] Assign or unassign a vehicle to a trip instance',
+  })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiQuery({
     name: 'vehicleId',

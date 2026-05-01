@@ -56,6 +56,63 @@ export class PrismaPublicTripQueryService implements PublicTripQueryService {
    * @param organizationId - Optional UUID to scope results to a single organisation
    * @returns A {@link PaginatedResponse} of {@link PublicTripInstanceData} items
    */
+  async findById(id: string): Promise<PublicTripInstanceData | null> {
+    type PublicTripRow = PrismaTripInstance & {
+      tripTemplate: {
+        departurePoint: string;
+        destination: string;
+        priceOneWay: Prisma.Decimal | null;
+        priceReturn: Prisma.Decimal | null;
+        priceRoundTrip: Prisma.Decimal | null;
+        isRecurring: boolean;
+      };
+    };
+
+    const bookableStatuses: TripStatus[] = [
+      TripStatus.SCHEDULED,
+      TripStatus.CONFIRMED,
+    ];
+
+    const raw = await this.db.tripInstance.findFirst({
+      where: { id, tripStatus: { in: bookableStatuses } },
+      include: {
+        tripTemplate: {
+          select: {
+            departurePoint: true,
+            destination: true,
+            priceOneWay: true,
+            priceReturn: true,
+            priceRoundTrip: true,
+            isRecurring: true,
+          },
+        },
+      },
+    });
+
+    if (!raw) return null;
+
+    const row = raw as PublicTripRow;
+    const { tripTemplate, ...instanceRow } = row;
+    return {
+      instance: TripInstanceMapper.toDomain(instanceRow),
+      departurePoint: tripTemplate.departurePoint,
+      destination: tripTemplate.destination,
+      priceOneWay:
+        tripTemplate.priceOneWay !== null
+          ? Number(tripTemplate.priceOneWay)
+          : null,
+      priceReturn:
+        tripTemplate.priceReturn !== null
+          ? Number(tripTemplate.priceReturn)
+          : null,
+      priceRoundTrip:
+        tripTemplate.priceRoundTrip !== null
+          ? Number(tripTemplate.priceRoundTrip)
+          : null,
+      isRecurring: tripTemplate.isRecurring,
+    };
+  }
+
   async findByOrgSlug(
     options: PaginationOptions,
     slug: string,

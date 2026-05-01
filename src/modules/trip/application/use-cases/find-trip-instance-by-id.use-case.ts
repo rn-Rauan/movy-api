@@ -18,23 +18,14 @@ export class FindTripInstanceByIdUseCase {
     private readonly tripInstanceRepository: TripInstanceRepository,
   ) {}
 
-  /**
-   * Looks up the instance and validates org ownership.
-   *
-   * @param id - UUID of the trip instance
-   * @param organizationId - UUID of the organisation (from JWT)
-   * @returns The matching {@link TripInstance}
-   * @throws {@link TripInstanceNotFoundError} if the instance does not exist
-   * @throws {@link TripInstanceAccessForbiddenError} if the instance belongs to a different org
-   */
-  async execute(id: string, organizationId: string): Promise<TripInstance> {
+  async execute(id: string, organizationId?: string): Promise<TripInstance> {
     const instance = await this.tripInstanceRepository.findById(id);
 
     if (!instance) {
       throw new TripInstanceNotFoundError(id);
     }
 
-    if (instance.organizationId !== organizationId) {
+    if (organizationId && instance.organizationId !== organizationId) {
       throw new TripInstanceAccessForbiddenError(id);
     }
 

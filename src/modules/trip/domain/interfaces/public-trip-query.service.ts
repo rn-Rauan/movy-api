@@ -57,4 +57,10 @@ export abstract class PublicTripQueryService {
     options: PaginationOptions,
     slug: string,
   ): Promise<PaginatedResponse<PublicTripInstanceData>>;
+
+  /**
+   * Returns a single SCHEDULED/CONFIRMED trip instance by ID joined with its
+   * template's route and pricing data, or `null` if not found / not bookable.
+   */
+  abstract findById(id: string): Promise<PublicTripInstanceData | null>;
 }

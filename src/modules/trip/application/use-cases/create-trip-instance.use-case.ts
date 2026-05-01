@@ -16,6 +16,18 @@ import {
 import { CreateTripInstanceDto } from '../dtos';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
+import { DriverRepository } from 'src/modules/driver/domain/interfaces';
+import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
+import {
+  DriverEntity,
+  DriverNotFoundError,
+  DriverAccessForbiddenError,
+} from 'src/modules/driver/domain/entities';
+import {
+  VehicleEntity,
+  VehicleNotFoundError,
+  VehicleAccessForbiddenError,
+} from 'src/modules/vehicle/domain/entities';
 
 /**
  * Creates a new {@link TripInstance} from an existing active {@link TripTemplate}.
@@ -31,6 +43,8 @@ export class CreateTripInstanceUseCase {
     private readonly tripTemplateRepository: TripTemplateRepository,
     private readonly unitOfWork: UnitOfWork,
     private readonly planLimitService: PlanLimitService,
+    private readonly driverRepository: DriverRepository,
+    private readonly vehicleRepository: VehicleRepository,
   ) {}
 
   /**
@@ -81,6 +95,33 @@ export class CreateTripInstanceUseCase {
     );
 
     return this.unitOfWork.execute(async () => {
+      let driver: DriverEntity | null = null,
+        vehicle: VehicleEntity | null = null;
+      if (input.driverId) {
+        driver = await this.driverRepository.findById(input.driverId);
+        if (!driver) {
+          throw new DriverNotFoundError(input.driverId);
+        }
+        const driverBelongsToOrg =
+          await this.driverRepository.belongsToOrganization(
+            input.driverId,
+            organizationId,
+          );
+        if (!driverBelongsToOrg) {
+          throw new DriverAccessForbiddenError(input.driverId);
+        }
+      }
+
+      if (input.vehicleId) {
+        vehicle = await this.vehicleRepository.findById(input.vehicleId);
+        if (!vehicle) {
+          throw new VehicleNotFoundError(input.vehicleId);
+        }
+        if (vehicle.organizationId !== organizationId) {
+          throw new VehicleAccessForbiddenError(input.vehicleId);
+        }
+      }
+
       const freshTemplate = await this.tripTemplateRepository.findById(
         input.tripTemplateId,
       );
@@ -112,8 +153,8 @@ export class CreateTripInstanceUseCase {
         id: randomUUID(),
         organizationId,
         tripTemplateId: input.tripTemplateId,
-        driverId: input.driverId ?? null,
-        vehicleId: input.vehicleId ?? null,
+        driverId: driver?.id ?? null,
+        vehicleId: vehicle?.id ?? null,
         totalCapacity: input.totalCapacity,
         isPublic: freshTemplate.isPublic,
         departureTime,

@@ -13,6 +13,18 @@ import { makeCreateTripInstanceDto } from '../../factories/create-trip-instance.
 import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
+import { DriverRepository } from 'src/modules/driver/domain/interfaces';
+import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
+import {
+  DriverNotFoundError,
+  DriverAccessForbiddenError,
+} from 'src/modules/driver/domain/entities';
+import {
+  VehicleNotFoundError,
+  VehicleAccessForbiddenError,
+} from 'src/modules/vehicle/domain/entities';
+import { makeDriver } from '../../../driver/factories/driver.factory';
+import { makeVehicle } from '../../../vehicle/factories/vehicle.factory';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -34,11 +46,22 @@ function makeMocks() {
     assertMonthlyTripLimit: jest.fn(),
   } as any as jest.Mocked<PlanLimitService>;
 
+  const driverRepository = {
+    findById: jest.fn(),
+    belongsToOrganization: jest.fn(),
+  } as any as jest.Mocked<DriverRepository>;
+
+  const vehicleRepository = {
+    findById: jest.fn(),
+  } as any as jest.Mocked<VehicleRepository>;
+
   return {
     tripInstanceRepository,
     tripTemplateRepository,
     unitOfWork,
     planLimitService,
+    driverRepository,
+    vehicleRepository,
   };
 }
 
@@ -74,6 +97,8 @@ describe('CreateTripInstanceUseCase', () => {
       mocks.tripTemplateRepository,
       mocks.unitOfWork,
       mocks.planLimitService,
+      mocks.driverRepository,
+      mocks.vehicleRepository,
     );
   });
 
@@ -135,6 +160,13 @@ describe('CreateTripInstanceUseCase', () => {
     it('should persist instance with driverId and vehicleId when provided', async () => {
       // Arrange
       setupHappyPath(mocks);
+      mocks.driverRepository.findById.mockResolvedValue(
+        makeDriver({ id: 'driver-uuid' }),
+      );
+      mocks.driverRepository.belongsToOrganization.mockResolvedValue(true);
+      mocks.vehicleRepository.findById.mockResolvedValue(
+        makeVehicle({ id: 'vehicle-uuid', organizationId: ORG_ID }),
+      );
       const dto = makeCreateTripInstanceDto({
         driverId: 'driver-uuid',
         vehicleId: 'vehicle-uuid',
@@ -371,6 +403,128 @@ describe('CreateTripInstanceUseCase', () => {
       // Act
       await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
         TripTemplateInactiveError,
+      );
+
+      // Assert
+      expect(mocks.tripInstanceRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — driver not found', () => {
+    it('should throw DriverNotFoundError when driverId is provided but driver does not exist', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.driverRepository.findById.mockResolvedValue(null);
+      const dto = makeCreateTripInstanceDto({ driverId: 'driver-uuid' });
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        DriverNotFoundError,
+      );
+    });
+
+    it('should NOT call repository.save when driver is not found', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.driverRepository.findById.mockResolvedValue(null);
+      const dto = makeCreateTripInstanceDto({ driverId: 'driver-uuid' });
+
+      // Act
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        DriverNotFoundError,
+      );
+
+      // Assert
+      expect(mocks.tripInstanceRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — driver not in organization', () => {
+    it('should throw DriverAccessForbiddenError when driver has no active membership in org', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.driverRepository.findById.mockResolvedValue(makeDriver());
+      mocks.driverRepository.belongsToOrganization.mockResolvedValue(false);
+      const dto = makeCreateTripInstanceDto({ driverId: 'driver-uuid' });
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        DriverAccessForbiddenError,
+      );
+    });
+
+    it('should NOT call repository.save when driver does not belong to org', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.driverRepository.findById.mockResolvedValue(makeDriver());
+      mocks.driverRepository.belongsToOrganization.mockResolvedValue(false);
+      const dto = makeCreateTripInstanceDto({ driverId: 'driver-uuid' });
+
+      // Act
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        DriverAccessForbiddenError,
+      );
+
+      // Assert
+      expect(mocks.tripInstanceRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — vehicle not found', () => {
+    it('should throw VehicleNotFoundError when vehicleId is provided but vehicle does not exist', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.vehicleRepository.findById.mockResolvedValue(null);
+      const dto = makeCreateTripInstanceDto({ vehicleId: 'vehicle-uuid' });
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        VehicleNotFoundError,
+      );
+    });
+
+    it('should NOT call repository.save when vehicle is not found', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.vehicleRepository.findById.mockResolvedValue(null);
+      const dto = makeCreateTripInstanceDto({ vehicleId: 'vehicle-uuid' });
+
+      // Act
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        VehicleNotFoundError,
+      );
+
+      // Assert
+      expect(mocks.tripInstanceRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — vehicle belongs to another org', () => {
+    it('should throw VehicleAccessForbiddenError when vehicle organizationId differs', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.vehicleRepository.findById.mockResolvedValue(
+        makeVehicle({ organizationId: 'other-org' }),
+      );
+      const dto = makeCreateTripInstanceDto({ vehicleId: 'vehicle-uuid' });
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        VehicleAccessForbiddenError,
+      );
+    });
+
+    it('should NOT call repository.save when vehicle belongs to another org', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      mocks.vehicleRepository.findById.mockResolvedValue(
+        makeVehicle({ organizationId: 'other-org' }),
+      );
+      const dto = makeCreateTripInstanceDto({ vehicleId: 'vehicle-uuid' });
+
+      // Act
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        VehicleAccessForbiddenError,
       );
 
       // Assert

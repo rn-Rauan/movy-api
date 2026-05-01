@@ -12,3 +12,4 @@ export * from './assign-driver-to-trip-instance.use-case';
 export * from './assign-vehicle-to-trip-instance.use-case';
 export * from './find-public-trip-instances.use-case';
 export * from './find-public-trip-instances-by-org-slug.use-case';
+export * from './find-public-trip-instance-by-id.use-case';

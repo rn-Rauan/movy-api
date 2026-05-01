@@ -85,7 +85,9 @@ export class TripTemplateController {
   @Post('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Create a new trip template for an organization' })
+  @ApiOperation({
+    summary: '[ADMIN] Create a new trip template for an organization',
+  })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiResponse({
     status: 201,
@@ -106,7 +108,9 @@ export class TripTemplateController {
   @Get('organization/:organizationId')
   @UseGuards(RolesGuard, TenantFilterGuard)
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] List all trip templates in an organization' })
+  @ApiOperation({
+    summary: '[ADMIN] List all trip templates in an organization',
+  })
   @ApiParam({ name: 'organizationId', description: 'UUID of the organization' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
