@@ -121,3 +121,17 @@ src/modules/auth/
 |---|---|---|
 | `JWT_SECRET` | ✅ | Secret used to sign/verify JWTs — throws on startup if missing |
 | `DEV_EMAILS` | ❌ | Comma-separated list of developer emails that bypass org/role checks |
+
+---
+
+## Known Limitations
+
+### Multi-org switching não implementado (ADR-018)
+
+O JWT carrega **uma única `organizationId`** por sessão — a primeira membership ativa do usuário ordenada por `assignedAt ASC` (`findFirstActiveByUserId`).
+
+**Impacto:** um admin com 2+ organizações não consegue acessar as orgs secundárias via API. O `TenantFilterGuard` rejeita com 403 qualquer rota cujo `:organizationId` não bata com o do token.
+
+**Workaround atual:** nenhum (a não ser manipulação manual via `@Dev()`).
+
+**Solução planejada:** `POST /auth/switch-organization` — recebe a org destino, valida membership ativa, emite novo par de tokens com o contexto correto e rotaciona o refresh token. Detalhes no ADR-018 e no plano de implementação.

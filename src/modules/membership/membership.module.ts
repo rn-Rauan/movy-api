@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MembershipController } from './presentation/controllers/membership.controller';
 import {
+  AssociateDriverToOrganizationUseCase,
   CreateMembershipUseCase,
   FindMembershipByCompositeKeyUseCase,
   FindMembershipsByUserUseCase,
@@ -38,6 +39,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
   ],
   controllers: [MembershipController],
   providers: [
+    AssociateDriverToOrganizationUseCase,
     CreateMembershipUseCase,
     FindMembershipByCompositeKeyUseCase,
     FindMembershipsByUserUseCase,
@@ -52,6 +54,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     MembershipPresenter,
   ],
   exports: [
+    AssociateDriverToOrganizationUseCase,
     CreateMembershipUseCase,
     FindMembershipByCompositeKeyUseCase,
     FindMembershipsByUserUseCase,

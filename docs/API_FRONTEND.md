@@ -230,6 +230,25 @@ Get the current user's role in a specific organization.
 
 ---
 
+### `POST /memberships/driver` 🛡️ ADMIN
+Associate a driver to the organization by email **and** CNH. Both must match the same user — this prevents linking someone whose CNH you don't know.
+
+Use `GET /drivers/lookup` first if you only have one of the two identifiers.
+
+**Body**
+| Field | Type | Required |
+|---|---|---|
+| `userEmail` | string | ✅ |
+| `cnh` | string | ✅ |
+
+**Response `201`** → [MembershipResponse](#membershipresponse)  
+**`400`** → CNH doesn't match the user or user has no driver profile  
+**`403`** → Driver plan limit exceeded  
+**`404`** → No user found with that email  
+**`409`** → Active DRIVER membership already exists
+
+---
+
 ### `POST /memberships` 🛡️ ADMIN
 Add a user to an organization with a specific role. Lookup the user by email first.
 

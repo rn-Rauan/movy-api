@@ -392,6 +392,63 @@ Config dedicada `test/jest-unit.json` com `moduleNameMapper` para aliases `src/`
 
 ---
 
+---
+
+## ADR-018 — JWT mono-org: token carrega apenas uma organizationId por sessão
+
+**Data:** 01 Mai 2026  
+**Status:** Limitação conhecida — implementação futura pendente
+
+### Contexto
+
+O `JwtPayloadService.enrichPayload()` chama `MembershipRepository.findFirstActiveByUserId()`, que retorna a **primeira** membership ativa ordenada por `assignedAt ASC`. Isso significa que o JWT é sempre emitido com o contexto de uma única org — a mais antiga.
+
+Um usuário administrador em múltiplas organizações fica preso na org mais antiga e não consegue acessar as demais via API sem intervenção manual.
+
+### Problema Concreto
+
+```
+Admin "joao@empresa.com" possui memberships ativas em:
+  - Org A (assignedAt: 2024-01-01)  ← selecionada no JWT
+  - Org B (assignedAt: 2024-02-01)  ← inacessível
+
+PATCH /organizations/org-b-uuid/... → 403 Forbidden
+```
+
+O `TenantFilterGuard` compara o `:organizationId` da rota com `req.context.organizationId` do JWT. Mismatch imediato → 403.
+
+### Causa Raiz
+
+O design original assumiu que um usuário pertenceria a no máximo uma organização por vez. O repositório já possui `findAllActiveByUserId()` (preparado mas não utilizado), evidenciando que o multi-org switching foi planejado mas não implementado.
+
+### Alternativas Consideradas
+
+1. **Múltiplos tokens (um por org)** — descartado: complexidade no cliente, gerenciamento de N refresh tokens.
+2. **Trocar `organizationId` pelo param da rota dinamicamente** — descartado: eliminaria a garantia de isolamento do `TenantFilterGuard`.
+3. **Endpoint `POST /auth/switch-organization`** — abordagem escolhida para implementação futura: usuário troca de contexto explicitamente e recebe novo par de tokens com a `organizationId` da org destino, com rotação de refresh token.
+
+### Decisão Temporária
+
+Mantém o comportamento atual (primeira org por `assignedAt`). Nenhuma mudança de código até a feature de switching ser implementada.
+
+### Impacto
+
+- Usuários com **1 organização** → sem impacto.
+- Usuários com **2+ organizações** → precisam de suporte manual ou aguardar o switching.
+- Usuários `isDev` → sem impacto (bypass de todas as verificações de org).
+
+### Plano de Implementação
+
+Ver `plan.md` na session state. Resumo das peças necessárias:
+
+1. `OrganizationSwitchForbiddenError` (domain error, sufixo `_FORBIDDEN`)
+2. `SwitchOrganizationDto` (`{ organizationId: UUID, refreshToken: string }`)
+3. `JwtPayloadService.enrichPayload(userId, targetOrganizationId?)` — parâmetro opcional
+4. `SwitchOrganizationUseCase` — valida membership ativa + rotaciona tokens
+5. `POST /auth/switch-organization` com `JwtAuthGuard`
+
+---
+
 ## Resumo Cronológico
 
 | Data | ADR | Decisão |
@@ -413,3 +470,4 @@ Config dedicada `test/jest-unit.json` com `moduleNameMapper` para aliases `src/`
 | 27 Abr | ADR-010 | TransactionManager com AsyncLocalStorage |
 | 29 Abr | ADR-012 | Expiração de assinatura lazy (sem cron) |
 | 01 Mai | ADR-011 | Revogação de Refresh Token via JTI |
+| 01 Mai | ADR-018 | JWT mono-org: limitação conhecida de multi-org switching |

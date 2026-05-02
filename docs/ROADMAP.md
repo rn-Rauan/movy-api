@@ -36,6 +36,7 @@ Progresso em 27 Abr 2026:
 - Frontend
 - Integração end-to-end (Frontend ↔ API)
 - Testes de integração (opcional)
+- **Multi-org switching** (`POST /auth/switch-organization`) — ver ADR-018
 
 ---
 

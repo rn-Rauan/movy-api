@@ -1551,6 +1551,42 @@ if (input.vehicleId) {
 
 ---
 
+## 6.9 Implementações (01 Mai 2026)
+
+### Membership Module — `AssociateDriverToOrganizationUseCase` (01 Mai 2026)
+
+**Contexto:** `POST /memberships` aceitava `{ userEmail, roleId }` mas não verificava CNH — um admin que conhecesse apenas o e-mail de alguém poderia criar uma membership DRIVER sem confirmar a identidade. O único fluxo seguro exigia duas chamadas (`GET /drivers/lookup` + `POST /memberships`), e mesmo assim o `POST /memberships` não repetia a verificação de CNH.
+
+**Decisão Arquitetural — novo endpoint atômico em vez de modificar o existente:**
+Alterar `CreateMembershipUseCase` para aceitar CNH opcional tornaria a interface ambígua (quando o CNH é obrigatório? quando não é?). O novo `AssociateDriverToOrganizationUseCase` tem responsabilidade única e clareza de contrato: **email + CNH são sempre obrigatórios**, sem campos condicionais.
+
+**Novo Use Case — `AssociateDriverToOrganizationUseCase`:**
+
+Fluxo do `execute(dto, tenantOrganizationId)`:
+1. `userRepository.findByEmail(dto.userEmail)` → `UserNotFoundForMembershipError` (404) se null
+2. `driverRepository.findByCnh(dto.cnh)` → se null **ou** `driver.userId !== user.id` → `DriverNotFoundForMembershipError` (400) — mesmo erro independente do motivo, sem vazar se o e-mail existe
+3. `roleRepository.findByName(RoleName.DRIVER)` → obtém `role.id` sem hardcode de ID numérico
+4. `driverRepository.countActiveByOrganizationId(orgId)` → `planLimitService.assertDriverLimit()` (403 se excedido)
+5. `membershipRepository.findByCompositeKey(userId, role.id, orgId)`:
+   - soft-deleted → `restoreMembership()` + `update()`
+   - ativo → `MembershipAlreadyExistsError` (409)
+   - null → `Membership.create()` + `save()`
+6. Violação P2002 (race condition) → `MembershipAlreadyExistsError` (padrão idêntico ao `CreateMembershipUseCase`)
+
+Dependências: `MembershipRepository`, `UserRepository`, `DriverRepository`, `RoleRepository`, `PlanLimitService` — todas já disponíveis no `MembershipModule` sem novos imports.
+
+**Novo DTO — `AssociateDriverDto`:** `{ userEmail: string; cnh: string }`
+
+**Novo Endpoint REST:**
+
+| Método | Rota | Auth | O que faz |
+|--------|------|------|-----------|
+| POST | `/memberships/driver` | JWT + ADMIN | Vincula driver à org via email + CNH (atômico) |
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
 - ✅ Desenvolvido **seed script** (`prisma/seed.ts`) com suporte a `tsx` para execução confiável.

@@ -27,6 +27,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import {
+  AssociateDriverDto,
   CreateMembershipDto,
   MembershipResponseDto,
   RoleResponseDto,
@@ -34,6 +35,7 @@ import {
 import { MembershipPresenter } from '../mappers/membership.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 import {
+  AssociateDriverToOrganizationUseCase,
   CreateMembershipUseCase,
   FindMembershipByCompositeKeyUseCase,
   FindMembershipsByUserUseCase,
@@ -56,6 +58,7 @@ import { FindRoleByUserIdAndOrganizationIdUseCase } from '../../application/use-
  * |--------|------|-------|----------|
  * | `GET` | `/memberships/me/role/:organizationId` | `RolesGuard(ADMIN, DRIVER)` | `FindRoleByUserIdAndOrganizationIdUseCase` |
  * | `POST` | `/memberships` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `CreateMembershipUseCase` |
+ * | `POST` | `/memberships/driver` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `AssociateDriverToOrganizationUseCase` |
  * | `GET` | `/memberships/user/:userId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipsByUserUseCase` |
  * | `GET` | `/memberships/organization/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipsByOrganizationUseCase` |
  * | `GET` | `/memberships/:userId/:roleId/:organizationId` | `RolesGuard(ADMIN)` + `TenantFilterGuard` | `FindMembershipByCompositeKeyUseCase` |
@@ -67,6 +70,7 @@ import { FindRoleByUserIdAndOrganizationIdUseCase } from '../../application/use-
 @UseGuards(JwtAuthGuard)
 export class MembershipController {
   constructor(
+    private readonly associateDriverToOrganizationUseCase: AssociateDriverToOrganizationUseCase,
     private readonly createMembershipUseCase: CreateMembershipUseCase,
     private readonly findMembershipByCompositeKeyUseCase: FindMembershipByCompositeKeyUseCase,
     private readonly findMembershipsByUserUseCase: FindMembershipsByUserUseCase,
@@ -121,6 +125,32 @@ export class MembershipController {
     }
     const membership = await this.createMembershipUseCase.execute(
       createDto,
+      user.organizationId,
+    );
+    return this.membershipPresenter.toHTTP(membership);
+  }
+
+  @Post('driver')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({
+    summary:
+      '[ADMIN] Associate a driver to the organization via email + CNH verification',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'DRIVER membership created or restored.',
+    type: MembershipResponseDto,
+  })
+  async associateDriver(
+    @Body() dto: AssociateDriverDto,
+    @GetUser() user: TenantContext,
+  ): Promise<MembershipResponseDto> {
+    if (!user.organizationId) {
+      throw new BadRequestException('No organization context found in token');
+    }
+    const membership = await this.associateDriverToOrganizationUseCase.execute(
+      dto,
       user.organizationId,
     );
     return this.membershipPresenter.toHTTP(membership);
