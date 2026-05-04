@@ -137,7 +137,7 @@ export class TripInstanceController {
       { page, limit },
     );
     return new PaginatedDto(
-      TripInstancePresenter.toHTTPList(result.data),
+      TripInstancePresenter.toHTTPListWithMeta(result.data),
       result.total,
       result.page,
       result.limit,

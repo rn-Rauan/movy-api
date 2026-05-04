@@ -165,7 +165,10 @@ Update the current user's profile. All fields are optional.
 ### `DELETE /users/me` 🔒 JWT
 Soft-disable the current user's account (status → INACTIVE).
 
-**Response `200`** → no body
+**Response `200`**
+```json
+{ "success": true, "message": "User account disabled" }
+```
 
 ---
 
@@ -223,8 +226,8 @@ Soft-disable an organization (status → INACTIVE).
 
 ## Memberships
 
-### `GET /memberships/me/role/{organizationId}` 🔒 JWT
-Get the current user's role in a specific organization.
+### `GET /memberships/me/role/{organizationId}` 🔒 JWT (ADMIN or DRIVER)
+Get the current user's role in a specific organization. Requires the caller to have an ADMIN or DRIVER role in the org.
 
 **Response `200`** → `{ id: number, name: "ADMIN" | "DRIVER" }`
 
@@ -329,7 +332,7 @@ Get a driver by ID.
 
 ---
 
-### `PUT /drivers/{id}` 🔒 JWT
+### `PUT /drivers/{id}` �️ ADMIN
 Update a driver profile. All fields optional.
 
 **Body**
@@ -347,7 +350,7 @@ Update a driver profile. All fields optional.
 ### `DELETE /drivers/{id}` 🛡️ ADMIN
 Delete a driver profile.
 
-**Response `200`** → no body
+**Response `200`** → `boolean`
 
 ---
 
@@ -401,7 +404,7 @@ Update a vehicle. All fields optional.
 ### `DELETE /vehicles/{id}` 🛡️ ADMIN
 Soft-deactivate a vehicle (status → INACTIVE).
 
-**Response `200`** → no body
+**Response `200`** → `boolean`
 
 ---
 
@@ -457,7 +460,7 @@ Update a trip template. All fields optional.
 ### `DELETE /trip-templates/{id}` 🛡️ ADMIN
 Deactivate a trip template (soft delete).
 
-**Response `200`** → no body
+**Response `200`** → `boolean`
 
 ---
 
@@ -485,7 +488,7 @@ Create a trip instance from a template.
 ---
 
 ### `GET /trip-instances/organization/{organizationId}` 🛡️ ADMIN
-List all trip instances for an organization (paginated).
+List all trip instances for an organization (paginated). Returns an **enriched response** with booking occupancy and denormalized template fields — all resolved in a single query (no N+1).
 
 **Response `200`** → Paginated [[TripInstanceResponse](#tripinstanceresponse)]
 
@@ -644,9 +647,9 @@ List all bookings for a specific trip instance (paginated). Requires org members
 ---
 
 ### `GET /bookings/trip-instance/{tripInstanceId}/passengers` 🔒 JWT
-List the name and boarding stop of every active passenger on a trip instance.
+List the name, boarding stop, and userId of every active passenger on a trip instance.
 
-Access is granted if the caller has an `ACTIVE` booking on the trip **or** is a member of the owning organization. Sensitive fields (email, phone, userId) are never included.
+Access is granted if the caller has an `ACTIVE` booking on the trip **or** is a member of the owning organization. Sensitive fields (email, phone) are never included.
 
 **Response `200`** → [[TripPassengerResponse](#trippassengerresponse)]  
 **`403`** → Caller has no active booking and is not an org member  
@@ -663,6 +666,8 @@ List all bookings in an organization (paginated).
 
 ### `PATCH /bookings/{id}/cancel` 🔒 JWT
 Cancel a booking (status → INACTIVE). Frees up a seat.
+
+The booking owner can cancel their own booking. ADMIN or DRIVER members of the owning organisation can also cancel any booking within that org. Cancellation is blocked if the trip is `IN_PROGRESS`/`FINISHED` or departure is within 30 minutes.
 
 **Response `200`** → [BookingResponse](#bookingresponse)
 
@@ -879,10 +884,22 @@ Fail a PENDING payment (simulated).
   "minRevenue": null,
   "autoCancelAt": null,
   "forceConfirm": false,
+  "isPublic": false,
   "departureTime": "2026-05-10T07:30:00.000Z",
   "arrivalEstimate": "2026-05-10T08:15:00.000Z",
   "createdAt": "...",
-  "updatedAt": "..."
+  "updatedAt": "...",
+
+  // Fields below are only populated on GET /trip-instances/organization/{organizationId}
+  // (resolved via a single JOIN query — no extra round-trips)
+  "bookedCount": 28,
+  "availableSlots": 12,
+  "departurePoint": "Terminal Rodoviário",
+  "destination": "Universidade Federal",
+  "priceOneWay": 12.50,
+  "priceReturn": 12.50,
+  "priceRoundTrip": 20.00,
+  "isRecurring": true
 }
 ```
 
@@ -919,16 +936,19 @@ Fail a PENDING payment (simulated).
   "recordedPrice": 12.50,
   "boardingStop": "Terminal Rodoviário",
   "alightingStop": "Universidade Federal",
+  "paymentMethod": "PIX",
   "createdAt": "...",
   "updatedAt": "..."
 }
 ```
 
+> `paymentMethod` is `null` when the booking was created before this field was introduced or if not resolved from the payment record.
+
 ### TripPassengerResponse
 ```json
 [
-  { "name": "João Silva", "boardingStop": "A2" },
-  { "name": "Maria Souza", "boardingStop": "B1" }
+  { "userId": "uuid", "name": "João Silva", "boardingStop": "A2" },
+  { "userId": "uuid", "name": "Maria Souza", "boardingStop": "B1" }
 ]
 ```
 

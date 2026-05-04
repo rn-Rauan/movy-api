@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EnrollmentType } from '../../domain/interfaces';
+import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 import type { Status } from 'src/shared/domain/types';
 
 /**
@@ -81,6 +82,14 @@ export class BookingResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    example: 'PIX',
+    enum: MethodPayment,
+    nullable: true,
+    description: 'Payment method used when creating the booking',
+  })
+  paymentMethod: MethodPayment | null;
 
   constructor(props: Partial<BookingResponseDto>) {
     Object.assign(this, props);

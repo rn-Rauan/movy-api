@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { TripInstance } from 'src/modules/trip/domain/entities';
-import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces';
+import {
+  TripInstanceRepository,
+  TripInstanceWithMeta,
+} from 'src/modules/trip/domain/interfaces';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -138,6 +141,53 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Returns a paginated list of instances for an organisation enriched with
+   * booking occupancy counts and denormalised template fields — all in a single query.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstanceWithMeta} items
+   */
+  async findByOrganizationIdWithMeta(
+    organizationId: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<TripInstanceWithMeta>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+
+    const [rows, total] = await Promise.all([
+      this.db.tripInstance.findMany({
+        where: { organizationId },
+        include: {
+          tripTemplate: {
+            select: {
+              departurePoint: true,
+              destination: true,
+              priceOneWay: true,
+              priceReturn: true,
+              priceRoundTrip: true,
+              isRecurring: true,
+            },
+          },
+          _count: {
+            select: {
+              enrollments: { where: { status: 'ACTIVE' } },
+            },
+          },
+        },
+        orderBy: { departureTime: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.db.tripInstance.count({ where: { organizationId } }),
+    ]);
+
+    const data = rows.map((row) => TripInstanceMapper.toDomainWithMeta(row));
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   /**

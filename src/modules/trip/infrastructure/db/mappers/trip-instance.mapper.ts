@@ -1,7 +1,25 @@
-import { TripInstance as PrismaTripInstance } from 'generated/prisma/client';
+import {
+  Prisma,
+  TripInstance as PrismaTripInstance,
+} from 'generated/prisma/client';
 import { TripInstance } from 'src/modules/trip/domain/entities';
-import { TripStatus } from 'src/modules/trip/domain/interfaces';
+import {
+  TripInstanceWithMeta,
+  TripStatus,
+} from 'src/modules/trip/domain/interfaces';
 import { Money } from 'src/shared';
+
+type PrismaTripInstanceWithMeta = PrismaTripInstance & {
+  tripTemplate: {
+    departurePoint: string;
+    destination: string;
+    priceOneWay: Prisma.Decimal | null;
+    priceReturn: Prisma.Decimal | null;
+    priceRoundTrip: Prisma.Decimal | null;
+    isRecurring: boolean;
+  };
+  _count: { enrollments: number };
+};
 
 /**
  * Bidirectional mapper between the Prisma `TripInstance` model and the {@link TripInstance} domain object.
@@ -43,6 +61,38 @@ export class TripInstanceMapper {
    * @param entity - The {@link TripInstance} instance to serialise
    * @returns A plain persistence-layer object compatible with `prisma.tripInstance.create({ data })`
    */
+  /**
+   * Converts a raw Prisma `TripInstance` row with joined `tripTemplate` and enrollment
+   * count to a {@link TripInstanceWithMeta} object.
+   *
+   * @param raw - Row returned by `prisma.tripInstance.findMany({ include: { tripTemplate, _count } })`
+   * @returns A {@link TripInstanceWithMeta} ready for the presenter layer
+   */
+  static toDomainWithMeta(
+    raw: PrismaTripInstanceWithMeta,
+  ): TripInstanceWithMeta {
+    const { tripTemplate, _count, ...instanceRow } = raw;
+    return {
+      instance: TripInstanceMapper.toDomain(instanceRow),
+      bookedCount: _count.enrollments,
+      departurePoint: tripTemplate.departurePoint,
+      destination: tripTemplate.destination,
+      priceOneWay:
+        tripTemplate.priceOneWay !== null
+          ? Number(tripTemplate.priceOneWay)
+          : null,
+      priceReturn:
+        tripTemplate.priceReturn !== null
+          ? Number(tripTemplate.priceReturn)
+          : null,
+      priceRoundTrip:
+        tripTemplate.priceRoundTrip !== null
+          ? Number(tripTemplate.priceRoundTrip)
+          : null,
+      isRecurring: tripTemplate.isRecurring,
+    };
+  }
+
   static toPersistence(entity: TripInstance) {
     return {
       id: entity.id,

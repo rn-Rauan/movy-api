@@ -130,7 +130,8 @@ export class CreateBookingUseCase {
         const createdPayment = await this.paymentRepository.save(payment);
         if (!createdPayment) throw new PaymentCreationFailedError();
 
-        return createdBooking;
+        booking.setPaymentMethod(dto.method);
+        return booking;
       });
     } catch (error: unknown) {
       if (this.isUniqueConstraintViolation(error)) {

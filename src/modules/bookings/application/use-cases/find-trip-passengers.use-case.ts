@@ -3,6 +3,7 @@ import { TripInstanceNotFoundError } from 'src/modules/trip/domain/entities/erro
 import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces';
 import { BookingAccessForbiddenError } from '../../domain/entities/errors/booking.errors';
 import { BookingRepository } from '../../domain/interfaces';
+import { TripPassengerResponseDto } from '../dtos/trip-passenger-response.dto';
 
 /**
  * Returns the list of active passengers (name + boarding stop) for a trip instance.
@@ -24,7 +25,7 @@ export class FindTripPassengersUseCase {
    * @param tripInstanceId - UUID of the trip instance
    * @param callerId - UUID of the authenticated user (from JWT)
    * @param callerOrganizationId - UUID of the caller's organisation (from JWT), if any
-   * @returns Array of `{ name, boardingStop }` for all `ACTIVE` bookings on the trip
+   * @returns Array of `{ userId, name, boardingStop }` for all `ACTIVE` bookings on the trip
    * @throws {@link TripInstanceNotFoundError} if the trip instance does not exist
    * @throws {@link BookingAccessForbiddenError} if the caller has no active booking and is not an org member
    */
@@ -32,7 +33,7 @@ export class FindTripPassengersUseCase {
     tripInstanceId: string,
     callerId: string,
     callerOrganizationId?: string,
-  ): Promise<Array<{ name: string; boardingStop: string }>> {
+  ): Promise<TripPassengerResponseDto[]> {
     const instance = await this.tripInstanceRepository.findById(tripInstanceId);
 
     if (!instance) {

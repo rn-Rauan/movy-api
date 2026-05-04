@@ -1,22 +1,38 @@
 import { FindAllTripInstancesByOrganizationUseCase } from 'src/modules/trip/application/use-cases/find-all-trip-instances-by-organization.use-case';
 import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
+import { TripInstanceWithMeta } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
 import { PaginatedResponse } from 'src/shared/domain/interfaces';
-import { TripInstance } from 'src/modules/trip/domain/entities';
 import { makeTripInstance } from '../../factories/trip-instance.factory';
 
 // ── Mocks ───────────────────────────────────────────────
 
 function makeMocks() {
   const tripInstanceRepository = {
-    findByOrganizationId: jest.fn(),
+    findByOrganizationIdWithMeta: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
   return { tripInstanceRepository };
 }
 
+function makeTripInstanceWithMeta(
+  overrides: Partial<TripInstanceWithMeta> = {},
+): TripInstanceWithMeta {
+  return {
+    instance: makeTripInstance({ organizationId: ORG_ID }),
+    bookedCount: 0,
+    departurePoint: 'Terminal Central',
+    destination: 'Aeroporto',
+    priceOneWay: null,
+    priceReturn: null,
+    priceRoundTrip: null,
+    isRecurring: false,
+    ...overrides,
+  };
+}
+
 function makePaginatedResponse(
-  items: TripInstance[],
-): PaginatedResponse<TripInstance> {
+  items: TripInstanceWithMeta[],
+): PaginatedResponse<TripInstanceWithMeta> {
   return {
     data: items,
     total: items.length,
@@ -27,17 +43,14 @@ function makePaginatedResponse(
 }
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
-  const instances = [
-    makeTripInstance({ organizationId: ORG_ID }),
-    makeTripInstance({ organizationId: ORG_ID }),
-  ];
-  const paginated = makePaginatedResponse(instances);
+  const items = [makeTripInstanceWithMeta(), makeTripInstanceWithMeta()];
+  const paginated = makePaginatedResponse(items);
 
-  mocks.tripInstanceRepository.findByOrganizationId.mockResolvedValue(
+  mocks.tripInstanceRepository.findByOrganizationIdWithMeta.mockResolvedValue(
     paginated,
   );
 
-  return { instances, paginated };
+  return { items, paginated };
 }
 
 // ── Tests ───────────────────────────────────────────────
@@ -69,7 +82,7 @@ describe('FindAllTripInstancesByOrganizationUseCase', () => {
       expect(result.total).toBe(2);
     });
 
-    it('should call repository.findByOrganizationId with correct args', async () => {
+    it('should call repository.findByOrganizationIdWithMeta with correct args', async () => {
       // Arrange
       setupHappyPath(mocks);
 
@@ -78,16 +91,16 @@ describe('FindAllTripInstancesByOrganizationUseCase', () => {
 
       // Assert
       expect(
-        mocks.tripInstanceRepository.findByOrganizationId,
+        mocks.tripInstanceRepository.findByOrganizationIdWithMeta,
       ).toHaveBeenCalledWith(ORG_ID, PAGINATION);
       expect(
-        mocks.tripInstanceRepository.findByOrganizationId,
+        mocks.tripInstanceRepository.findByOrganizationIdWithMeta,
       ).toHaveBeenCalledTimes(1);
     });
 
     it('should return empty paginated response when organization has no instances', async () => {
       // Arrange
-      mocks.tripInstanceRepository.findByOrganizationId.mockResolvedValue(
+      mocks.tripInstanceRepository.findByOrganizationIdWithMeta.mockResolvedValue(
         makePaginatedResponse([]),
       );
 

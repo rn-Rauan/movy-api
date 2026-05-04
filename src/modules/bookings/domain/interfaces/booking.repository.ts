@@ -124,9 +124,9 @@ export abstract class BookingRepository {
    * no full domain entity is hydrated. Results are ordered by `boardingStop` ascending.
    *
    * @param tripInstanceId - UUID of the trip instance
-   * @returns Array of `{ name, boardingStop }` for every active booking on the trip
+   * @returns Array of `{ userId, name, boardingStop }` for every active booking on the trip
    */
   abstract findActivePassengersByTripInstanceId(
     tripInstanceId: string,
-  ): Promise<Array<{ name: string; boardingStop: string }>>;
+  ): Promise<Array<{ userId: string; name: string; boardingStop: string }>>;
 }

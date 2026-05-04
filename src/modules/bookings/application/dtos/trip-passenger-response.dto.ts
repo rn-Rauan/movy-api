@@ -8,6 +8,12 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class TripPassengerResponseDto {
   @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Unique identifier of the passenger',
+  })
+  userId: string;
+
+  @ApiProperty({
     example: 'João Silva',
     description: 'Display name of the passenger',
   })

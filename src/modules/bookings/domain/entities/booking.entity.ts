@@ -1,6 +1,7 @@
 import { Money } from 'src/shared/domain/entities/value-objects';
 import type { Status } from 'src/shared/domain/types';
 import { EnrollmentType } from '../interfaces';
+import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 import { InvalidBookingStopError } from './errors/booking.errors';
 
 /**
@@ -21,6 +22,7 @@ export interface BookingProps {
   recordedPrice: Money;
   boardingStop: string;
   alightingStop: string;
+  paymentMethod?: MethodPayment;
   readonly createdAt?: Date;
   updatedAt?: Date;
 }
@@ -38,6 +40,7 @@ interface BookingState {
   recordedPrice: Money;
   boardingStop: string;
   alightingStop: string;
+  paymentMethod?: MethodPayment;
   readonly createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +71,7 @@ export class Booking {
       ...props,
       boardingStop: props.boardingStop.trim(),
       alightingStop: props.alightingStop.trim(),
+      paymentMethod: props.paymentMethod,
       createdAt: props.createdAt ?? now,
       updatedAt: props.updatedAt ?? now,
     };
@@ -208,5 +212,12 @@ export class Booking {
   }
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+  get paymentMethod(): MethodPayment | undefined {
+    return this.props.paymentMethod;
+  }
+
+  setPaymentMethod(method: MethodPayment): void {
+    this.props.paymentMethod = method;
   }
 }

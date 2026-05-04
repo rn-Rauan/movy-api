@@ -29,6 +29,7 @@ export class BookingPresenter {
       alightingStop: entity.alightingStop,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      paymentMethod: entity.paymentMethod ?? null,
     });
   }
 

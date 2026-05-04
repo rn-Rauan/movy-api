@@ -1,8 +1,13 @@
 import { Enrollment as PrismaEnrollment } from 'generated/prisma/client';
 import { Booking } from 'src/modules/bookings/domain/entities';
 import { EnrollmentType } from 'src/modules/bookings/domain/interfaces';
+import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 import { Money } from 'src/shared';
 import type { Status } from 'src/shared/domain/types';
+
+export type PrismaEnrollmentWithPayment = PrismaEnrollment & {
+  payment: { method: string } | null;
+};
 
 /**
  * Bidirectional mapper between the Prisma `Enrollment` model and the {@link Booking} domain object.
@@ -18,9 +23,13 @@ export class BookingMapper {
    * reconstructs the {@link Money} Value Object from that value.
    *
    * @param raw - Raw `Enrollment` record returned by the Prisma client
+   * @param paymentMethod - Optional payment method resolved from the related `Payment` row
    * @returns A fully hydrated {@link Booking} instance
    */
-  static toDomain(raw: PrismaEnrollment): Booking {
+  static toDomain(
+    raw: PrismaEnrollment,
+    paymentMethod?: MethodPayment,
+  ): Booking {
     return Booking.restore({
       id: raw.id,
       organizationId: raw.organizationId,
@@ -33,6 +42,7 @@ export class BookingMapper {
       recordedPrice: Money.restore(Number(raw.recordedPrice)),
       boardingStop: raw.boardingStop,
       alightingStop: raw.alightingStop,
+      paymentMethod,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -48,6 +58,22 @@ export class BookingMapper {
    * @param entity - The {@link Booking} instance to serialise
    * @returns A plain persistence-layer object compatible with `prisma.enrollment.create({ data })`
    */
+  /**
+   * Converts a Prisma `Enrollment` row joined with its `Payment` to a {@link Booking}.
+   *
+   * Delegates to {@link toDomain} after extracting the payment method from the joined row.
+   *
+   * @param raw - Row returned by `prisma.enrollment.findMany({ include: { payment: { select: { method } } } })`
+   * @returns A fully hydrated {@link Booking} instance
+   */
+  static toDomainFromRow(raw: PrismaEnrollmentWithPayment): Booking {
+    const { payment, ...enrollmentRow } = raw;
+    return BookingMapper.toDomain(
+      enrollmentRow,
+      payment?.method as MethodPayment | undefined,
+    );
+  }
+
   static toPersistence(entity: Booking) {
     const activeKey =
       entity.status === 'ACTIVE'

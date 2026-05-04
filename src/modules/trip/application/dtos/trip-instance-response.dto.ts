@@ -73,6 +73,18 @@ export class TripInstanceResponseDto {
   totalCapacity: number;
 
   @ApiProperty({
+    example: 28,
+    description: 'Number of active bookings for this trip instance',
+  })
+  bookedCount: number;
+
+  @ApiProperty({
+    example: 12,
+    description: 'Remaining available slots (totalCapacity - bookedCount)',
+  })
+  availableSlots: number;
+
+  @ApiProperty({
     example: '2026-05-10T07:30:00.000Z',
     description: 'Scheduled departure date and time',
   })
@@ -83,6 +95,45 @@ export class TripInstanceResponseDto {
     description: 'Estimated arrival date and time',
   })
   arrivalEstimate: Date;
+
+  @ApiProperty({
+    example: 'Terminal Rodoviário Central',
+    description: 'Departure point from the trip template',
+  })
+  departurePoint: string;
+
+  @ApiProperty({
+    example: 'Aeroporto Internacional',
+    description: 'Destination from the trip template',
+  })
+  destination: string;
+
+  @ApiPropertyOptional({
+    example: 49.9,
+    description: 'One-way price from the trip template (BRL), or null',
+    nullable: true,
+  })
+  priceOneWay: number | null;
+
+  @ApiPropertyOptional({
+    example: 45.0,
+    description: 'Return-trip price from the trip template (BRL), or null',
+    nullable: true,
+  })
+  priceReturn: number | null;
+
+  @ApiPropertyOptional({
+    example: 89.9,
+    description: 'Round-trip price from the trip template (BRL), or null',
+    nullable: true,
+  })
+  priceRoundTrip: number | null;
+
+  @ApiProperty({
+    example: false,
+    description: 'Whether the trip template is recurring',
+  })
+  isRecurring: boolean;
 
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;

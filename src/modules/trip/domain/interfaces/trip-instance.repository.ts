@@ -5,6 +5,24 @@ import {
 import { TripInstance } from '../entities';
 
 /**
+ * Enriched data bag returned by {@link TripInstanceRepository.findByOrganizationIdWithMeta}.
+ *
+ * Combines the core {@link TripInstance} entity with booking occupancy counts and
+ * denormalised fields from the parent `TripTemplate` — all resolved in a single SQL query
+ * (no N+1).
+ */
+export interface TripInstanceWithMeta {
+  instance: TripInstance;
+  bookedCount: number;
+  departurePoint: string;
+  destination: string;
+  priceOneWay: number | null;
+  priceReturn: number | null;
+  priceRoundTrip: number | null;
+  isRecurring: boolean;
+}
+
+/**
  * Repository contract for {@link TripInstance}.
  *
  * The concrete implementation lives at
@@ -66,6 +84,19 @@ export abstract class TripInstanceRepository {
     organizationId: string,
     options: PaginationOptions,
   ): Promise<PaginatedResponse<TripInstance>>;
+
+  /**
+   * Returns a paginated list of trip instances for an organisation enriched with
+   * booking occupancy counts and denormalised template fields — all in a single query.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} of {@link TripInstanceWithMeta} items
+   */
+  abstract findByOrganizationIdWithMeta(
+    organizationId: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<TripInstanceWithMeta>>;
 
   /**
    * Returns a paginated list of trip instances derived from a specific template,

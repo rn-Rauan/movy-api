@@ -605,6 +605,38 @@
         ]
       }
     },
+    "/memberships/driver": {
+      "post": {
+        "operationId": "MembershipController_associateDriver",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssociateDriverDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "DRIVER membership created or restored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "[ADMIN] Associate a driver to the organization via email + CNH verification",
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
     "/memberships/user/{userId}": {
       "get": {
         "operationId": "MembershipController_findByUser",
@@ -2615,6 +2647,41 @@
         ]
       }
     },
+    "/bookings/trip-instance/{tripInstanceId}/passengers": {
+      "get": {
+        "operationId": "BookingController_findPassengers",
+        "parameters": [
+          {
+            "name": "tripInstanceId",
+            "required": true,
+            "in": "path",
+            "description": "UUID of the trip instance",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Passenger list. Requires an active booking on the trip or org membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TripPassengerResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List active passengers (name + boarding stop) for a trip instance",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/bookings/availability/{tripInstanceId}": {
       "get": {
         "operationId": "BookingController_getAvailability",
@@ -3304,6 +3371,23 @@
           "organizationId",
           "assignedAt",
           "removedAt"
+        ]
+      },
+      "AssociateDriverDto": {
+        "type": "object",
+        "properties": {
+          "userEmail": {
+            "type": "string",
+            "example": "joao.silva@email.com"
+          },
+          "cnh": {
+            "type": "string",
+            "example": "12345678901"
+          }
+        },
+        "required": [
+          "userEmail",
+          "cnh"
         ]
       },
       "CreateDriverDto": {
@@ -4793,6 +4877,31 @@
           "alightingStop",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "TripPassengerResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "description": "Unique identifier of the passenger"
+          },
+          "name": {
+            "type": "string",
+            "example": "João Silva",
+            "description": "Display name of the passenger"
+          },
+          "boardingStop": {
+            "type": "string",
+            "example": "A2",
+            "description": "Boarding stop identifier"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "boardingStop"
         ]
       },
       "BookingAvailabilityResponseDto": {

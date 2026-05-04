@@ -298,7 +298,11 @@ export class BookingController {
   // ── Acoes de estado ────────────────────────────────────────────────────────
 
   @Patch(':id/cancel')
-  @ApiOperation({ summary: 'Cancel a booking (soft delete — status INACTIVE)' })
+  @ApiOperation({
+    summary: 'Cancel a booking (soft delete — status INACTIVE)',
+    description:
+      'The booking owner can cancel their own booking. ADMIN or DRIVER members of the owning organisation can cancel any booking within that org. Cancellation is blocked if the trip is IN_PROGRESS/FINISHED or departure is within 30 minutes.',
+  })
   @ApiParam({ name: 'id', description: 'UUID of the booking' })
   @ApiResponse({
     status: 200,

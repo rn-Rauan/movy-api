@@ -9,6 +9,10 @@ import type { Status } from 'src/shared/domain/types';
 import { DbContext } from 'src/shared/infrastructure/database/db-context';
 import { BookingMapper } from '../mappers/booking.mapper';
 
+const PAYMENT_INCLUDE = {
+  payment: { select: { method: true } },
+} as const;
+
 /**
  * Prisma-backed implementation of {@link BookingRepository}.
  *
@@ -68,13 +72,14 @@ export class PrismaBookingRepository implements BookingRepository {
    * @returns The matching {@link Booking}, or `null` if not found
    */
   async findById(id: string): Promise<Booking | null> {
-    const data = await this.db.enrollment.findUnique({
+    const row = await this.db.enrollment.findUnique({
       where: { id },
+      include: PAYMENT_INCLUDE,
     });
 
-    if (!data) return null;
+    if (!row) return null;
 
-    return BookingMapper.toDomain(data);
+    return BookingMapper.toDomainFromRow(row);
   }
 
   /**
@@ -92,6 +97,7 @@ export class PrismaBookingRepository implements BookingRepository {
     const [bookings, total] = await Promise.all([
       this.db.enrollment.findMany({
         orderBy: { enrollmentDate: 'desc' },
+        include: PAYMENT_INCLUDE,
         skip,
         take: limit,
       }),
@@ -99,7 +105,7 @@ export class PrismaBookingRepository implements BookingRepository {
     ]);
 
     return {
-      data: bookings.map((b) => BookingMapper.toDomain(b)),
+      data: bookings.map((row) => BookingMapper.toDomainFromRow(row)),
       total,
       page,
       limit,
@@ -125,6 +131,7 @@ export class PrismaBookingRepository implements BookingRepository {
       this.db.enrollment.findMany({
         where: { organizationId },
         orderBy: { enrollmentDate: 'desc' },
+        include: PAYMENT_INCLUDE,
         skip,
         take: limit,
       }),
@@ -132,7 +139,7 @@ export class PrismaBookingRepository implements BookingRepository {
     ]);
 
     return {
-      data: bookings.map((b) => BookingMapper.toDomain(b)),
+      data: bookings.map((row) => BookingMapper.toDomainFromRow(row)),
       total,
       page,
       limit,
@@ -163,6 +170,7 @@ export class PrismaBookingRepository implements BookingRepository {
       this.db.enrollment.findMany({
         where,
         orderBy: { enrollmentDate: 'desc' },
+        include: PAYMENT_INCLUDE,
         skip,
         take: limit,
       }),
@@ -170,7 +178,7 @@ export class PrismaBookingRepository implements BookingRepository {
     ]);
 
     return {
-      data: bookings.map((b) => BookingMapper.toDomain(b)),
+      data: bookings.map((row) => BookingMapper.toDomainFromRow(row)),
       total,
       page,
       limit,
@@ -196,6 +204,7 @@ export class PrismaBookingRepository implements BookingRepository {
       this.db.enrollment.findMany({
         where: { tripInstanceId },
         orderBy: { enrollmentDate: 'desc' },
+        include: PAYMENT_INCLUDE,
         skip,
         take: limit,
       }),
@@ -203,7 +212,7 @@ export class PrismaBookingRepository implements BookingRepository {
     ]);
 
     return {
-      data: bookings.map((b) => BookingMapper.toDomain(b)),
+      data: bookings.map((row) => BookingMapper.toDomainFromRow(row)),
       total,
       page,
       limit,
@@ -224,13 +233,14 @@ export class PrismaBookingRepository implements BookingRepository {
     userId: string,
     tripInstanceId: string,
   ): Promise<Booking | null> {
-    const data = await this.db.enrollment.findFirst({
+    const row = await this.db.enrollment.findFirst({
       where: { userId, tripInstanceId, status: 'ACTIVE' },
+      include: PAYMENT_INCLUDE,
     });
 
-    if (!data) return null;
+    if (!row) return null;
 
-    return BookingMapper.toDomain(data);
+    return BookingMapper.toDomainFromRow(row);
   }
 
   /**
@@ -256,10 +266,11 @@ export class PrismaBookingRepository implements BookingRepository {
    */
   async findActivePassengersByTripInstanceId(
     tripInstanceId: string,
-  ): Promise<Array<{ name: string; boardingStop: string }>> {
+  ): Promise<Array<{ userId: string; name: string; boardingStop: string }>> {
     const rows = await this.db.enrollment.findMany({
       where: { tripInstanceId, status: 'ACTIVE' },
       select: {
+        userId: true,
         boardingStop: true,
         user: { select: { name: true } },
       },
@@ -267,6 +278,7 @@ export class PrismaBookingRepository implements BookingRepository {
     });
 
     return rows.map((r) => ({
+      userId: r.userId,
       name: r.user.name,
       boardingStop: r.boardingStop,
     }));
