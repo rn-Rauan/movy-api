@@ -4,7 +4,7 @@ import { SubscriptionStatus } from '../interfaces/enums/subscription-status.enum
 interface SubscriptionState {
   readonly id: string;
   readonly organizationId: string;
-  readonly planId: number;
+  planId: number;
   status: SubscriptionStatus;
   readonly startDate: Date;
   expiresAt: Date;
@@ -86,6 +86,30 @@ export class SubscriptionEntity {
   cancel(): void {
     this.props.status = SubscriptionStatus.CANCELED;
     this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Replaces the subscribed plan, resetting `expiresAt` to `now + durationDays` of the new plan.
+   *
+   * Preserves `id`, `organizationId`, `startDate` and `createdAt` so the historical record
+   * of the subscription is kept intact. Only `planId`, `expiresAt` and `updatedAt` are mutated.
+   *
+   * @remarks
+   * This method does not validate the current status or the new plan — guard logic
+   * (ensuring the subscription is ACTIVE and the plan exists/is active) must be enforced
+   * at the use-case layer.
+   *
+   * @param planId - UUID-less integer id of the new plan
+   * @param durationDays - Duration of the new plan, used to recalculate `expiresAt`
+   */
+  changePlan(planId: number, durationDays: number): void {
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + durationDays);
+
+    this.props.planId = planId;
+    this.props.expiresAt = expiresAt;
+    this.props.updatedAt = now;
   }
 
   /**

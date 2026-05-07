@@ -12,6 +12,7 @@ import { makeCreateDriverDto } from '../../factories/create-driver.dto.factory';
 function makeMocks() {
   const driverRepository = {
     findByUserId: jest.fn(),
+    findByCnh: jest.fn(),
     save: jest.fn(),
   } as any as jest.Mocked<DriverRepository>;
 
@@ -20,6 +21,7 @@ function makeMocks() {
 
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   mocks.driverRepository.findByUserId.mockResolvedValue(null);
+  mocks.driverRepository.findByCnh.mockResolvedValue(null);
   mocks.driverRepository.save.mockImplementation(async (driver) => driver);
 }
 
@@ -85,6 +87,7 @@ describe('CreateDriverUseCase', () => {
     it('should throw DriverCreationFailedError when save returns null', async () => {
       // Arrange
       mocks.driverRepository.findByUserId.mockResolvedValue(null);
+      mocks.driverRepository.findByCnh.mockResolvedValue(null);
       mocks.driverRepository.save.mockResolvedValue(null);
       const dto = makeCreateDriverDto();
 

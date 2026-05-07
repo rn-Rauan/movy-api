@@ -28,10 +28,12 @@ import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 import {
   CreateSubscriptionDto,
   SubscriptionResponseDto,
+  UpdateSubscriptionPlanDto,
 } from '../../application/dtos';
 import { SubscriptionPresenter } from '../mappers/subscription.presenter';
 import {
   CancelSubscriptionUseCase,
+  ChangeSubscriptionPlanUseCase,
   FindActiveSubscriptionUseCase,
   FindSubscriptionsByOrganizationUseCase,
   SubscribeToPlanUseCase,
@@ -52,6 +54,7 @@ export class SubscriptionController {
   constructor(
     private readonly subscribeToPlan: SubscribeToPlanUseCase,
     private readonly cancelSubscription: CancelSubscriptionUseCase,
+    private readonly changeSubscriptionPlan: ChangeSubscriptionPlanUseCase,
     private readonly findActiveSubscription: FindActiveSubscriptionUseCase,
     private readonly findSubscriptionsByOrganization: FindSubscriptionsByOrganizationUseCase,
   ) {}
@@ -75,6 +78,33 @@ export class SubscriptionController {
   ): Promise<SubscriptionResponseDto> {
     return SubscriptionPresenter.toHTTP(
       await this.subscribeToPlan.execute(dto, ctx.organizationId!),
+    );
+  }
+
+  /**
+   * Replaces the plan of an existing ACTIVE subscription. Preserves the same record
+   * (id, startDate, createdAt) and recalculates `expiresAt` from the new plan's duration.
+   *
+   * @param id - UUID of the subscription to update
+   * @param dto - Validated body containing the new `planId`
+   * @returns The updated subscription as a {@link SubscriptionResponseDto}
+   */
+  @Patch(':id')
+  @UseGuards(TenantFilterGuard, RolesGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({
+    summary: '[ADMIN] Change the plan of an active subscription',
+  })
+  @ApiParam({ name: 'organizationId' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200, type: SubscriptionResponseDto })
+  async changePlan(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubscriptionPlanDto,
+    @GetUser() ctx: TenantContext,
+  ): Promise<SubscriptionResponseDto> {
+    return SubscriptionPresenter.toHTTP(
+      await this.changeSubscriptionPlan.execute(id, dto, ctx.organizationId!),
     );
   }
 

@@ -6,6 +6,7 @@ import { SubscriptionRepository } from './domain/interfaces/subscription.reposit
 import { PrismaSubscriptionRepository } from './infrastructure/db/repositories/prisma-subscription.repository';
 import {
   CancelSubscriptionUseCase,
+  ChangeSubscriptionPlanUseCase,
   FindActiveSubscriptionUseCase,
   FindSubscriptionsByOrganizationUseCase,
   SubscribeToPlanUseCase,
@@ -31,6 +32,7 @@ import { PlanLimitService } from './application/services/plan-limit.service';
     { provide: SubscriptionRepository, useClass: PrismaSubscriptionRepository },
     SubscribeToPlanUseCase,
     CancelSubscriptionUseCase,
+    ChangeSubscriptionPlanUseCase,
     FindActiveSubscriptionUseCase,
     FindSubscriptionsByOrganizationUseCase,
     PlanLimitService,

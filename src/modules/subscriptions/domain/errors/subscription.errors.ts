@@ -29,6 +29,20 @@ export class SubscriptionAlreadyActiveError extends DomainError {
 }
 
 /**
+ * Thrown when an operation requires an ACTIVE subscription (e.g. changing plan)
+ * but the subscription is in another state (CANCELED, PAST_DUE).
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class SubscriptionNotActiveError extends DomainError {
+  readonly code = 'SUBSCRIPTION_NOT_ACTIVE_BAD_REQUEST';
+
+  constructor(id: string) {
+    super(`Subscription "${id}" is not active and cannot be modified`);
+  }
+}
+
+/**
  * Thrown when the subscription record fails to be persisted due to an unexpected repository error.
  *
  * @remarks Maps to HTTP `400 Bad Request`.

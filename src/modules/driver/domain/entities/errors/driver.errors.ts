@@ -143,6 +143,18 @@ export class DriverAlreadyExistsError extends DriverValidationError {
 }
 
 /**
+ * Thrown when the provided CNH is already registered to another driver.
+ * HTTP 409 — code: `DRIVER_CNH_ALREADY_EXISTS_CONFLICT`
+ */
+export class CnhAlreadyExistsError extends DriverValidationError {
+  code = 'DRIVER_CNH_ALREADY_EXISTS';
+
+  constructor(cnh: string) {
+    super(`CNH "${cnh}" is already registered to another driver`);
+  }
+}
+
+/**
  * Thrown when only some CNH-related fields are provided on update (all-or-nothing rule).
  * HTTP 400 — code: `INVALID_PARTIAL_CNH_UPDATE_BAD_REQUEST`
  */

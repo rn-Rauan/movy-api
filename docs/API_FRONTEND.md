@@ -708,6 +708,25 @@ List all subscriptions for an organization (paginated).
 
 ---
 
+### `PATCH /organizations/{organizationId}/subscriptions/{id}` 🛡️ ADMIN
+Replace the plan of an **ACTIVE** subscription. Preserves the same record (`id`, `startDate`, `createdAt`) and recalculates `expiresAt = now + newPlan.durationDays`.
+
+Use this endpoint to switch plans (e.g. upgrade from FREE → PREMIUM) instead of cancelling and resubscribing — it avoids the unique-active-subscription race condition and keeps the historical trail intact.
+
+If `planId` matches the current plan, the call is a no-op and returns the subscription unchanged.
+
+**Body**
+| Field | Type | Required |
+|---|---|---|
+| `planId` | number | ✅ |
+
+**Response `200`** → [SubscriptionResponse](#subscriptionresponse)  
+**`400`** → Subscription is not ACTIVE (CANCELED or PAST_DUE)  
+**`403`** → Subscription belongs to another organization  
+**`404`** → Subscription or plan not found (or plan inactive)
+
+---
+
 ### `PATCH /organizations/{organizationId}/subscriptions/{id}/cancel` 🛡️ ADMIN
 Cancel a subscription. Takes effect at `expiresAt`.
 

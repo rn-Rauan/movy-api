@@ -54,11 +54,16 @@ export class SubscriptionMapper {
 
   static toUpdatePersistence(
     entity: SubscriptionEntity,
-  ): Pick<PrismaSubscription, 'status' | 'updatedAt' | 'activeKey'> {
+  ): Pick<
+    PrismaSubscription,
+    'status' | 'updatedAt' | 'activeKey' | 'planId' | 'expiresAt'
+  > {
     return {
       status: entity.status,
       updatedAt: entity.updatedAt,
       activeKey: this.resolveActiveKey(entity),
+      planId: entity.planId,
+      expiresAt: entity.expiresAt,
     };
   }
 

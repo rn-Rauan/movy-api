@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 import {
   DriverCreationFailedError,
   DriverAlreadyExistsError,
+  CnhAlreadyExistsError,
 } from '../../domain/entities/errors/driver.errors';
 
 /**
@@ -34,6 +35,11 @@ export class CreateDriverUseCase {
     const existing = await this.driverRepository.findByUserId(userId);
     if (existing) {
       throw new DriverAlreadyExistsError(userId);
+    }
+
+    const existingCnh = await this.driverRepository.findByCnh(input.cnh.trim());
+    if (existingCnh) {
+      throw new CnhAlreadyExistsError(input.cnh);
     }
 
     const driver = DriverEntity.create({
