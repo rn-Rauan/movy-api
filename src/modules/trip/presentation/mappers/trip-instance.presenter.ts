@@ -75,6 +75,12 @@ export class TripInstancePresenter {
       isRecurring: data.isRecurring,
       createdAt: instance.createdAt,
       updatedAt: instance.updatedAt,
+      template: {
+        id: data.templateId,
+        origin: data.departurePoint,
+        destination: data.destination,
+        stops: data.stops,
+      },
     });
   }
 

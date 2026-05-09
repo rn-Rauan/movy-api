@@ -103,7 +103,7 @@ export class TripInstanceFullError extends DomainError {
  * @remarks Maps to HTTP `400 Bad Request`.
  */
 export class BookingCancellationNotAllowedError extends DomainError {
-  readonly code = 'BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST';
+  readonly code = 'BOOKING_TRIP_TERMINAL_BAD_REQUEST';
 
   constructor(tripInstanceId: string, status: string) {
     super(
@@ -147,7 +147,7 @@ export class BookingAlreadyInactiveError extends DomainError {
  * @remarks Maps to HTTP `400 Bad Request`.
  */
 export class BookingCancellationDeadlineError extends DomainError {
-  readonly code = 'BOOKING_CANCELLATION_DEADLINE_BAD_REQUEST';
+  readonly code = 'BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST';
 
   constructor(id: string) {
     super(`Cancellation deadline for booking "${id}" has already passed`);

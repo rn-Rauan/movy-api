@@ -2,6 +2,38 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TripStatus } from '../../domain/interfaces';
 
 /**
+ * Nested template summary returned alongside enriched trip-instance reads
+ * (e.g. `GET /trip-instances/:id`). Consolidates fields the frontend would
+ * otherwise fetch via a second `/trip-templates/:id` call.
+ */
+export class TripInstanceTemplateSummaryDto {
+  @ApiProperty({
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    description: 'UUID of the parent trip template',
+  })
+  id: string;
+
+  @ApiProperty({
+    example: 'Terminal Rodoviário Central',
+    description: 'Departure point of the template',
+  })
+  origin: string;
+
+  @ApiProperty({
+    example: 'Aeroporto Internacional',
+    description: 'Final destination of the template',
+  })
+  destination: string;
+
+  @ApiProperty({
+    example: ['Terminal Rodoviário', 'Praça Central', 'Aeroporto'],
+    description: 'Ordered list of stops along the route',
+    type: [String],
+  })
+  stops: string[];
+}
+
+/**
  * Response DTO with public trip instance data.
  */
 export class TripInstanceResponseDto {
@@ -140,6 +172,14 @@ export class TripInstanceResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    type: TripInstanceTemplateSummaryDto,
+    description:
+      'Parent template summary (id, origin, destination, stops). Populated by enriched reads such as `GET /trip-instances/:id`.',
+    nullable: true,
+  })
+  template?: TripInstanceTemplateSummaryDto | null;
 
   constructor(props: Partial<TripInstanceResponseDto>) {
     Object.assign(this, props);

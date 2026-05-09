@@ -502,9 +502,9 @@ List all instances for a specific template (paginated).
 ---
 
 ### `GET /trip-instances/{id}` 🔒 JWT
-Get a trip instance by ID.
+Get a trip instance by ID. **Enriched response** — joins the parent template (`id`, `origin`, `destination`, `stops`) and live occupancy (`bookedCount`, `availableSlots`) in a single query, so the FE no longer needs a follow-up `GET /trip-templates/{id}` call.
 
-**Response `200`** → [TripInstanceResponse](#tripinstanceresponse)
+**Response `200`** → [TripInstanceResponse](#tripinstanceresponse) (with `template`, `bookedCount`, `availableSlots` populated)
 
 ---
 
@@ -734,6 +734,19 @@ Cancel a subscription. Takes effect at `expiresAt`.
 
 ---
 
+### `GET /organizations/{organizationId}/plan-usage` 🛡️ ADMIN
+Return the organization's current consumption against the plan attached to its **active** subscription. Single source of truth for the plan-card UI — replaces the old fan-out (`subscriptions/active` + `plans/{id}` + local counting of vehicles/drivers).
+
+Counts come from the same repository methods used by the backend's plan-limit gates (`PlanLimitService.assert*`), so the displayed `used` value will always match what triggers a `403` on resource creation.
+
+`monthlyTrips.used` covers trip instances created in the current calendar month.
+
+**Response `200`** → [PlanUsageResponse](#planusageresponse)
+**`403`** → No active subscription (`NO_ACTIVE_SUBSCRIPTION_FORBIDDEN`)
+**`404`** → Plan referenced by the subscription no longer exists
+
+---
+
 ## Plans
 
 ### `GET /plans` 🔒 JWT
@@ -909,8 +922,9 @@ Fail a PENDING payment (simulated).
   "createdAt": "...",
   "updatedAt": "...",
 
-  // Fields below are only populated on GET /trip-instances/organization/{organizationId}
-  // (resolved via a single JOIN query — no extra round-trips)
+  // Fields below are populated on GET /trip-instances/{id} and
+  // GET /trip-instances/organization/{organizationId} (single JOIN query — no extra round-trips).
+  // On other endpoints (POST, PATCH /status, PUT /driver, PUT /vehicle) they default to 0/empty.
   "bookedCount": 28,
   "availableSlots": 12,
   "departurePoint": "Terminal Rodoviário",
@@ -918,7 +932,15 @@ Fail a PENDING payment (simulated).
   "priceOneWay": 12.50,
   "priceReturn": 12.50,
   "priceRoundTrip": 20.00,
-  "isRecurring": true
+  "isRecurring": true,
+
+  // Only populated on GET /trip-instances/{id}.
+  "template": {
+    "id": "uuid",
+    "origin": "Terminal Rodoviário",
+    "destination": "Universidade Federal",
+    "stops": ["Terminal Rodoviário", "Praça Central", "Universidade Federal"]
+  }
 }
 ```
 
@@ -1013,6 +1035,15 @@ Same as BookingResponse plus:
 }
 ```
 
+### PlanUsageResponse
+```json
+{
+  "vehicles":     { "used": 4,  "max": 10 },
+  "drivers":      { "used": 2,  "max": 5  },
+  "monthlyTrips": { "used": 17, "max": 50 }
+}
+```
+
 ### PaymentResponse
 ```json
 {
@@ -1031,6 +1062,20 @@ Same as BookingResponse plus:
 
 ## Common Errors
 
+All error responses follow this shape:
+
+```json
+{
+  "statusCode": 400,
+  "timestamp": "2026-05-09T12:34:56.789Z",
+  "path": "/bookings/abc/cancel",
+  "message": "Cancellation deadline for booking \"abc\" has already passed",
+  "error": "BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST"
+}
+```
+
+The `error` field carries a stable domain error code — use it (not `message`) to drive UI copy.
+
 | HTTP | When |
 |---|---|
 | `400` | Validation failed (missing/invalid fields) |
@@ -1038,3 +1083,13 @@ Same as BookingResponse plus:
 | `403` | Insufficient role or plan limit exceeded |
 | `404` | Resource not found |
 | `409` | Duplicate (user/org/vehicle already exists) |
+
+### Booking Cancellation Error Codes
+
+`PATCH /bookings/{id}/cancel` may reject with HTTP `400`. Map the `error` code to user-facing copy:
+
+| `error` | Meaning | Suggested copy |
+|---|---|---|
+| `BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST` | Departure is within 30 minutes | "Cancellation closes 30 minutes before departure." |
+| `BOOKING_TRIP_TERMINAL_BAD_REQUEST` | Trip is `IN_PROGRESS` or `FINISHED` | "This trip already started — bookings can no longer be cancelled." |
+| `BOOKING_ALREADY_INACTIVE_BAD_REQUEST` | Booking is already cancelled | "This booking has already been cancelled." |

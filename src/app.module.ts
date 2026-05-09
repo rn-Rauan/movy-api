@@ -15,6 +15,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { PlanUsageModule } from './modules/plan-usage/plan-usage.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PaymentModule } from './modules/payment/payment.module';
     PlansModule,
     SubscriptionsModule,
     PaymentModule,
+    PlanUsageModule,
   ],
   controllers: [AppController],
   providers: [

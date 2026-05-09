@@ -80,6 +80,42 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
+   * Finds an instance by UUID and joins template fields + active enrollment
+   * count in a single query — used by `GET /trip-instances/:id`.
+   *
+   * @param id - UUID of the trip instance
+   * @returns A {@link TripInstanceWithMeta} ready for the presenter, or `null` if not found
+   */
+  async findByIdWithMeta(id: string): Promise<TripInstanceWithMeta | null> {
+    const row = await this.db.tripInstance.findUnique({
+      where: { id },
+      include: {
+        tripTemplate: {
+          select: {
+            id: true,
+            departurePoint: true,
+            destination: true,
+            stops: true,
+            priceOneWay: true,
+            priceReturn: true,
+            priceRoundTrip: true,
+            isRecurring: true,
+          },
+        },
+        _count: {
+          select: {
+            enrollments: { where: { status: 'ACTIVE' } },
+          },
+        },
+      },
+    });
+
+    if (!row) return null;
+
+    return TripInstanceMapper.toDomainWithMeta(row);
+  }
+
+  /**
    * Returns a paginated list of all bookings ordered by `departureTime` ascending.
    *
    * @param options - Pagination parameters `{ page, limit }`
@@ -164,8 +200,10 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
         include: {
           tripTemplate: {
             select: {
+              id: true,
               departurePoint: true,
               destination: true,
+              stops: true,
               priceOneWay: true,
               priceReturn: true,
               priceRoundTrip: true,

@@ -1,5 +1,8 @@
 import { FindTripInstanceByIdUseCase } from 'src/modules/trip/application/use-cases/find-trip-instance-by-id.use-case';
-import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-instance.repository';
+import {
+  TripInstanceRepository,
+  TripInstanceWithMeta,
+} from 'src/modules/trip/domain/interfaces';
 import {
   TripInstanceAccessForbiddenError,
   TripInstanceNotFoundError,
@@ -10,18 +13,35 @@ import { makeTripInstance } from '../../factories/trip-instance.factory';
 
 function makeMocks() {
   const tripInstanceRepository = {
-    findById: jest.fn(),
+    findByIdWithMeta: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
   return { tripInstanceRepository };
 }
 
+function makeMeta(
+  overrides: Partial<TripInstanceWithMeta> = {},
+): TripInstanceWithMeta {
+  const instance =
+    overrides.instance ?? makeTripInstance({ organizationId: ORG_ID });
+  return {
+    instance,
+    bookedCount: overrides.bookedCount ?? 5,
+    templateId: overrides.templateId ?? instance.tripTemplateId,
+    departurePoint: overrides.departurePoint ?? 'Origin',
+    destination: overrides.destination ?? 'Destination',
+    stops: overrides.stops ?? ['Origin', 'Stop 1', 'Destination'],
+    priceOneWay: overrides.priceOneWay ?? null,
+    priceReturn: overrides.priceReturn ?? null,
+    priceRoundTrip: overrides.priceRoundTrip ?? null,
+    isRecurring: overrides.isRecurring ?? false,
+  };
+}
+
 function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
-  const instance = makeTripInstance({ organizationId: ORG_ID });
-
-  mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
-
-  return { instance };
+  const meta = makeMeta();
+  mocks.tripInstanceRepository.findByIdWithMeta.mockResolvedValue(meta);
+  return { meta };
 }
 
 // ── Tests ───────────────────────────────────────────────
@@ -39,20 +59,21 @@ describe('FindTripInstanceByIdUseCase', () => {
   });
 
   describe('happy path', () => {
-    it('should return the trip instance when found and org matches', async () => {
+    it('should return the enriched trip instance when found and org matches', async () => {
       // Arrange
-      const { instance } = setupHappyPath(mocks);
+      const { meta } = setupHappyPath(mocks);
 
       // Act
       const result = await sut.execute(INSTANCE_ID, ORG_ID);
 
       // Assert
-      expect(result).toBeDefined();
-      expect(result.organizationId).toBe(ORG_ID);
-      expect(result).toBe(instance);
+      expect(result).toBe(meta);
+      expect(result.instance.organizationId).toBe(ORG_ID);
+      expect(result.bookedCount).toBe(5);
+      expect(result.stops).toEqual(['Origin', 'Stop 1', 'Destination']);
     });
 
-    it('should call repository.findById with the provided id', async () => {
+    it('should call repository.findByIdWithMeta with the provided id', async () => {
       // Arrange
       setupHappyPath(mocks);
 
@@ -60,17 +81,19 @@ describe('FindTripInstanceByIdUseCase', () => {
       await sut.execute(INSTANCE_ID, ORG_ID);
 
       // Assert
-      expect(mocks.tripInstanceRepository.findById).toHaveBeenCalledWith(
-        INSTANCE_ID,
-      );
-      expect(mocks.tripInstanceRepository.findById).toHaveBeenCalledTimes(1);
+      expect(
+        mocks.tripInstanceRepository.findByIdWithMeta,
+      ).toHaveBeenCalledWith(INSTANCE_ID);
+      expect(
+        mocks.tripInstanceRepository.findByIdWithMeta,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('error — not found', () => {
     it('should throw TripInstanceNotFoundError when instance does not exist', async () => {
       // Arrange
-      mocks.tripInstanceRepository.findById.mockResolvedValue(null);
+      mocks.tripInstanceRepository.findByIdWithMeta.mockResolvedValue(null);
 
       // Act & Assert
       await expect(sut.execute(INSTANCE_ID, ORG_ID)).rejects.toThrow(
@@ -82,39 +105,31 @@ describe('FindTripInstanceByIdUseCase', () => {
   describe('happy path — no organizationId (passenger)', () => {
     it('should return the trip instance without org check when organizationId is omitted', async () => {
       // Arrange
-      const instance = makeTripInstance({ organizationId: 'any-org' });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+      const meta = makeMeta({
+        instance: makeTripInstance({ organizationId: 'any-org' }),
+      });
+      mocks.tripInstanceRepository.findByIdWithMeta.mockResolvedValue(meta);
 
       // Act
       const result = await sut.execute(INSTANCE_ID);
 
       // Assert
-      expect(result).toBe(instance);
+      expect(result).toBe(meta);
     });
   });
 
   describe('error — cross-org access', () => {
     it('should throw TripInstanceAccessForbiddenError when instance belongs to another org', async () => {
       // Arrange
-      const instance = makeTripInstance({ organizationId: 'other-org' });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
+      const meta = makeMeta({
+        instance: makeTripInstance({ organizationId: 'other-org' }),
+      });
+      mocks.tripInstanceRepository.findByIdWithMeta.mockResolvedValue(meta);
 
       // Act & Assert
       await expect(sut.execute(INSTANCE_ID, ORG_ID)).rejects.toThrow(
         TripInstanceAccessForbiddenError,
       );
-    });
-
-    it('should NOT expose instance data when org differs (throw before return)', async () => {
-      // Arrange
-      const instance = makeTripInstance({ organizationId: 'other-org' });
-      mocks.tripInstanceRepository.findById.mockResolvedValue(instance);
-
-      // Act
-      const call = sut.execute(INSTANCE_ID, ORG_ID);
-
-      // Assert — cannot distinguish not-found from forbidden in HTTP layer via error type
-      await expect(call).rejects.toThrow(TripInstanceAccessForbiddenError);
     });
   });
 });

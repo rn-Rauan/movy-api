@@ -59,8 +59,8 @@ Manages **passenger enrollments** in trip instances. A _booking_ (domain: `Booki
 | `BookingCreationFailedError` | 400 | `BOOKING_CREATION_FAILED_BAD_REQUEST` | Repository failed to persist the booking |
 | `TripInstanceNotBookableError` | 400 | `BOOKING_TRIP_INSTANCE_NOT_BOOKABLE_BAD_REQUEST` | Trip instance not in `SCHEDULED`/`CONFIRMED` |
 | `TripInstanceFullError` | 409 | `BOOKING_TRIP_INSTANCE_FULL_CONFLICT` | Active bookings at max capacity |
-| `BookingCancellationNotAllowedError` | 400 | `BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST` | Trip is `IN_PROGRESS` or `FINISHED` |
-| `BookingCancellationDeadlineError` | 400 | `BOOKING_CANCELLATION_DEADLINE_BAD_REQUEST` | Within 30 min of departure |
+| `BookingCancellationNotAllowedError` | 400 | `BOOKING_TRIP_TERMINAL_BAD_REQUEST` | Trip is `IN_PROGRESS` or `FINISHED` |
+| `BookingCancellationDeadlineError` | 400 | `BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST` | Within 30 min of departure |
 | `BookingAlreadyInactiveError` | 400 | `BOOKING_ALREADY_INACTIVE_BAD_REQUEST` | Booking is already cancelled |
 | `TripPriceNotAvailableError` | 400 | `BOOKING_PRICE_NOT_AVAILABLE_BAD_REQUEST` | No price configured for the enrollment type |
 

@@ -20,8 +20,10 @@ function makeTripInstanceWithMeta(
   return {
     instance: makeTripInstance({ organizationId: ORG_ID }),
     bookedCount: 0,
+    templateId: 'template-id-stub',
     departurePoint: 'Terminal Central',
     destination: 'Aeroporto',
+    stops: ['Terminal Central', 'Praça', 'Aeroporto'],
     priceOneWay: null,
     priceReturn: null,
     priceRoundTrip: null,

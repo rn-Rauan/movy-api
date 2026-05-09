@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { TripInstance } from '../../domain/entities';
 import {
   TripInstanceAccessForbiddenError,
   TripInstanceNotFoundError,
 } from '../../domain/entities/errors/trip-instance.errors';
-import { TripInstanceRepository } from '../../domain/interfaces';
+import {
+  TripInstanceRepository,
+  TripInstanceWithMeta,
+} from '../../domain/interfaces';
 
 /**
- * Retrieves a single {@link TripInstance} by its UUID.
+ * Retrieves a single trip instance by its UUID, enriched with the parent
+ * template (id, route points, stops, prices) and live booking occupancy.
+ *
+ * Combines the data the frontend would otherwise fetch in two requests
+ * (`/trip-instances/:id` + `/trip-templates/:id`) into a single round-trip.
  *
  * Enforces organisation-scoped access: only members of the owning
  * organisation may read the instance.
@@ -18,17 +24,20 @@ export class FindTripInstanceByIdUseCase {
     private readonly tripInstanceRepository: TripInstanceRepository,
   ) {}
 
-  async execute(id: string, organizationId?: string): Promise<TripInstance> {
-    const instance = await this.tripInstanceRepository.findById(id);
+  async execute(
+    id: string,
+    organizationId?: string,
+  ): Promise<TripInstanceWithMeta> {
+    const data = await this.tripInstanceRepository.findByIdWithMeta(id);
 
-    if (!instance) {
+    if (!data) {
       throw new TripInstanceNotFoundError(id);
     }
 
-    if (organizationId && instance.organizationId !== organizationId) {
+    if (organizationId && data.instance.organizationId !== organizationId) {
       throw new TripInstanceAccessForbiddenError(id);
     }
 
-    return instance;
+    return data;
   }
 }

@@ -11,8 +11,10 @@ import { Money } from 'src/shared';
 
 type PrismaTripInstanceWithMeta = PrismaTripInstance & {
   tripTemplate: {
+    id: string;
     departurePoint: string;
     destination: string;
+    stops: string[];
     priceOneWay: Prisma.Decimal | null;
     priceReturn: Prisma.Decimal | null;
     priceRoundTrip: Prisma.Decimal | null;
@@ -75,8 +77,10 @@ export class TripInstanceMapper {
     return {
       instance: TripInstanceMapper.toDomain(instanceRow),
       bookedCount: _count.enrollments,
+      templateId: tripTemplate.id,
       departurePoint: tripTemplate.departurePoint,
       destination: tripTemplate.destination,
+      stops: tripTemplate.stops,
       priceOneWay:
         tripTemplate.priceOneWay !== null
           ? Number(tripTemplate.priceOneWay)

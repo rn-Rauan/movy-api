@@ -903,10 +903,10 @@ Após a implementação inicial, o módulo passou por um ciclo de melhorias que 
 | `BookingCreationFailedError` | `BOOKING_CREATION_FAILED_BAD_REQUEST` | 400 |
 | `TripInstanceNotBookableError` | `BOOKING_TRIP_INSTANCE_NOT_BOOKABLE_BAD_REQUEST` | 400 |
 | `TripInstanceFullError` | `BOOKING_TRIP_INSTANCE_FULL_CONFLICT` | 409 |
-| `BookingCancellationNotAllowedError` | `BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST` | 400 |
+| `BookingCancellationNotAllowedError` | `BOOKING_TRIP_TERMINAL_BAD_REQUEST` | 400 |
 | `TripPriceNotAvailableError` | `BOOKING_PRICE_NOT_AVAILABLE_BAD_REQUEST` | 400 |
 | `BookingAlreadyInactiveError` | `BOOKING_ALREADY_INACTIVE_BAD_REQUEST` | 400 |
-| `BookingCancellationDeadlineError` | `BOOKING_CANCELLATION_DEADLINE_BAD_REQUEST` | 400 |
+| `BookingCancellationDeadlineError` | `BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST` | 400 |
 
 **Novos Repositório Methods:**
 - `findByUserId(userId, options, status?: Status)` — status opcional para filtro
@@ -1625,6 +1625,114 @@ Dependências: `MembershipRepository`, `UserRepository`, `DriverRepository`, `Ro
 ---
 
 **Compilação:** ✅ `npx tsc --noEmit` = 0 erros. **Testes:** 38 suites, 300 testes passando.
+
+---
+
+## 6.13 Implementações (09 Mai 2026)
+
+### Plan-Usage Module — Endpoint `GET /organizations/{id}/plan-usage`
+
+**Problema:** O `PlanCard` do frontend disparava 3 requisições para montar o painel de consumo (`subscriptions/active`, `plans/{id}`, `vehicles` + `drivers` paginados) e ainda assim filtrava localmente por `status !== "INACTIVE"` / `driverStatus === "ACTIVE"`. Sempre que o filtro do front divergia da contagem do backend, o card mostrava um número e o gate de criação (`PlanLimitService.assert*`) bloqueava em outro. `monthlyTrips` simplesmente não era exibido por não haver como contar no front.
+
+**Solução:** Novo endpoint `GET /organizations/{organizationId}/plan-usage` (ADMIN + `TenantFilterGuard`) que devolve o estado de consumo em três buckets — `vehicles | drivers | monthlyTrips`, cada um com `{ used, max }` — usando exatamente as mesmas contagens que o backend usa no gate de escrita.
+
+**Arquitetura — novo módulo dedicado:**
+
+Como `VehicleModule` já importa `SubscriptionsModule` (para usar `PlanLimitService`), inverter a relação geraria ciclo. Criamos um novo módulo `PlanUsageModule` que combina os agregados sem alterar as dependências existentes:
+
+```
+src/modules/plan-usage/
+├── application/
+│   ├── dtos/plan-usage-response.dto.ts            # PlanUsageResponseDto + PlanUsageBucketDto
+│   └── use-cases/find-plan-usage.use-case.ts      # FindPlanUsageUseCase
+├── presentation/controllers/plan-usage.controller.ts
+└── plan-usage.module.ts                           # imports: Subscriptions, Plans, Vehicle, Driver, Trip
+```
+
+**Lógica do use case (`FindPlanUsageUseCase.execute`):**
+
+1. `resolveActiveSubscription(orgId, repo)` — utilitário existente em `subscriptions/application/utils/`; aplica expiração lazy (ACTIVE → PAST_DUE persistido) antes de retornar.
+2. Falha com `NoActiveSubscriptionError` (`NO_ACTIVE_SUBSCRIPTION_FORBIDDEN` → 403) ou `PlanNotFoundError` (404) quando a subscription/plano não existe.
+3. `Promise.all` com três contagens em paralelo, todas reaproveitando métodos já testados:
+   - `VehicleRepository.countActiveByOrganizationId(orgId)`
+   - `DriverRepository.countActiveByOrganizationId(orgId)`
+   - `TripInstanceRepository.countByOrganizationAndMonth(orgId, startOfMonth, now)` — janela = primeiro instante do mês corrente até agora, alinhado com o gate `assertMonthlyTripLimit`.
+4. Retorna `{ vehicles: { used, max: plan.maxVehicles }, drivers: { used, max: plan.maxDrivers }, monthlyTrips: { used, max: plan.maxMonthlyTrips } }`.
+
+**Garantia de paridade:** as três contagens são exatamente as mesmas que `PlanLimitService.assertVehicleLimit/assertDriverLimit/assertMonthlyTripLimit` recebem dos use cases de criação. Logo, o `used` exibido no PlanCard é o mesmo número que dispara um 403 ao tentar criar um novo recurso.
+
+**Wiring:** `PlanUsageModule` registrado em `AppModule` após `PaymentModule`.
+
+---
+
+### TripInstance — `findById` Enriquecido (Template + Ocupação)
+
+**Problema:** `GET /trip-instances/{id}` retornava apenas a entidade "magra". A página de detalhe (admin e passenger) precisava de uma segunda chamada (`templatesService.getById`) só para obter origem, destino e paradas, e ainda não tinha `bookedCount` disponível — o admin tinha que cruzar manualmente. O presenter `toHTTP` zerava os campos relacionados (`bookedCount: 0`, `availableSlots: totalCapacity`, `departurePoint: ''`).
+
+**Solução:** Reaproveitamos a infraestrutura `TripInstanceWithMeta` que já alimentava o listing admin e a estendemos para também incluir o template (id + stops). O endpoint `findById` agora retorna em **uma única query** (sem N+1) tudo o que a UI precisa.
+
+**Mudanças:**
+
+- **Domain** (`src/modules/trip/domain/interfaces/trip-instance.repository.ts`):
+  - `TripInstanceWithMeta` ganhou `templateId: string` e `stops: string[]`.
+  - Novo método abstrato `findByIdWithMeta(id): Promise<TripInstanceWithMeta | null>`.
+- **Infrastructure**:
+  - `PrismaTripInstanceRepository.findByIdWithMeta` — `findUnique` com `include: { tripTemplate: { select: { id, departurePoint, destination, stops, prices, isRecurring } }, _count: { enrollments: { where: { status: 'ACTIVE' } } } }`.
+  - `findByOrganizationIdWithMeta` (listing) recebeu `id` e `stops` no `select` para manter o mapper consistente.
+  - `TripInstanceMapper.toDomainWithMeta` — novos campos `templateId` / `stops` propagados.
+- **Application** (`find-trip-instance-by-id.use-case.ts`):
+  - Use case agora retorna `TripInstanceWithMeta` em vez de `TripInstance`.
+  - Verificação de IDOR continua usando `data.instance.organizationId` (lê o agregado interno).
+- **Presentation**:
+  - `TripInstanceResponseDto` ganhou `template?: TripInstanceTemplateSummaryDto | null` (com `id`, `origin`, `destination`, `stops[]`).
+  - `TripInstancePresenter.toHTTPWithMeta` popula o objeto `template` aninhado.
+  - Controller `findById` passou de `TripInstancePresenter.toHTTP(instance)` para `TripInstancePresenter.toHTTPWithMeta(data)`.
+
+**Resposta enriquecida (resumo):**
+```json
+{
+  "id": "...",
+  "tripTemplateId": "...",
+  "tripStatus": "SCHEDULED",
+  "totalCapacity": 40,
+  "bookedCount": 28,
+  "availableSlots": 12,
+  "departurePoint": "Terminal Central",
+  "destination": "Aeroporto",
+  "template": {
+    "id": "...",
+    "origin": "Terminal Central",
+    "destination": "Aeroporto",
+    "stops": ["Terminal", "Praça", "Aeroporto"]
+  }
+}
+```
+
+Os outros endpoints do módulo (POST, PATCH `/status`, PUT `/driver`, PUT `/vehicle`) continuam usando `toHTTP` (sem enriquecimento) porque não fazem sentido para o consumo do PlanCard ou TripDetail e não justificam o JOIN extra.
+
+**Testes:** `find-trip-instance-by-id.use-case.spec.ts` reescrito para mockar `findByIdWithMeta` e validar a propagação de `bookedCount` e `stops`. Fixture `find-all-trip-instances-by-organization.use-case.spec.ts` atualizada com os novos campos. **108 testes do módulo Trip passando**, 88 do módulo Bookings, **0 erros TypeScript**.
+
+---
+
+### Booking — Códigos de Erro de Cancelamento Padronizados
+
+**Problema:** Mensagens de erro do backend chegavam cruas no `BookingRow` e `BookingDetailView`. Os códigos existentes (`BOOKING_CANCELLATION_DEADLINE_BAD_REQUEST`, `BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST`) eram estáveis mas verbosos demais para mapear na UI.
+
+**Solução:** Renomear apenas as **strings de código**, preservando os nomes de classe e a infraestrutura existente (`AllExceptionsFilter` já injeta `error: domainError.code` no payload). Sem mudança de contrato semântico — apenas etiquetas mais curtas e legíveis.
+
+| Classe | Código antigo | Código novo |
+|---|---|---|
+| `BookingCancellationDeadlineError` | `BOOKING_CANCELLATION_DEADLINE_BAD_REQUEST` | `BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST` |
+| `BookingCancellationNotAllowedError` | `BOOKING_CANCELLATION_NOT_ALLOWED_BAD_REQUEST` | `BOOKING_TRIP_TERMINAL_BAD_REQUEST` |
+| `BookingAlreadyInactiveError` | `BOOKING_ALREADY_INACTIVE_BAD_REQUEST` | _(inalterado)_ |
+
+Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP status` do `AllExceptionsFilter` (não exigiu mudanças no filtro). Os testes existentes asseguravam `instanceof <ErrorClass>` — nenhum testou a string literal —, portanto **passam sem alteração**.
+
+**Tabela de mapeamento documentada** em `docs/API_FRONTEND.md` (seção *Booking Cancellation Error Codes*) com sugestões de copy para a UI.
+
+---
+
+**Compilação:** ✅ `npx tsc --noEmit` = 0 erros. **Testes:** Trip 12 suites/108 testes ✅, Bookings 9 suites/88 testes ✅.
 
 ---
 

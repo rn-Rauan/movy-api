@@ -14,8 +14,10 @@ import { TripInstance } from '../entities';
 export interface TripInstanceWithMeta {
   instance: TripInstance;
   bookedCount: number;
+  templateId: string;
   departurePoint: string;
   destination: string;
+  stops: string[];
   priceOneWay: number | null;
   priceReturn: number | null;
   priceRoundTrip: number | null;
@@ -61,6 +63,16 @@ export abstract class TripInstanceRepository {
    * @returns The matching {@link TripInstance}, or `null` if not found
    */
   abstract findById(id: string): Promise<TripInstance | null>;
+
+  /**
+   * Finds a trip instance by its UUID and joins it with the parent template
+   * (id, departurePoint, destination, stops, prices, isRecurring) plus the
+   * active enrollment count — all in a single query.
+   *
+   * @param id - UUID of the trip instance
+   * @returns The matching {@link TripInstanceWithMeta}, or `null` if not found
+   */
+  abstract findByIdWithMeta(id: string): Promise<TripInstanceWithMeta | null>;
 
   /**
    * Returns a paginated list of all trip instances, ordered by `departureTime` ascending.

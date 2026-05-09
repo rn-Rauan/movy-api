@@ -192,11 +192,11 @@ export class TripInstanceController {
     @Param('id') id: string,
     @GetUser() context: TenantContext,
   ): Promise<TripInstanceResponseDto> {
-    const instance = await this.findTripInstanceByIdUseCase.execute(
+    const data = await this.findTripInstanceByIdUseCase.execute(
       id,
       context.organizationId,
     );
-    return TripInstancePresenter.toHTTP(instance);
+    return TripInstancePresenter.toHTTPWithMeta(data);
   }
 
   @Patch(':id/status')
