@@ -31,6 +31,7 @@ import {
   UpdateDriverDto,
   DriverResponseDto,
   DriverLookupResponseDto,
+  DriverNameResponseDto,
 } from '../../application/dtos';
 import { DriverPresenter } from '../mappers/driver.presenter';
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
@@ -38,6 +39,7 @@ import {
   CreateDriverUseCase,
   FindDriverByIdUseCase,
   FindDriverByUserIdUseCase,
+  FindDriverNameByIdUseCase,
   UpdateDriverUseCase,
   RemoveDriverUseCase,
   FindAllDriversByOrganizationUseCase,
@@ -69,6 +71,7 @@ export class DriverController {
     private readonly createDriverUseCase: CreateDriverUseCase,
     private readonly findDriverByIdUseCase: FindDriverByIdUseCase,
     private readonly findDriverByUserIdUseCase: FindDriverByUserIdUseCase,
+    private readonly findDriverNameByIdUseCase: FindDriverNameByIdUseCase,
     private readonly updateDriverUseCase: UpdateDriverUseCase,
     private readonly removeDriverUseCase: RemoveDriverUseCase,
     private readonly findAllDriversByOrganizationUseCase: FindAllDriversByOrganizationUseCase,
@@ -167,6 +170,21 @@ export class DriverController {
       result.page,
       result.limit,
     );
+  }
+
+  @Get(':id/name')
+  @ApiOperation({ summary: 'Get driver name by ID (any authenticated user)' })
+  @ApiParam({ name: 'id', description: 'The ID of the driver' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return the driver name.',
+    type: DriverNameResponseDto,
+  })
+  async getDriverName(
+    @Param('id') id: string,
+  ): Promise<DriverNameResponseDto> {
+    const name = await this.findDriverNameByIdUseCase.execute(id);
+    return new DriverNameResponseDto(name);
   }
 
   @Get(':id')

@@ -5,7 +5,11 @@
       "Bash(npx jest *)",
       "Bash(Get-ChildItem -Path \"f:\\\\Users\\\\rauan\\\\Documents\\\\GitHub\\\\movy-api\\\\src\\\\modules\\\\auth\\\\\" -Recurse -Force | Select-Object FullName)",
       "Bash(Get-ChildItem -Path \"f:\\\\Users\\\\rauan\\\\Documents\\\\GitHub\\\\movy-api\" -Recurse -Directory -Depth 2)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\rauan\\\\Documents\\\\GitHub\\\\movy-api\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\rauan\\\\Documents\\\\GitHub\\\\movy-api\" -Name -File)",
+      "Bash(Select-String -Pattern \"DOCUMENTACAO|BRAIN\")"
     ]
   }
 }

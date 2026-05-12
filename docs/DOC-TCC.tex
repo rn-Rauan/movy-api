@@ -802,6 +802,7 @@ GET    /drivers/me                       # Perfil do driver autenticado
 GET    /drivers/lookup?email=&cnh=       # Busca por email + CNH (ADMIN only)
 GET    /drivers/organization/:orgId      # Listar drivers da org (paginado)
 GET    /drivers/:id                      # Buscar driver por ID
+GET    /drivers/:id/name                 # Nome do motorista por ID (qualquer usuario autenticado)
 PUT    /drivers/:id                      # Atualizar dados do driver
 DELETE /drivers/:id                      # Soft-delete
 \end{lstlisting}

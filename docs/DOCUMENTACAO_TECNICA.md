@@ -272,17 +272,19 @@ O módulo de driver foi implementado com arquitetura 100% alinhada com o User Mo
 - **`GET /drivers/lookup`**: Buscar perfil de motorista por e-mail + CNH. Usado pelo admin para verificar identidade antes de vincular driver à org via membership. Requer `@Roles(ADMIN)`. *(novo 15 Abr)*
 - **`GET /drivers/organization/:organizationId`**: Listar drivers da organização (paginado). Implementado via JOIN: `user.userRoles.some({ organizationId, role: { name: 'DRIVER' } })`. *(reimplementado 15 Abr)*
 - **`GET /drivers/:id`**: Buscar driver específico por ID.
+- **`GET /drivers/:id/name`**: Retornar o nome do motorista pelo ID. Acessível por qualquer usuário autenticado (JWT) — visível para passageiros, sem restrição de role. *(novo 12 Mai 2026)*
 - **`PUT /drivers/:id`**: Atualizar dados do driver (CNH, status).
 - **`DELETE /drivers/:id`**: Remover driver (soft delete).
 
-**Use Cases Implementados (7 total):**
+**Use Cases Implementados (8 total):**
 1. `CreateDriverUseCase`: Criação self-service com check de duplicata *(redesenhado 15 Abr)*
 2. `UpdateDriverUseCase`: Atualização com coordenação de value objects
 3. `FindDriverByIdUseCase`: Busca com tratamento 404
 4. `FindDriverByUserIdUseCase`: Busca por usuário
-5. `FindAllDriversByOrganizationUseCase`: Paginação com JOIN via membership *(reimplementado 15 Abr)*
-6. `RemoveDriverUseCase`: Soft delete com validação
-7. `LookupDriverUseCase`: Verificação cruzada email + CNH para admin *(novo 15 Abr)*
+5. `FindDriverNameByIdUseCase`: Busca nome do motorista via JOIN driver → user, com proteção IDOR *(novo 12 Mai 2026)*
+6. `FindAllDriversByOrganizationUseCase`: Paginação com JOIN via membership *(reimplementado 15 Abr)*
+7. `RemoveDriverUseCase`: Soft delete com validação
+8. `LookupDriverUseCase`: Verificação cruzada email + CNH para admin *(novo 15 Abr)*
 
 **Value Objects Implementados:**
 - **`Cnh`**: Valida 9-12 caracteres alfanuméricos com create factory e .value_ getter
