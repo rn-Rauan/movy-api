@@ -1,10 +1,14 @@
+// Load .env FIRST — AppModule's @Module() decorator reads process.env at
+// evaluation time (e.g. DISABLE_CRON to skip ScheduleModule), so dotenv must
+// run before AppModule is imported.
+import 'dotenv/config';
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/presentation/exceptions/all-exceptions.filter';
 import { LoggingInterceptor } from './shared/presentation/interceptors/logging.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import 'dotenv/config';
 // ✅ Load JWT Payload type declarations globally
 import 'src/shared/infrastructure/types/jwt-payload.interface';
 

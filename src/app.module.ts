@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
@@ -26,6 +27,9 @@ import { SchedulingModule } from './modules/scheduling/scheduling.module';
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 60 }],
     }),
+    // ScheduleModule is registered conditionally — set `DISABLE_CRON=true`
+    // in `.env` (or in test env) to keep cron jobs from firing during local dev.
+    ...(process.env.DISABLE_CRON === 'true' ? [] : [ScheduleModule.forRoot()]),
     UserModule,
     OrganizationModule,
     MembershipModule,

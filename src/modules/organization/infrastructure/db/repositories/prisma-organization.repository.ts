@@ -227,6 +227,14 @@ export class PrismaOrganizationRepository implements OrganizationRepository {
     };
   }
 
+  async findAllActiveUnpaginated(): Promise<Organization[]> {
+    const rows = await this.db.organization.findMany({
+      where: { status: 'ACTIVE' as const },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((org) => OrganizationMapper.toDomain(org));
+  }
+
   /**
    * Deletes an Organization entity from the database.
    * @param id - UUID of the organization to delete

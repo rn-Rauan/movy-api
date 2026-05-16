@@ -1813,6 +1813,58 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 
 ---
 
+### Trip Scheduling — Fase 3: Cron de auto-cancel
+
+**Contexto.** Toda `TripInstance` que carrega `autoCancelEnabled` no template recebe um `autoCancelAt` (= `departureTime - autoCancelOffset` minutos) no momento da criação. Esta fase introduz o varredor que efetiva esse contrato: a cada 15 minutos, qualquer instância não-`forceConfirm` cuja `autoCancelAt` já passou e que ainda está em `DRAFT`/`SCHEDULED`/`CONFIRMED` é transicionada para `CANCELED`.
+
+**Decisão de arquitetura — cron como casca burra:**
+- `@Cron` *não* contém regra de negócio. Toda a lógica de varredura/transição vive em `CancelExpiredTripInstancesUseCase`, que pode ser unit-testado sem subir `@nestjs/schedule`.
+- A classe cron (`AutoCancelTripInstancesCron`) só envolve o use-case num `try/catch` no nível de varredura — falhas por instância já são contabilizadas internamente; o catch externo só protege o scheduler de derrubar o app caso uma exceção não tratada borbulhe (ex.: DB indisponível).
+
+**Mudanças aplicadas:**
+
+| Camada | Arquivo | Alteração |
+|---|---|---|
+| App wiring | `src/app.module.ts` | `ScheduleModule.forRoot()` registrado **condicionalmente** — `DISABLE_CRON=true` no `.env` mantém o scheduler dormente em dev local. |
+| Domain — repo interface | `trip/domain/interfaces/trip-instance.repository.ts` | Novo `findExpiredOpenInstances(organizationId, threshold): Promise<TripInstance[]>` — não paginado (janela é pequena por design; `autoCancelAt` é indexado). |
+| Domain — repo interface | `organization/domain/interfaces/organization.repository.ts` | Novo `findAllActiveUnpaginated(): Promise<Organization[]>`. Justificativa: o cron precisa visitar cada tenant exatamente uma vez; cardinalidade de orgs ativas é baixa (low thousands). Trocar por cursor-based quando essa premissa cair. |
+| Infra — repo | `trip/infrastructure/db/repositories/prisma-trip-instance.repository.ts` | Implementação Prisma do query com filtros: `autoCancelAt ≤ threshold AND autoCancelAt NOT NULL AND tripStatus ∈ {DRAFT, SCHEDULED, CONFIRMED} AND forceConfirm = false`. |
+| Infra — repo | `organization/infrastructure/db/repositories/prisma-organization.repository.ts` | Implementação do `findAllActiveUnpaginated` (where `status = ACTIVE`, sem skip/take). |
+| Application — use case | `trip/application/use-cases/cancel-expired-trip-instances.use-case.ts` (novo) | Itera orgs → busca expiradas → `instance.transitionTo(CANCELED)` → `update`. Falhas individuais (ex.: estado inválido) são logadas e contadas; **não interrompem** o loop. Retorna `{ canceled, failed }`. |
+| Infra — cron | `trip/infrastructure/cron/auto-cancel-trip-instances.cron.ts` (novo) | `@Cron('*/15 * * * *', { name: 'auto-cancel-trip-instances' })` chamando o use-case dentro de try/catch defensivo. |
+| Wiring | `trip/trip.module.ts` | Importa `OrganizationModule` (que já exporta `OrganizationRepository`). Registra `CancelExpiredTripInstancesUseCase` + `AutoCancelTripInstancesCron` como providers. |
+
+**Trade-off documentado (MVP):**
+- `minRevenue` é **intencionalmente ignorado** nesta fase. Qualquer instância expirada não-`forceConfirm` cancela, mesmo que já tenha booking suficiente para atingir o limiar de receita. Honrar `minRevenue` (skip cancelamento quando receita realizada ≥ `minRevenue`) ficou registrado como tech-debt no JSDoc da classe.
+- **Múltiplas réplicas em prod** disparam o mesmo cron simultaneamente — não há lock distribuído ainda. Mitigação: a state machine da entity rejeita transições inválidas (`InvalidTripStatusTransitionError` em rows já canceladas), então o pior caso é trabalho duplicado, não corrupção de dados. Pós-MVP: lock distribuído (`nestjs-cron-distributed-lock`) ou worker dedicado.
+
+**Testes adicionados (+1 suite, +5 testes):**
+- `cancel-expired-trip-instances.use-case.spec.ts`:
+  - 0 orgs ativas → `{ canceled: 0, failed: 0 }`, lookup interno não chamado.
+  - N orgs, 0 expiradas → counters zero, `findExpiredOpenInstances` chamado N vezes.
+  - 1 org, 3 expiradas → `canceled = 3`, cada entidade passada para `update` está em `CANCELED`.
+  - 2 orgs, 1 + 2 expiradas → counters agregam (`canceled = 3`).
+  - Falha em uma das 3 instâncias → `{ canceled: 2, failed: 1 }`, loop completou todas as 3 tentativas.
+
+**Revisão pós-Fase 3 (16 Mai 2026) — correções aplicadas:**
+
+1. **Bug de carga do `.env` (alto impacto):** o `@Module()` do `AppModule` lê `process.env.DISABLE_CRON` na *avaliação* do decorator. No `main.ts`, o `import 'dotenv/config'` estava na linha 7, *depois* do `import { AppModule } from './app.module'` — em CJS, os imports são resolvidos em ordem, então o `.env` carregava tarde demais e a flag nunca surtia efeito. **Fix:** `import 'dotenv/config'` movido para a primeira linha do `main.ts`.
+2. **Sobreposição de execuções:** se uma sweep ultrapassar 15 min, a próxima tick disparava em paralelo. Adicionada flag `isRunning` na cron class — ticks subsequentes logam `previous sweep still in progress — skipping` e retornam sem trabalhar. (Não é lock distribuído; múltiplas réplicas continuam sendo defendidas só pela state machine — pós-MVP.)
+3. **Timezone implícito:** `@Cron` agora carrega `timeZone: 'UTC'` explícito, alinhado com "tudo em UTC" do projeto. Sem isso, o timezone do servidor podia mudar quando o cron disparava.
+4. **`.env` / `.env.example`:** entrada `DISABLE_CRON` documentada nos dois arquivos. Default no `.env` local = `true` (cron dormente em dev); default no `.env.example` = `false` (prod habilita).
+5. **Spec da cron class:** 4 novos testes adicionados — happy delegate, overlap skip, retomada após sweep, swallowing de erro top-level + liberação do `isRunning`.
+
+**Validação:**
+- `npx tsc --noEmit`: ✅ 0 erros.
+- `npx jest --config test/jest-unit.json`: ✅ **43 suites, 338 testes** (+2 suites, +9 testes vs Fase 2 — 5 do use-case + 4 da cron class).
+- `npm run lint`: ✅ 0 warnings.
+
+**Próximas fases:**
+- ⏳ Fase 4 — Cron de geração de instâncias recorrentes (`0 2 * * *`) — itera templates ativos, materializa `daysAhead` dias, idempotente via `findByTemplateAndDate`.
+- ⏳ Fase 5 — Endpoint admin manual `POST /trip-templates/:id/generate-instances`.
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
 - ✅ Desenvolvido **seed script** (`prisma/seed.ts`) com suporte a `tsx` para execução confiável.
@@ -1870,11 +1922,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio d
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
 - ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
 - ✅ **Melhorias de API (04 Mai 2026)**: `TripInstanceWithMeta` na listagem admin (bookedCount, availableSlots, campos do template via JOIN único); `paymentMethod` exposto em todas as respostas de Booking (JOIN com Payment); SRP nos mappers (`TripInstanceMapper.toDomainWithMeta`, `BookingMapper.toDomainFromRow`).
-- ✅ **Testes Unitários**: 41 suites, 329 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai)*.
+- ✅ **Testes Unitários**: 43 suites, 338 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`) e Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org). Próximo: Fase 3 (cron de auto-cancel via `@nestjs/schedule`) e Fase 4 (cron de geração recorrente).
+**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org) e Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`). Próximo: Fase 4 (cron de geração recorrente).
 
 ---
 
@@ -1888,7 +1940,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (329 testes, 41 suites)
+- `npm run test`: Executa testes unitários (338 testes, 43 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
@@ -1896,6 +1948,10 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 DATABASE_URL="postgresql://docker:docker07@postgres:5432/movy?schema=public"
 PORT=5700
 JWT_SECRET="your_jwt_secret_here"
+
+# Opcional — quando true, ScheduleModule.forRoot() não é registrado, mantendo
+# os jobs (auto-cancel, geração recorrente) dormentes em dev local.
+# DISABLE_CRON=true
 ```
 
 ### 9.3 Comandos de Seed

@@ -15,8 +15,8 @@ Em Progresso: 0
 Pendente: 0
 
 Mitigações críticas (29 Abr): Payment simulation ✅ | Subscription lazy expiration ✅ | Plan limits enforcement ✅ | Auto-FREE subscription ✅
-Trip Scheduling (16 Mai): Fase 1 — hora-do-dia no TripTemplate ✅ | Fase 2 — TripSchedulingConfig per-org ✅ | Fases 3-5 ⏳
-Testes: 41 suites, 329 testes ✅ | TypeScript: 0 erros ✅
+Trip Scheduling (16 Mai): Fase 1 — hora-do-dia no TripTemplate ✅ | Fase 2 — TripSchedulingConfig per-org ✅ | Fase 3 — Cron de auto-cancel (*/15min, UTC) ✅ | Fases 4-5 ⏳
+Testes: 43 suites, 338 testes ✅ | TypeScript: 0 erros ✅
 ```
 
 ---
@@ -1082,8 +1082,46 @@ src/shared/infrastructure/database/
 
 **Migration aplicada:** `20260516154944_add_trip_scheduling_config` ✅ (16 Mai 2026).
 
+### Cron de auto-cancel ✅ COMPLETO (16 Mai 2026)
+
+**Motivação:** entregar o contrato do `autoCancelEnabled` no template. A cada 15min, viagens cuja `autoCancelAt` já passou e que ainda estão em `DRAFT`/`SCHEDULED`/`CONFIRMED` (não-`forceConfirm`) são transicionadas para `CANCELED`.
+
+**Arquitetura — separação cron ↔ use-case:**
+- `@Cron` **não tem regra de negócio**. Toda lógica vive em `CancelExpiredTripInstancesUseCase` (unit-testável sem `@nestjs/schedule`).
+- A classe cron envolve o use-case num try/catch defensivo — falhas por instância já são contabilizadas internamente; o catch externo só protege contra exceções top-level (ex.: DB indisponível).
+
+**Mudanças:**
+- ✅ `src/app.module.ts`: `ScheduleModule.forRoot()` registrado **condicionalmente** — `DISABLE_CRON=true` mantém scheduler dormente em dev local.
+- ✅ `TripInstanceRepository.findExpiredOpenInstances(orgId, threshold)`: interface + impl Prisma. Filtros: `autoCancelAt ≤ threshold AND autoCancelAt NOT NULL AND tripStatus ∈ {DRAFT, SCHEDULED, CONFIRMED} AND forceConfirm = false`. Unpaginated por design (janela pequena; `@@index([autoCancelAt])` no schema).
+- ✅ `OrganizationRepository.findAllActiveUnpaginated()`: interface + impl Prisma. Retorna todas as orgs `ACTIVE` em um array (low-cardinality por design; trocar por cursor-based no futuro).
+- ✅ `CancelExpiredTripInstancesUseCase`: itera orgs → busca expiradas por org → `instance.transitionTo(CANCELED)` → `update`. Falhas individuais não interrompem o loop. Retorna `{ canceled, failed }`.
+- ✅ `AutoCancelTripInstancesCron` (`infrastructure/cron/`): `@Cron('*/15 * * * *', { name: 'auto-cancel-trip-instances' })`.
+- ✅ `TripModule` importa `OrganizationModule`; registra o use-case + a cron como providers.
+
+**Trade-offs documentados:**
+- **`minRevenue` ignorado no MVP**: qualquer expirada não-`forceConfirm` cancela, mesmo que tenha booking suficiente. Honrar a regra fica como tech-debt.
+- **Múltiplas réplicas em prod**: o mesmo cron dispara em paralelo. A state machine (`transitionTo` rejeita transições inválidas) é a defesa em profundidade — pior caso é trabalho duplicado, não corrupção. Pós-MVP: lock distribuído.
+
+**Testes adicionados (+1 suite, +5 testes):**
+- 0 orgs ativas → counters zero, lookup interno não chamado.
+- N orgs sem expiradas → counters zero, `findExpiredOpenInstances` chamado N vezes.
+- 1 org × 3 expiradas → 3 canceladas; cada entidade salva está em `CANCELED`.
+- 2 orgs × (1, 2) expiradas → agrega para `canceled = 3`.
+- 1 falha em 3 → `{ canceled: 2, failed: 1 }`, loop completa as 3 tentativas.
+
+**Revisão pós-Fase 3 — correções aplicadas (16 Mai 2026):**
+- 🐛 **Bug do dotenv:** `import 'dotenv/config'` movido pro topo do `main.ts`. O AppModule lia `process.env.DISABLE_CRON` no decorator, mas o `.env` estava sendo carregado depois — flag nunca surtia efeito.
+- ⚠️ **Overlap protection:** flag `isRunning` na cron class. Ticks que chegam durante uma sweep em curso são descartados com warn-log.
+- 📋 **Timezone:** `@Cron` agora carrega `timeZone: 'UTC'` explícito, alinhado com a convenção de armazenar tudo em UTC.
+- 📋 **`.env` / `.env.example`:** entrada `DISABLE_CRON` documentada. Default `.env` local = `true` (dormente em dev); default `.env.example` = `false` (prod habilita).
+- ➕ **Spec da cron class** (+4 testes): happy delegate, overlap skip, retomada após sweep, swallowing de erro top-level + liberação do `isRunning`.
+
+**Validação:**
+- `npx tsc --noEmit`: ✅ 0 erros
+- `npx jest --config test/jest-unit.json`: ✅ **43 suites, 338 testes** (+2 suites, +9 testes vs Fase 2)
+- `npm run lint`: ✅ 0 warnings
+
 **Próximas fases do roteiro:**
-- ⏳ Fase 3 — Cron de auto-cancel (`@nestjs/schedule`, `*/15 * * * *`)
 - ⏳ Fase 4 — Cron de geração de instâncias recorrentes (`0 2 * * *`)
 - ⏳ Fase 5 — Endpoint admin para geração manual on-demand
 

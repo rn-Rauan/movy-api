@@ -3,6 +3,7 @@ import { SharedModule } from 'src/shared';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
 import { DriverModule } from 'src/modules/driver/driver.module';
 import { VehicleModule } from 'src/modules/vehicle/vehicle.module';
+import { OrganizationModule } from 'src/modules/organization/organization.module';
 import { SubscriptionsModule } from 'src/modules/subscriptions/subscriptions.module';
 import {
   CreateTripTemplateUseCase,
@@ -20,7 +21,9 @@ import {
   FindPublicTripInstancesUseCase,
   FindPublicTripInstancesByOrgSlugUseCase,
   FindPublicTripInstanceByIdUseCase,
+  CancelExpiredTripInstancesUseCase,
 } from './application/use-cases';
+import { AutoCancelTripInstancesCron } from './infrastructure/cron/auto-cancel-trip-instances.cron';
 import {
   TripInstanceRepository,
   TripTemplateRepository,
@@ -63,6 +66,7 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     SharedModule,
     DriverModule,
     VehicleModule,
+    OrganizationModule,
     SubscriptionsModule,
   ],
   controllers: [
@@ -92,6 +96,9 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     FindPublicTripInstancesUseCase,
     FindPublicTripInstancesByOrgSlugUseCase,
     FindPublicTripInstanceByIdUseCase,
+    // Scheduled jobs
+    CancelExpiredTripInstancesUseCase,
+    AutoCancelTripInstancesCron,
     {
       provide: TripInstanceRepository,
       useClass: PrismaTripInstanceRepository,

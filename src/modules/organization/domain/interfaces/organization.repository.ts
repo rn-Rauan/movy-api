@@ -100,6 +100,18 @@ export abstract class OrganizationRepository {
   ): Promise<PaginatedResponse<Organization>>;
 
   /**
+   * Returns every `ACTIVE` organization in a single array, unpaginated.
+   *
+   * Intended for internal batch jobs (auto-cancel cron, recurring instance
+   * generator) that must visit each tenant exactly once. Tenant cardinality
+   * is expected to stay in the low thousands; replace with cursor-based
+   * pagination if that assumption no longer holds.
+   *
+   * @returns Array of all active {@link Organization} items
+   */
+  abstract findAllActiveUnpaginated(): Promise<Organization[]>;
+
+  /**
    * Deletes an organization permanently from the database.
    * @param id - UUID of the organization to be deleted
    */

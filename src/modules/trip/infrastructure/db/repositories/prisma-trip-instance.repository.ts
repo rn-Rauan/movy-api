@@ -283,4 +283,23 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
       },
     });
   }
+
+  /**
+   * Returns expired-but-open instances for the auto-cancel cron job.
+   * Uses the `autoCancelAt` index for the time predicate.
+   */
+  async findExpiredOpenInstances(
+    organizationId: string,
+    threshold: Date,
+  ): Promise<TripInstance[]> {
+    const rows = await this.db.tripInstance.findMany({
+      where: {
+        organizationId,
+        autoCancelAt: { lte: threshold, not: null },
+        tripStatus: { in: ['DRAFT', 'SCHEDULED', 'CONFIRMED'] },
+        forceConfirm: false,
+      },
+    });
+    return rows.map((row) => TripInstanceMapper.toDomain(row));
+  }
 }

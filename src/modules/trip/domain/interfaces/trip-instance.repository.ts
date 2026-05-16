@@ -138,4 +138,22 @@ export abstract class TripInstanceRepository {
     start: Date,
     end: Date,
   ): Promise<number>;
+
+  /**
+   * Returns instances for an organisation whose `autoCancelAt <= threshold`
+   * and whose `tripStatus` is still cancellable (DRAFT / SCHEDULED / CONFIRMED),
+   * excluding rows with `forceConfirm = true`.
+   *
+   * Used by the auto-cancel cron job. Unpaginated by design: the query is
+   * tightly bounded (autoCancelAt is indexed; results in a 15-minute window
+   * are small) and the caller iterates results in-memory.
+   *
+   * @param organizationId - UUID of the organisation
+   * @param threshold - Cut-off instant; instances with `autoCancelAt <= threshold` are returned
+   * @returns Array of expired-but-open {@link TripInstance} items
+   */
+  abstract findExpiredOpenInstances(
+    organizationId: string,
+    threshold: Date,
+  ): Promise<TripInstance[]>;
 }
