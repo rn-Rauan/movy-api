@@ -5,6 +5,7 @@ import { CreateOrganizationUseCase } from 'src/modules/organization/application/
 import { CreateMembershipUseCase } from 'src/modules/membership/application/use-cases';
 import { SubscribeToPlanUseCase } from 'src/modules/subscriptions/application/use-cases';
 import { PlanRepository } from 'src/modules/plans/domain/interfaces/plan.repository';
+import { TripSchedulingConfigRepository } from 'src/modules/scheduling/domain/interfaces/trip-scheduling-config.repository';
 import { UserRepository } from 'src/modules/user/domain/interfaces/user.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types';
@@ -56,6 +57,12 @@ function makeMocks() {
     findByName: jest.fn().mockResolvedValue(null),
   } as any as jest.Mocked<PlanRepository>;
 
+  const tripSchedulingConfigRepository = {
+    save: jest.fn(async (config: unknown) => config),
+    findByOrganizationId: jest.fn(),
+    update: jest.fn(),
+  } as any as jest.Mocked<TripSchedulingConfigRepository>;
+
   return {
     createOrganizationUseCase,
     createMembershipUseCase,
@@ -66,6 +73,7 @@ function makeMocks() {
     transactionManager,
     subscribeToPlanUseCase,
     planRepository,
+    tripSchedulingConfigRepository,
   };
 }
 
@@ -113,6 +121,7 @@ describe('SetupOrganizationForExistingUserUseCase', () => {
       mocks.transactionManager,
       mocks.subscribeToPlanUseCase,
       mocks.planRepository,
+      mocks.tripSchedulingConfigRepository,
     );
   });
 

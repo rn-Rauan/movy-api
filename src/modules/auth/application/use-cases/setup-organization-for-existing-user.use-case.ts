@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'node:crypto';
 import { CreateOrganizationUseCase } from '../../../organization/application/use-cases';
 import { CreateMembershipUseCase } from '../../../membership/application/use-cases';
 import { SubscribeToPlanUseCase } from '../../../subscriptions/application/use-cases';
 import { PlanRepository } from '../../../plans/domain/interfaces/plan.repository';
 import { PlanName } from '../../../plans/domain/interfaces/enums/plan-name.enum';
+import { TripSchedulingConfig } from '../../../scheduling/domain/entities/trip-scheduling-config.entity';
+import { TripSchedulingConfigRepository } from '../../../scheduling/domain/interfaces/trip-scheduling-config.repository';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
@@ -58,6 +61,7 @@ export class SetupOrganizationForExistingUserUseCase {
     private readonly transactionManager: TransactionManager,
     private readonly subscribeToPlanUseCase: SubscribeToPlanUseCase,
     private readonly planRepository: PlanRepository,
+    private readonly tripSchedulingConfigRepository: TripSchedulingConfigRepository,
   ) {}
 
   /**
@@ -124,6 +128,22 @@ export class SetupOrganizationForExistingUserUseCase {
     } else {
       this.logger.warn(
         '[SetupOrg] FREE plan not found in database — run db:seed to fix this',
+      );
+    }
+
+    // Create the per-org TripSchedulingConfig with defaults (non-fatal).
+    try {
+      const schedulingConfig = TripSchedulingConfig.create({
+        id: randomUUID(),
+        organizationId: organization.id,
+      });
+      await this.tripSchedulingConfigRepository.save(schedulingConfig);
+      this.logger.log(
+        `[SetupOrg] Created scheduling config for org=${organization.id}`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `[SetupOrg] Scheduling config creation failed for org=${organization.id}: ${(err as Error).message}`,
       );
     }
 

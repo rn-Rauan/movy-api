@@ -12,7 +12,8 @@
       "Bash(Select-String -Pattern \"DOCUMENTACAO|BRAIN\")",
       "Bash(npx prisma *)",
       "Bash(npm run *)",
-      "Bash(docker-compose up *)"
+      "Bash(docker-compose up *)",
+      "Bash(npm install *)"
     ]
   }
 }

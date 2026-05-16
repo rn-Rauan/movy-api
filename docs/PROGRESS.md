@@ -15,8 +15,8 @@ Em Progresso: 0
 Pendente: 0
 
 Mitigações críticas (29 Abr): Payment simulation ✅ | Subscription lazy expiration ✅ | Plan limits enforcement ✅ | Auto-FREE subscription ✅
-Trip Scheduling (16 Mai): Fase 1 — hora-do-dia no TripTemplate ✅ | Fases 2-5 ⏳
-Testes: 39 suites, 307 testes ✅ | TypeScript: 0 erros ✅
+Trip Scheduling (16 Mai): Fase 1 — hora-do-dia no TripTemplate ✅ | Fase 2 — TripSchedulingConfig per-org ✅ | Fases 3-5 ⏳
+Testes: 41 suites, 329 testes ✅ | TypeScript: 0 erros ✅
 ```
 
 ---
@@ -1055,8 +1055,34 @@ src/shared/infrastructure/database/
 
 **Migration aplicada:** `20260516153617_add_time_of_day_to_trip_template` ✅ (16 Mai 2026).
 
+### TripSchedulingConfig per-org ✅ COMPLETO (16 Mai 2026)
+
+**Motivação:** dar a cada organização o controle sobre `daysAhead` (1..90), `generationCron`, `autoCancelCron` e `enabled` — sem isso, os crons das Fases 3-4 ficam presos a defaults globais.
+
+**Estrutura novo módulo `src/modules/scheduling/`:**
+- ✅ **Schema:** model `TripSchedulingConfig(organizationId @unique, daysAhead 14, generationCron '0 2 * * *', autoCancelCron '*/15 * * * *', enabled true)`. Relação 1:0..1 com Organization (`onDelete: Cascade`).
+- ✅ **Entity:** `create`/`restore`, `validateDaysAhead` (integer 1..90), `validateCron` via `cron-parser.CronExpressionParser.parse`. Métodos `updateDaysAhead`, `updateCrons(gen?, autoCancel?)`, `setEnabled`.
+- ✅ **Erros:** `InvalidSchedulingDaysAheadError` (400), `InvalidSchedulingCronError` (400), `TripSchedulingConfigNotFoundError` (404).
+- ✅ **Repository:** interface abstract + impl Prisma (`save`, `findByOrganizationId`, `update`) usando `DbContext` (transaction-aware).
+- ✅ **Mapper + Presenter + DTOs** seguindo padrão dos demais módulos.
+- ✅ **Use cases:** `FindTripSchedulingConfigUseCase`, `UpdateTripSchedulingConfigUseCase` (aplica updates parciais delegando validação à entity).
+- ✅ **Controller:** `GET` + `PATCH /organizations/:organizationId/scheduling-config` (`ADMIN` + `TenantFilterGuard`).
+- ✅ **Auto-criação no signup:** `RegisterOrganizationWithAdminUseCase` e `SetupOrganizationForExistingUserUseCase` injetam `TripSchedulingConfigRepository` e criam config com defaults após a transação (try/catch não-fatal — mesmo padrão da auto-FREE).
+- ✅ **Wiring:** `SchedulingModule` registrado no `AppModule`; `AuthModule` importa `SchedulingModule`.
+- ✅ **Deps:** `@nestjs/schedule` + `cron-parser` instaladas (pré-requisito das Fases 3-4).
+
+**Testes adicionados (+2 suites, +22 testes):**
+- Entity spec (defaults, validateDaysAhead boundaries 0/-1/91/1.5 rejected; 1/30/90 accepted; cron malformado rejeitado; updateCrons replace parcial; setEnabled flip).
+- UpdateTripSchedulingConfigUseCase spec (happy path full update, fields undefined preservados, `TripSchedulingConfigNotFoundError`, propagação `InvalidSchedulingDaysAheadError`, propagação `InvalidSchedulingCronError`).
+
+**Validação:**
+- `npx tsc --noEmit`: ✅ 0 erros
+- `npx jest --config test/jest-unit.json`: ✅ **41 suites, 329 testes**
+- `npm run lint`: ✅ 0 warnings
+
+**Migration aplicada:** `20260516154944_add_trip_scheduling_config` ✅ (16 Mai 2026).
+
 **Próximas fases do roteiro:**
-- ⏳ Fase 2 — `TripSchedulingConfig` module (per-org `daysAhead` + crons customizados)
 - ⏳ Fase 3 — Cron de auto-cancel (`@nestjs/schedule`, `*/15 * * * *`)
 - ⏳ Fase 4 — Cron de geração de instâncias recorrentes (`0 2 * * *`)
 - ⏳ Fase 5 — Endpoint admin para geração manual on-demand

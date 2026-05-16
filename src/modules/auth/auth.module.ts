@@ -7,6 +7,7 @@ import { MembershipModule } from '../membership/membership.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { PlansModule } from '../plans/plans.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
 import { SharedModule } from 'src/shared/shared.module';
 import { BcryptHashProvider } from 'src/shared/providers/hash/bcrypt-hash.provider';
@@ -60,6 +61,7 @@ import { PrismaRefreshTokenRepository } from './infrastructure/db/repositories/p
     forwardRef(() => OrganizationModule),
     SubscriptionsModule,
     PlansModule,
+    SchedulingModule,
     PrismaModule,
     SharedModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),

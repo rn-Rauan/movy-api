@@ -16,6 +16,7 @@ import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { PlanUsageModule } from './modules/plan-usage/plan-usage.module';
+import { SchedulingModule } from './modules/scheduling/scheduling.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PlanUsageModule } from './modules/plan-usage/plan-usage.module';
     SubscriptionsModule,
     PaymentModule,
     PlanUsageModule,
+    SchedulingModule,
   ],
   controllers: [AppController],
   providers: [

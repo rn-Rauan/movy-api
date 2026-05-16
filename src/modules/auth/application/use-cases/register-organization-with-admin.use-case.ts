@@ -1,11 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'node:crypto';
 import { CreateUserUseCase } from '../../../user/application/use-cases';
 import { CreateOrganizationUseCase } from '../../../organization/application/use-cases';
 import { CreateMembershipUseCase } from '../../../membership/application/use-cases';
 import { SubscribeToPlanUseCase } from '../../../subscriptions/application/use-cases';
 import { PlanRepository } from '../../../plans/domain/interfaces/plan.repository';
 import { PlanName } from '../../../plans/domain/interfaces/enums/plan-name.enum';
+import { TripSchedulingConfig } from '../../../scheduling/domain/entities/trip-scheduling-config.entity';
+import { TripSchedulingConfigRepository } from '../../../scheduling/domain/interfaces/trip-scheduling-config.repository';
 import { RoleRepository } from 'src/shared/domain/interfaces/role.repository';
 import { RoleName } from 'src/shared/domain/types/role-name.enum';
 import { RoleNotFoundError } from 'src/shared/domain/errors/roles.error';
@@ -44,6 +47,7 @@ export class RegisterOrganizationWithAdminUseCase {
     private readonly transactionManager: TransactionManager,
     private readonly subscribeToPlanUseCase: SubscribeToPlanUseCase,
     private readonly planRepository: PlanRepository,
+    private readonly tripSchedulingConfigRepository: TripSchedulingConfigRepository,
   ) {}
 
   /**
@@ -110,6 +114,24 @@ export class RegisterOrganizationWithAdminUseCase {
     } else {
       this.logger.warn(
         '[RegisterOrg] FREE plan not found in database — run db:seed to fix this',
+      );
+    }
+
+    // Create the per-org TripSchedulingConfig with defaults, outside the main
+    // transaction. Non-fatal: an admin can hit PATCH /scheduling-config later
+    // or the cron will fall back to global defaults until a row exists.
+    try {
+      const schedulingConfig = TripSchedulingConfig.create({
+        id: randomUUID(),
+        organizationId: organization.id,
+      });
+      await this.tripSchedulingConfigRepository.save(schedulingConfig);
+      this.logger.log(
+        `[RegisterOrg] Created scheduling config for org=${organization.id}`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `[RegisterOrg] Scheduling config creation failed for org=${organization.id}: ${(err as Error).message}`,
       );
     }
 

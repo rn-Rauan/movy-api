@@ -1777,6 +1777,42 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 
 ---
 
+### Trip Scheduling — Fase 2: Módulo `TripSchedulingConfig`
+
+**Contexto.** Cada organização agora tem uma linha de configuração que controla o cron de geração e auto-cancel: `daysAhead` (1..90), `generationCron`, `autoCancelCron`, `enabled`. Sem isso, os crons da Fase 3-4 teriam que usar defaults globais hard-coded — bom o suficiente pro MVP, mas inflexível na produção.
+
+**Estrutura do novo módulo `src/modules/scheduling/`:**
+
+| Camada | Arquivo | Responsabilidade |
+|---|---|---|
+| Schema | `prisma/schema.prisma` | Model `TripSchedulingConfig` (organizationId @unique, defaults: daysAhead=14, generationCron='0 2 * * *', autoCancelCron='*/15 * * * *', enabled=true). Relação 1:0..1 com `Organization` (`onDelete: Cascade`). |
+| Domain — entity | `domain/entities/trip-scheduling-config.entity.ts` | `create()`/`restore()`, `validateDaysAhead` (1..90 integer), `validateCron` (via `cron-parser.CronExpressionParser.parse`). Métodos `updateDaysAhead`, `updateCrons(gen?, autoCancel?)`, `setEnabled`. |
+| Domain — errors | `domain/entities/errors/trip-scheduling-config.errors.ts` | `InvalidSchedulingDaysAheadError` (400), `InvalidSchedulingCronError` (400), `TripSchedulingConfigNotFoundError` (404). |
+| Domain — repo | `domain/interfaces/trip-scheduling-config.repository.ts` | Interface abstract com `save`, `findByOrganizationId`, `update`. |
+| Infra | `infrastructure/db/{mappers,repositories}` | Mapper bidirecional + `PrismaTripSchedulingConfigRepository` (usa `DbContext` para transaction-aware reads/writes). |
+| Application — use cases | `application/use-cases/` | `FindTripSchedulingConfigUseCase` (lança `NotFound` se faltar), `UpdateTripSchedulingConfigUseCase` (aplica updates parciais via métodos da entity, propagando validações). |
+| Application — DTOs | `application/dtos/` | `UpdateTripSchedulingConfigDto` (todos campos opcionais com `class-validator`), `TripSchedulingConfigResponseDto`. |
+| Presentation | `presentation/controllers/trip-scheduling-config.controller.ts` | `GET` + `PATCH` em `/organizations/:organizationId/scheduling-config`. ADMIN + `TenantFilterGuard`. |
+| Wiring | `scheduling.module.ts` + `app.module.ts` | Exporta `TripSchedulingConfigRepository` para o AuthModule. |
+
+**Auto-criação no signup:**
+- `RegisterOrganizationWithAdminUseCase` e `SetupOrganizationForExistingUserUseCase` agora injetam `TripSchedulingConfigRepository` e criam a config com defaults após a transação principal, em try/catch não-fatal (mesmo padrão da auto-subscrição FREE). `AuthModule` importa `SchedulingModule`.
+
+**Endpoints novos:**
+- `GET /organizations/{orgId}/scheduling-config` — retorna a config (ADMIN).
+- `PATCH /organizations/{orgId}/scheduling-config` — atualização parcial; cron expressions são validadas pelo `cron-parser` (rejeita malformadas com 400).
+
+**Validação:**
+- `npx tsc --noEmit`: ✅ 0 erros.
+- `npx jest --config test/jest-unit.json`: ✅ **41 suites, 329 testes** (+2 suites, +22 testes vs Fase 1). Novos: entity spec (defaults, validateDaysAhead boundaries 0/-1/91/1.5 rejected; 1/30/90 accepted; cron validation; updateCrons partial), use-case spec (happy path, not found, validation propagation).
+- `npm run lint`: ✅ 0 warnings.
+
+**Migration aplicada:** `20260516154944_add_trip_scheduling_config` ✅ (16 Mai 2026).
+
+**Deps instaladas:** `@nestjs/schedule` + `cron-parser` (Fase 3-4 também consomem).
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
 - ✅ Desenvolvido **seed script** (`prisma/seed.ts`) com suporte a `tsx` para execução confiável.
@@ -1834,11 +1870,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio d
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
 - ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
 - ✅ **Melhorias de API (04 Mai 2026)**: `TripInstanceWithMeta` na listagem admin (bookedCount, availableSlots, campos do template via JOIN único); `paymentMethod` exposto em todas as respostas de Booking (JOIN com Payment); SRP nos mappers (`TripInstanceMapper.toDomainWithMeta`, `BookingMapper.toDomainFromRow`).
-- ✅ **Testes Unitários**: 39 suites, 307 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai)*.
+- ✅ **Testes Unitários**: 41 suites, 329 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** iniciada Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), pré-requisito do cron de geração recorrente. Próximo: Fase 2-4 (TripSchedulingConfig per-org + cron de auto-cancel + cron de geração).
+**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`) e Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org). Próximo: Fase 3 (cron de auto-cancel via `@nestjs/schedule`) e Fase 4 (cron de geração recorrente).
 
 ---
 
@@ -1852,7 +1888,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (307 testes, 39 suites)
+- `npm run test`: Executa testes unitários (329 testes, 41 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias

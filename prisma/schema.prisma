@@ -134,6 +134,7 @@ model Organization {
   auditLogs     AuditLog[]       @relation("AuditLogOrganization")
   subscriptions Subscription[]   @relation("OrganizationSubscription")
   tripInstances  TripInstance[]    @relation("TripInstanceOrganization")
+  schedulingConfig TripSchedulingConfig?      @relation("OrganizationSchedulingConfig")
 
   @@index([slug])
   @@index([status])
@@ -339,6 +340,22 @@ model TripInstance {
   @@index([autoCancelAt])
   @@index([organizationId])
   @@map("trip_instance")
+}
+
+model TripSchedulingConfig {
+  id              String       @id @default(uuid())
+  organizationId  String       @unique
+  daysAhead       Int          @default(14)
+  generationCron  String       @default("0 2 * * *")
+  autoCancelCron  String       @default("*/15 * * * *")
+  enabled         Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  organization    Organization @relation("OrganizationSchedulingConfig", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("trip_scheduling_config")
 }
 
 model Enrollment {

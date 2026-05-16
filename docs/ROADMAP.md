@@ -39,7 +39,7 @@ Progresso em 27 Abr 2026:
 - **Multi-org switching** (`POST /auth/switch-organization`) — ver ADR-018
 - **Trip Scheduling (em andamento)** — ver `docs/GUIA_TRIP_SCHEDULING.md`
   - ✅ **Fase 1** — Hora-do-dia no `TripTemplate` (16 Mai 2026)
-  - ⏳ **Fase 2** — Módulo `TripSchedulingConfig` (per-org `daysAhead` + crons customizados)
+  - ✅ **Fase 2** — Módulo `TripSchedulingConfig` per-org (16 Mai 2026)
   - ⏳ **Fase 3** — Cron de auto-cancel (`@nestjs/schedule`, `*/15 * * * *`)
   - ⏳ **Fase 4** — Cron de geração de instâncias recorrentes (`0 2 * * *`)
   - ⏳ **Fase 5** — Endpoint admin para geração manual
