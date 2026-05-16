@@ -24,6 +24,8 @@ export class TripTemplateMapper {
       destination: raw.destination,
       frequency: raw.frequency as DayOfWeek[],
       stops: raw.stops,
+      departureTimeOfDay: raw.departureTimeOfDay,
+      arrivalTimeOfDay: raw.arrivalTimeOfDay,
       priceOneWay: raw.priceOneWay
         ? Money.restore(Number(raw.priceOneWay))
         : null,
@@ -60,6 +62,8 @@ export class TripTemplateMapper {
       destination: entity.destination,
       frequency: entity.frequency,
       stops: entity.stops,
+      departureTimeOfDay: entity.departureTimeOfDay,
+      arrivalTimeOfDay: entity.arrivalTimeOfDay,
       priceOneWay: entity.priceOneWay?.toNumber() ?? null,
       priceReturn: entity.priceReturn?.toNumber() ?? null,
       priceRoundTrip: entity.priceRoundTrip?.toNumber() ?? null,

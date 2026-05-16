@@ -78,9 +78,26 @@ export class UpdateTripTemplateUseCase {
   ): void {
     this.updateRouteIfProvided(tripTemplate, input);
     this.updateStopsIfProvided(tripTemplate, input);
+    this.updateScheduleIfProvided(tripTemplate, input);
     this.updatePricingIfProvided(tripTemplate, input);
     this.updateRecurrenceIfProvided(tripTemplate, input);
     this.updateAutoCancelIfProvided(tripTemplate, input);
+  }
+
+  private updateScheduleIfProvided(
+    tripTemplate: TripTemplate,
+    input: UpdateTripTemplateDto,
+  ): void {
+    const shouldUpdateSchedule =
+      input.departureTimeOfDay !== undefined ||
+      input.arrivalTimeOfDay !== undefined;
+
+    if (shouldUpdateSchedule) {
+      tripTemplate.updateSchedule(
+        input.departureTimeOfDay ?? tripTemplate.departureTimeOfDay!,
+        input.arrivalTimeOfDay ?? tripTemplate.arrivalTimeOfDay!,
+      );
+    }
   }
 
   private updateRouteIfProvided(

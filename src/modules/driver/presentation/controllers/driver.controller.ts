@@ -180,9 +180,7 @@ export class DriverController {
     description: 'Return the driver name.',
     type: DriverNameResponseDto,
   })
-  async getDriverName(
-    @Param('id') id: string,
-  ): Promise<DriverNameResponseDto> {
+  async getDriverName(@Param('id') id: string): Promise<DriverNameResponseDto> {
     const name = await this.findDriverNameByIdUseCase.execute(id);
     return new DriverNameResponseDto(name);
   }

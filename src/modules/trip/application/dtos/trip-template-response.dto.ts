@@ -45,6 +45,20 @@ export class TripTemplateResponseDto {
   shift: Shift;
 
   @ApiProperty({
+    example: '07:30',
+    description: 'Departure time-of-day in HH:mm 24-hour UTC format',
+    nullable: true,
+  })
+  departureTimeOfDay: string | null;
+
+  @ApiProperty({
+    example: '08:30',
+    description: 'Estimated arrival time-of-day in HH:mm 24-hour UTC format',
+    nullable: true,
+  })
+  arrivalTimeOfDay: string | null;
+
+  @ApiProperty({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY],
     description: 'Recurrence days',
     enum: DayOfWeek,

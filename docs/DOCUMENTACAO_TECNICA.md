@@ -1738,6 +1738,45 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 
 ---
 
+## 6.14 Implementações (16 Mai 2026)
+
+### Trip Scheduling — Fase 1: Hora-do-dia no `TripTemplate`
+
+**Contexto.** A geração de instâncias de viagem recorrentes (Fase 4 do guia `GUIA_TRIP_SCHEDULING.md`) precisa de uma hora-do-dia fixa por template — caso contrário cada instância exigiria o admin informar `departureTime` completo. Esta fase desacopla "*horário do roteiro*" de "*data de execução*": o template carrega `HH:mm` UTC, a instância carrega só a data.
+
+**Mudanças aplicadas:**
+
+| Camada | Arquivo | Alteração |
+|---|---|---|
+| Schema | `prisma/schema.prisma` | `TripTemplate.departureTimeOfDay String?` e `arrivalTimeOfDay String?` (VarChar(5), nullable para migration suave). |
+| Domain — utils | `src/modules/trip/domain/utils/combine-date-and-time.ts` (novo) | `isValidTimeOfDay`, `timeOfDayToMinutes`, `combineDateAndTime`, `arrivalCrossesMidnight`. Tudo UTC. |
+| Domain — errors | `entities/errors/trip-template.errors.ts` | `InvalidTripTimeOfDayFormatError` (`INVALID_TRIP_TIME_OF_DAY_FORMAT` → 400), `InvalidTripTimeOfDayOrderError` (`INVALID_TRIP_TIME_OF_DAY_ORDER` → 400), `InvalidTripTemplateMissingScheduleError` (`INVALID_TRIP_TEMPLATE_MISSING_SCHEDULE` → 400). |
+| Domain — entity | `entities/trip-template.entity.ts` | Novos props/state `departureTimeOfDay`/`arrivalTimeOfDay`. Validação obrigatória no `create()` (lança `RequiredFieldError` se ausentes; `validateSchedule` valida formato + ordem). Getters + método `updateSchedule(dep, arr)`. |
+| Application — DTOs | `create-trip-template.dto.ts`, `update-trip-template.dto.ts` | Campos `departureTimeOfDay`/`arrivalTimeOfDay` com `@Matches(/^([01]\d|2[0-3]):[0-5]\d$/)`. Obrigatórios no create, opcionais no update. |
+| Application — DTO | `create-trip-instance.dto.ts` | **Breaking**: `departureTime` + `arrivalEstimate` (ISO 8601 completos) substituídos por `departureDate` (`YYYY-MM-DD`). |
+| Application — DTO resposta | `trip-template-response.dto.ts` | Inclui `departureTimeOfDay`/`arrivalTimeOfDay` (`string \| null`). |
+| Application — use cases | `create-trip-template.use-case.ts` | Repassa os campos pro `TripTemplate.create`. |
+|  | `update-trip-template.use-case.ts` | `updateScheduleIfProvided()` aplica `template.updateSchedule(...)` quando algum dos dois campos vier no DTO. |
+|  | `create-trip-instance.use-case.ts` | Deriva `departureTime` e `arrivalEstimate` via `combineDateAndTime(input.departureDate, template.*)`. `arrivalCrossesMidnight` soma 24h ao arrival se necessário. Lança `InvalidTripTemplateMissingScheduleError` se template legado não tiver schedule. |
+| Infra — mapper | `infrastructure/db/mappers/trip-template.mapper.ts` | `toDomain` e `toPersistence` incluem os dois campos. |
+| Presentation — presenter | `presentation/mappers/trip-template.presenter.ts` | Inclui os dois campos no `toHTTP`. |
+| Testes — factories | `test/modules/trip/factories/` | `makeTripTemplate` aceita `null` (simula linha legada). `makeCreateTripTemplateDto`/`makeCreateTripInstanceDto` atualizados com `'07:30'`/`'08:30'`/`departureDate`. |
+| Testes — specs | `create-trip-template.use-case.spec.ts` | +2 testes (formato inválido, arrival == departure). |
+|  | `create-trip-instance.use-case.spec.ts` | +1 teste `InvalidTripTemplateMissingScheduleError`, +2 testes "schedule derivation" (combinação normal + cruzando meia-noite); reescrita dos 3 testes de auto-cancel usando `departureDate` ao invés de `departureTime`/`arrivalEstimate`. |
+
+**Como o cron de geração (Fase 4) consumirá:** a hora-do-dia fica imutável no template; o cron itera `0..daysAhead` dias, e para cada data válida (`dayOfWeek` está em `template.frequency`) chama `combineDateAndTime(date, template.departureTimeOfDay)` — exatamente a mesma lógica que o create-instance já usa, garantindo paridade entre criação manual e geração automática.
+
+**Trade-off documentado:** o tempo armazenado é **UTC**. Conversão para horário local é responsabilidade do frontend. Ver `docs/GUIA_TRIP_SCHEDULING.md` § Troubleshooting → "Time zone confuso".
+
+**Validação:**
+- `npx tsc --noEmit`: ✅ 0 erros.
+- `npx jest --config test/jest-unit.json`: ✅ **39 suites, 307 testes** (vs 38/300 antes).
+- `npm run lint`: ✅ 0 warnings.
+
+**Migration aplicada:** `20260516153617_add_time_of_day_to_trip_template` ✅ (16 Mai 2026).
+
+---
+
 ### Role Management & Database Seeding
 - ✅ Criado **Role Repository** seguindo padrão de Clean Architecture.
 - ✅ Desenvolvido **seed script** (`prisma/seed.ts`) com suporte a `tsx` para execução confiável.
@@ -1795,11 +1834,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio d
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
 - ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
 - ✅ **Melhorias de API (04 Mai 2026)**: `TripInstanceWithMeta` na listagem admin (bookedCount, availableSlots, campos do template via JOIN único); `paymentMethod` exposto em todas as respostas de Booking (JOIN com Payment); SRP nos mappers (`TripInstanceMapper.toDomainWithMeta`, `BookingMapper.toDomainFromRow`).
-- ✅ **Testes Unitários**: 38 suites, 300 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai)*.
+- ✅ **Testes Unitários**: 39 suites, 307 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). Próximo: Fase 4 (Testes coverage 80%+, Swagger completo, Docker prod, deploy).
+**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** iniciada Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), pré-requisito do cron de geração recorrente. Próximo: Fase 2-4 (TripSchedulingConfig per-org + cron de auto-cancel + cron de geração).
 
 ---
 
@@ -1813,7 +1852,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (300 testes, 38 suites)
+- `npm run test`: Executa testes unitários (307 testes, 39 suites)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias

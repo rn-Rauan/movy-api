@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsDateString,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -8,6 +7,7 @@ import {
   IsOptional,
   IsPositive,
   IsUUID,
+  Matches,
   Min,
 } from 'class-validator';
 import { TripStatus } from '../../domain/interfaces';
@@ -22,27 +22,15 @@ export class CreateTripInstanceDto {
   tripTemplateId: string;
 
   @ApiProperty({
-    example: '2026-05-10T07:30:00.000Z',
-    description: 'Scheduled departure date and time (ISO 8601)',
-  })
-  @IsDateString(
-    {},
-    { message: 'departureTime must be a valid ISO 8601 date string' },
-  )
-  @IsNotEmpty({ message: 'departureTime is required' })
-  departureTime: string;
-
-  @ApiProperty({
-    example: '2026-05-10T08:15:00.000Z',
+    example: '2026-05-10',
     description:
-      'Estimated arrival date and time (ISO 8601) — must be after departureTime',
+      'Calendar date (YYYY-MM-DD) of the departure. Time-of-day comes from the template.',
   })
-  @IsDateString(
-    {},
-    { message: 'arrivalEstimate must be a valid ISO 8601 date string' },
-  )
-  @IsNotEmpty({ message: 'arrivalEstimate is required' })
-  arrivalEstimate: string;
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'departureDate must be in YYYY-MM-DD format',
+  })
+  @IsNotEmpty({ message: 'departureDate is required' })
+  departureDate: string;
 
   @ApiProperty({
     example: 40,

@@ -3,11 +3,17 @@ import { RequiredFieldError } from 'src/shared/domain/errors';
 import type { Status } from 'src/shared/domain/types';
 import { DayOfWeek, Shift } from '../interfaces';
 import {
+  isValidTimeOfDay,
+  timeOfDayToMinutes,
+} from '../utils/combine-date-and-time';
+import {
   InvalidTripAutoCancelConfigurationError,
   InvalidTripFrequencyError,
   InvalidTripPriceConfigurationError,
   InvalidTripRoutePointsError,
   InvalidTripStopsError,
+  InvalidTripTimeOfDayFormatError,
+  InvalidTripTimeOfDayOrderError,
 } from './errors/trip-template.errors';
 
 /**
@@ -21,6 +27,8 @@ export interface TripTemplateProps {
   destination: string;
   frequency: DayOfWeek[];
   stops: string[];
+  departureTimeOfDay?: string | null;
+  arrivalTimeOfDay?: string | null;
   priceOneWay?: Money | null;
   priceReturn?: Money | null;
   priceRoundTrip?: Money | null;
@@ -45,6 +53,8 @@ interface TripTemplateState {
   destination: string;
   frequency: DayOfWeek[];
   stops: string[];
+  departureTimeOfDay: string | null;
+  arrivalTimeOfDay: string | null;
   priceOneWay: Money | null;
   priceReturn: Money | null;
   priceRoundTrip: Money | null;
@@ -87,6 +97,8 @@ export class TripTemplate {
       destination: props.destination.trim(),
       frequency: props.frequency ?? [],
       stops: props.stops.map((stop) => stop.trim()),
+      departureTimeOfDay: props.departureTimeOfDay ?? null,
+      arrivalTimeOfDay: props.arrivalTimeOfDay ?? null,
       priceOneWay: props.priceOneWay ?? null,
       priceReturn: props.priceReturn ?? null,
       priceRoundTrip: props.priceRoundTrip ?? null,
@@ -133,6 +145,14 @@ export class TripTemplate {
       props.autoCancelEnabled ?? false,
       props.minRevenue ?? null,
       props.autoCancelOffset ?? null,
+    );
+
+    if (!props.departureTimeOfDay || !props.arrivalTimeOfDay) {
+      throw new RequiredFieldError('departureTimeOfDay/arrivalTimeOfDay');
+    }
+    TripTemplate.validateSchedule(
+      props.departureTimeOfDay,
+      props.arrivalTimeOfDay,
     );
 
     return new TripTemplate(props);
@@ -201,6 +221,26 @@ export class TripTemplate {
     }
   }
 
+  /**
+   * Validates that both time-of-day strings are well-formed and distinct.
+   * @throws {@link InvalidTripTimeOfDayFormatError} for non-HH:mm input
+   * @throws {@link InvalidTripTimeOfDayOrderError} when departure equals arrival
+   */
+  private static validateSchedule(departure: string, arrival: string): void {
+    if (!isValidTimeOfDay(departure)) {
+      throw new InvalidTripTimeOfDayFormatError(
+        'departureTimeOfDay',
+        departure,
+      );
+    }
+    if (!isValidTimeOfDay(arrival)) {
+      throw new InvalidTripTimeOfDayFormatError('arrivalTimeOfDay', arrival);
+    }
+    if (timeOfDayToMinutes(departure) === timeOfDayToMinutes(arrival)) {
+      throw new InvalidTripTimeOfDayOrderError();
+    }
+  }
+
   /** Validates that auto-cancel fields are present and valid when the feature is enabled */
   private static validateAutoCancel(
     autoCancelEnabled: boolean,
@@ -250,6 +290,14 @@ export class TripTemplate {
 
   get stops(): string[] {
     return [...this.props.stops];
+  }
+
+  get departureTimeOfDay(): string | null {
+    return this.props.departureTimeOfDay;
+  }
+
+  get arrivalTimeOfDay(): string | null {
+    return this.props.arrivalTimeOfDay;
   }
 
   get priceOneWay(): Money | null {
@@ -362,6 +410,18 @@ export class TripTemplate {
     this.props.priceOneWay = nextPriceOneWay;
     this.props.priceReturn = nextPriceReturn;
     this.props.priceRoundTrip = nextPriceRoundTrip;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Replace the departure/arrival time-of-day pair.
+   * @throws {@link InvalidTripTimeOfDayFormatError} for non-HH:mm input
+   * @throws {@link InvalidTripTimeOfDayOrderError} when departure equals arrival
+   */
+  updateSchedule(departureTimeOfDay: string, arrivalTimeOfDay: string): void {
+    TripTemplate.validateSchedule(departureTimeOfDay, arrivalTimeOfDay);
+    this.props.departureTimeOfDay = departureTimeOfDay;
+    this.props.arrivalTimeOfDay = arrivalTimeOfDay;
     this.props.updatedAt = new Date();
   }
 

@@ -11,6 +11,8 @@ export function makeCreateTripTemplateDto(
     destination: 'Universidade Federal',
     stops: ['Terminal Rodoviário', 'Praça Central', 'Universidade Federal'],
     shift: Shift.MORNING,
+    departureTimeOfDay: '07:30',
+    arrivalTimeOfDay: '08:30',
     priceOneWay: 12.5,
     ...overrides,
   };

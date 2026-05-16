@@ -2,7 +2,7 @@
 
 > Checklist de desenvolvimento por módulo. Update conforme vai terminando features.
 
-**Última atualização:** 29 Abr 2026
+**Última atualização:** 16 Mai 2026
 
 ---
 
@@ -15,7 +15,8 @@ Em Progresso: 0
 Pendente: 0
 
 Mitigações críticas (29 Abr): Payment simulation ✅ | Subscription lazy expiration ✅ | Plan limits enforcement ✅ | Auto-FREE subscription ✅
-Testes: 37 suites, 280 testes ✅ | TypeScript: 0 erros ✅
+Trip Scheduling (16 Mai): Fase 1 — hora-do-dia no TripTemplate ✅ | Fases 2-5 ⏳
+Testes: 39 suites, 307 testes ✅ | TypeScript: 0 erros ✅
 ```
 
 ---
@@ -1023,6 +1024,42 @@ src/shared/infrastructure/database/
 - ✅ `SubscriptionsModule`: `SubscribeToPlanUseCase` adicionado aos `exports`
 
 **Nota:** WARN `[RegisterOrg] FREE plan not found` nos testes é esperado — o mock retorna `null` para `findByName`, ativando o branch de falha silenciosa (comportamento correto).
+
+---
+
+## 🕒 FASE 4 (Scheduling): Trip Scheduling — Fase 1 ✅ COMPLETO (16 Mai 2026)
+
+> Pré-requisito do cron de geração recorrente (Fase 4 do guia). Ver `docs/GUIA_TRIP_SCHEDULING.md`.
+
+### Hora-do-dia no `TripTemplate` ✅ COMPLETO (16 Mai 2026)
+
+**Motivação:** desacoplar "horário do roteiro" de "data de execução". Template carrega `HH:mm` UTC fixo; instância carrega só a data. Sem isso, o cron de geração não conseguiria materializar instâncias automaticamente.
+
+**Mudanças:**
+- ✅ **Schema Prisma:** `TripTemplate.departureTimeOfDay` + `arrivalTimeOfDay` (`String?` VarChar(5), nullable para migration suave)
+- ✅ **Helper `combine-date-and-time.ts`** (`src/modules/trip/domain/utils/`): `isValidTimeOfDay`, `timeOfDayToMinutes`, `combineDateAndTime`, `arrivalCrossesMidnight` — toda lógica em UTC
+- ✅ **Domain errors:** `InvalidTripTimeOfDayFormatError`, `InvalidTripTimeOfDayOrderError`, `InvalidTripTemplateMissingScheduleError` (todos com prefixo `INVALID_` → 400)
+- ✅ **Entity `TripTemplate`:** novos props/state, validação obrigatória no `create()`, `validateSchedule` (formato + ordem), getters, método `updateSchedule(dep, arr)`
+- ✅ **DTOs:** `CreateTripTemplateDto`/`UpdateTripTemplateDto` com `@Matches(/^([01]\d|2[0-3]):[0-5]\d$/)`. `CreateTripInstanceDto`: **breaking change** — `departureTime`+`arrivalEstimate` substituídos por `departureDate` (`YYYY-MM-DD`)
+- ✅ **Use cases:** `CreateTripTemplateUseCase` repassa campos; `UpdateTripTemplateUseCase` adiciona `updateScheduleIfProvided`; `CreateTripInstanceUseCase` deriva `departureTime`/`arrivalEstimate` via `combineDateAndTime` + `arrivalCrossesMidnight` para casos cruzando meia-noite
+- ✅ **Mapper/Presenter:** `toDomain`/`toPersistence`/`toHTTP` incluem os dois campos
+- ✅ **Factories de teste:** `makeTripTemplate` aceita `null` (simula linha legada via `restore()`); `makeCreateTripInstanceDto` reescrito com `departureDate`
+- ✅ **Specs:** +2 testes no template (formato inválido, arrival==departure), +3 testes na instance (missing schedule, schedule derivation normal, midnight crossing). 3 testes de auto-cancel reescritos com `departureDate`.
+
+**Trade-off documentado:** hora-do-dia é **UTC**. Conversão local é responsabilidade do frontend.
+
+**Validação:**
+- `npx tsc --noEmit`: ✅ 0 erros
+- `npx jest --config test/jest-unit.json`: ✅ **39 suites, 307 testes** passando (+1 suite, +7 testes vs baseline 04 Mai)
+- `npm run lint`: ✅ sem warnings
+
+**Migration aplicada:** `20260516153617_add_time_of_day_to_trip_template` ✅ (16 Mai 2026).
+
+**Próximas fases do roteiro:**
+- ⏳ Fase 2 — `TripSchedulingConfig` module (per-org `daysAhead` + crons customizados)
+- ⏳ Fase 3 — Cron de auto-cancel (`@nestjs/schedule`, `*/15 * * * *`)
+- ⏳ Fase 4 — Cron de geração de instâncias recorrentes (`0 2 * * *`)
+- ⏳ Fase 5 — Endpoint admin para geração manual on-demand
 
 ---
 

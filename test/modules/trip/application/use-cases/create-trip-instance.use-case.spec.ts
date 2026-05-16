@@ -3,6 +3,7 @@ import { TripInstanceRepository } from 'src/modules/trip/domain/interfaces/trip-
 import { TripTemplateRepository } from 'src/modules/trip/domain/interfaces/trip-template.repository';
 import { TripInstanceCreationFailedError } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
 import {
+  InvalidTripTemplateMissingScheduleError,
   TripTemplateAccessForbiddenError,
   TripTemplateInactiveError,
   TripTemplateNotFoundError,
@@ -235,6 +236,8 @@ describe('CreateTripInstanceUseCase', () => {
       // Arrange
       const template = makeTripTemplate({
         organizationId: ORG_ID,
+        departureTimeOfDay: '07:30',
+        arrivalTimeOfDay: '08:30',
         autoCancelEnabled: true,
         minRevenue: 200,
         autoCancelOffset: 60, // 60 min before departure
@@ -242,12 +245,7 @@ describe('CreateTripInstanceUseCase', () => {
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
 
-      const departure = new Date(Date.now() + 86400000);
-      const arrival = new Date(departure.getTime() + 3600000);
-      const dto = makeCreateTripInstanceDto({
-        departureTime: departure.toISOString(),
-        arrivalEstimate: arrival.toISOString(),
-      });
+      const dto = makeCreateTripInstanceDto({ departureDate: '2026-12-15' });
 
       // Act
       await sut.execute(dto, ORG_ID);
@@ -255,12 +253,12 @@ describe('CreateTripInstanceUseCase', () => {
       // Assert
       const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
       expect(saved.autoCancelAt).toBeDefined();
+      const expectedDeparture = new Date('2026-12-15T07:30:00.000Z');
       const expectedAutoCancelAt = new Date(
-        departure.getTime() - 60 * 60 * 1000,
+        expectedDeparture.getTime() - 60 * 60 * 1000,
       );
-      expect(saved.autoCancelAt?.getTime()).toBeCloseTo(
+      expect(saved.autoCancelAt?.getTime()).toBe(
         expectedAutoCancelAt.getTime(),
-        -3,
       );
     });
 
@@ -275,11 +273,8 @@ describe('CreateTripInstanceUseCase', () => {
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
 
-      const departure = new Date(Date.now() + 86400000);
-      const arrival = new Date(departure.getTime() + 3600000);
       const dto = makeCreateTripInstanceDto({
-        departureTime: departure.toISOString(),
-        arrivalEstimate: arrival.toISOString(),
+        departureDate: '2026-12-15',
         minRevenue: null,
       });
 
@@ -302,11 +297,8 @@ describe('CreateTripInstanceUseCase', () => {
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
 
-      const departure = new Date(Date.now() + 86400000);
-      const arrival = new Date(departure.getTime() + 3600000);
       const dto = makeCreateTripInstanceDto({
-        departureTime: departure.toISOString(),
-        arrivalEstimate: arrival.toISOString(),
+        departureDate: '2026-12-15',
         minRevenue: 150,
       });
 
@@ -316,6 +308,70 @@ describe('CreateTripInstanceUseCase', () => {
       // Assert
       const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
       expect(saved.minRevenue?.toNumber()).toBe(150);
+    });
+  });
+
+  describe('happy path — schedule derivation from template', () => {
+    it('should combine departureDate with template departureTimeOfDay/arrivalTimeOfDay', async () => {
+      // Arrange
+      const template = makeTripTemplate({
+        organizationId: ORG_ID,
+        departureTimeOfDay: '07:30',
+        arrivalTimeOfDay: '08:15',
+      });
+      mocks.tripTemplateRepository.findById.mockResolvedValue(template);
+      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+        0,
+      );
+      mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
+      mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(
+        undefined,
+      );
+
+      const dto = makeCreateTripInstanceDto({ departureDate: '2026-05-10' });
+
+      // Act
+      await sut.execute(dto, ORG_ID);
+
+      // Assert
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.departureTime.toISOString()).toBe(
+        '2026-05-10T07:30:00.000Z',
+      );
+      expect(saved.arrivalEstimate.toISOString()).toBe(
+        '2026-05-10T08:15:00.000Z',
+      );
+    });
+
+    it('should add one day to arrivalEstimate when arrival crosses midnight', async () => {
+      // Arrange
+      const template = makeTripTemplate({
+        organizationId: ORG_ID,
+        departureTimeOfDay: '23:30',
+        arrivalTimeOfDay: '00:15',
+      });
+      mocks.tripTemplateRepository.findById.mockResolvedValue(template);
+      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+        0,
+      );
+      mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
+      mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(
+        undefined,
+      );
+
+      const dto = makeCreateTripInstanceDto({ departureDate: '2026-05-10' });
+
+      // Act
+      await sut.execute(dto, ORG_ID);
+
+      // Assert
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.departureTime.toISOString()).toBe(
+        '2026-05-10T23:30:00.000Z',
+      );
+      expect(saved.arrivalEstimate.toISOString()).toBe(
+        '2026-05-11T00:15:00.000Z',
+      );
     });
   });
 
@@ -371,6 +427,31 @@ describe('CreateTripInstanceUseCase', () => {
       );
 
       // Assert
+      expect(mocks.tripInstanceRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error — template missing schedule (legacy)', () => {
+    it('should throw InvalidTripTemplateMissingScheduleError when template has no time-of-day', async () => {
+      // Arrange
+      const template = makeTripTemplate({
+        organizationId: ORG_ID,
+        departureTimeOfDay: null,
+        arrivalTimeOfDay: null,
+      });
+      mocks.tripTemplateRepository.findById.mockResolvedValue(template);
+      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+        0,
+      );
+      mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(
+        undefined,
+      );
+      const dto = makeCreateTripInstanceDto();
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        InvalidTripTemplateMissingScheduleError,
+      );
       expect(mocks.tripInstanceRepository.save).not.toHaveBeenCalled();
     });
   });

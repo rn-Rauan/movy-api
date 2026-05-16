@@ -266,8 +266,14 @@ model TripTemplate {
   departurePoint String      @db.VarChar(255)
   destination    String      @db.VarChar(255)
   frequency      DayOfWeek[]
-  stops          String[] 
-  
+  stops          String[]
+
+  // Time-of-day in 'HH:mm' UTC — TripInstance.departureTime/arrivalEstimate are derived
+  // by combining a YYYY-MM-DD date with these fields. Nullable at the schema level
+  // for migration safety; entity enforces presence at create() time.
+  departureTimeOfDay String?  @db.VarChar(5)
+  arrivalTimeOfDay   String?  @db.VarChar(5)
+
   priceOneWay    Decimal?    @db.Decimal(10, 2)
   priceReturn    Decimal?    @db.Decimal(10, 2)
   priceRoundTrip Decimal?    @db.Decimal(10, 2)

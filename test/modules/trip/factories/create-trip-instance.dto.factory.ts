@@ -2,19 +2,17 @@ import { CreateTripInstanceDto } from 'src/modules/trip/application/dtos';
 
 type CreateTripInstanceDtoOverrides = Partial<CreateTripInstanceDto>;
 
+function tomorrowISODate(): string {
+  const tomorrow = new Date(Date.now() + 86_400_000);
+  return tomorrow.toISOString().slice(0, 10);
+}
+
 export function makeCreateTripInstanceDto(
   overrides: CreateTripInstanceDtoOverrides = {},
 ): CreateTripInstanceDto {
-  const departureTime =
-    overrides.departureTime ?? new Date(Date.now() + 86400000).toISOString(); // +1 day
-  const arrivalEstimate =
-    overrides.arrivalEstimate ??
-    new Date(new Date(departureTime).getTime() + 3600000).toISOString(); // +1h from departure
-
   return {
     tripTemplateId: overrides.tripTemplateId ?? 'trip-template-id-stub',
-    departureTime,
-    arrivalEstimate,
+    departureDate: overrides.departureDate ?? tomorrowISODate(),
     totalCapacity: overrides.totalCapacity ?? 20,
     driverId: overrides.driverId ?? null,
     vehicleId: overrides.vehicleId ?? null,

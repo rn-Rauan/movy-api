@@ -4,6 +4,7 @@ import { Money } from 'src/shared/domain/entities/value-objects';
 import { TripInstance } from '../../domain/entities';
 import { TripInstanceCreationFailedError } from '../../domain/entities/errors/trip-instance.errors';
 import {
+  InvalidTripTemplateMissingScheduleError,
   TripTemplateAccessForbiddenError,
   TripTemplateInactiveError,
   TripTemplateNotFoundError,
@@ -13,6 +14,10 @@ import {
   TripTemplateRepository,
   TripStatus,
 } from '../../domain/interfaces';
+import {
+  arrivalCrossesMidnight,
+  combineDateAndTime,
+} from '../../domain/utils/combine-date-and-time';
 import { CreateTripInstanceDto } from '../dtos';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
@@ -134,8 +139,28 @@ export class CreateTripInstanceUseCase {
         throw new TripTemplateInactiveError(input.tripTemplateId);
       }
 
-      const departureTime = new Date(input.departureTime);
-      const arrivalEstimate = new Date(input.arrivalEstimate);
+      if (
+        !freshTemplate.departureTimeOfDay ||
+        !freshTemplate.arrivalTimeOfDay
+      ) {
+        throw new InvalidTripTemplateMissingScheduleError(freshTemplate.id);
+      }
+
+      const departureTime = combineDateAndTime(
+        input.departureDate,
+        freshTemplate.departureTimeOfDay,
+      );
+
+      const crossesMidnight = arrivalCrossesMidnight(
+        freshTemplate.departureTimeOfDay,
+        freshTemplate.arrivalTimeOfDay,
+      );
+
+      const arrivalEstimate = combineDateAndTime(
+        input.departureDate,
+        freshTemplate.arrivalTimeOfDay,
+        crossesMidnight,
+      );
 
       const autoCancelAt = this.resolveAutoCancelAt(
         freshTemplate.autoCancelEnabled,

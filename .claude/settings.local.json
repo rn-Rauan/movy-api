@@ -9,7 +9,10 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\rauan\\\\Documents\\\\GitHub\\\\movy-api\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\rauan\\\\Documents\\\\GitHub\\\\movy-api\" -Name -File)",
-      "Bash(Select-String -Pattern \"DOCUMENTACAO|BRAIN\")"
+      "Bash(Select-String -Pattern \"DOCUMENTACAO|BRAIN\")",
+      "Bash(npx prisma *)",
+      "Bash(npm run *)",
+      "Bash(docker-compose up *)"
     ]
   }
 }

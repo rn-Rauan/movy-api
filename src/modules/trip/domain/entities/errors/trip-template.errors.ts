@@ -75,6 +75,50 @@ export class InvalidTripAutoCancelConfigurationError extends TripTemplateValidat
 }
 
 /**
+ * Thrown when `departureTimeOfDay` or `arrivalTimeOfDay` does not match the `HH:mm` format.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class InvalidTripTimeOfDayFormatError extends TripTemplateValidationError {
+  code = 'INVALID_TRIP_TIME_OF_DAY_FORMAT';
+
+  constructor(field: string, value: string) {
+    super(
+      `Invalid time-of-day format for "${field}": "${value}". Expected HH:mm.`,
+    );
+  }
+}
+
+/**
+ * Thrown when `departureTimeOfDay` equals `arrivalTimeOfDay` (zero-duration trip).
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class InvalidTripTimeOfDayOrderError extends TripTemplateValidationError {
+  code = 'INVALID_TRIP_TIME_OF_DAY_ORDER';
+
+  constructor() {
+    super('arrivalTimeOfDay must be different from departureTimeOfDay.');
+  }
+}
+
+/**
+ * Thrown when generating a `TripInstance` from a template that lacks
+ * `departureTimeOfDay` / `arrivalTimeOfDay` (legacy rows pre-migration).
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class InvalidTripTemplateMissingScheduleError extends TripTemplateValidationError {
+  code = 'INVALID_TRIP_TEMPLATE_MISSING_SCHEDULE';
+
+  constructor(templateId: string) {
+    super(
+      `Trip template ${templateId} is missing departureTimeOfDay/arrivalTimeOfDay.`,
+    );
+  }
+}
+
+/**
  * Thrown when a `TripTemplate` cannot be found by the provided UUID.
  *
  * @remarks Maps to HTTP `404 Not Found`.

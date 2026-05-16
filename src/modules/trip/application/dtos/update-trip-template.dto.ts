@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -67,6 +68,28 @@ export class UpdateTripTemplateDto {
     message: 'shift must be one of: MORNING, AFTERNOON, EVENING',
   })
   shift?: Shift;
+
+  @ApiPropertyOptional({
+    example: '07:30',
+    description: 'Departure time-of-day in HH:mm 24-hour UTC format',
+  })
+  @IsOptional()
+  @IsString({ message: 'departureTimeOfDay must be a string' })
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'departureTimeOfDay must be in HH:mm format',
+  })
+  departureTimeOfDay?: string;
+
+  @ApiPropertyOptional({
+    example: '08:30',
+    description: 'Estimated arrival time-of-day in HH:mm 24-hour UTC format',
+  })
+  @IsOptional()
+  @IsString({ message: 'arrivalTimeOfDay must be a string' })
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'arrivalTimeOfDay must be in HH:mm format',
+  })
+  arrivalTimeOfDay?: string;
 
   @ApiPropertyOptional({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY],

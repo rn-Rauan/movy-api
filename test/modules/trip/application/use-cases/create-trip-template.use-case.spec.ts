@@ -3,6 +3,8 @@ import { TripTemplateRepository } from 'src/modules/trip/domain/interfaces/trip-
 import {
   TripTemplateCreationFailedError,
   InvalidTripPriceConfigurationError,
+  InvalidTripTimeOfDayFormatError,
+  InvalidTripTimeOfDayOrderError,
 } from 'src/modules/trip/domain/entities/errors/trip-template.errors';
 import { makeCreateTripTemplateDto } from '../../factories/create-trip-template.dto.factory';
 
@@ -102,6 +104,33 @@ describe('CreateTripTemplateUseCase', () => {
       // Act & Assert
       await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
         InvalidTripPriceConfigurationError,
+      );
+      expect(mocks.tripTemplateRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw InvalidTripTimeOfDayFormatError when departureTimeOfDay is malformed', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      const dto = makeCreateTripTemplateDto({ departureTimeOfDay: '7:30' });
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        InvalidTripTimeOfDayFormatError,
+      );
+      expect(mocks.tripTemplateRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw InvalidTripTimeOfDayOrderError when arrival equals departure', async () => {
+      // Arrange
+      setupHappyPath(mocks);
+      const dto = makeCreateTripTemplateDto({
+        departureTimeOfDay: '07:30',
+        arrivalTimeOfDay: '07:30',
+      });
+
+      // Act & Assert
+      await expect(sut.execute(dto, ORG_ID)).rejects.toThrow(
+        InvalidTripTimeOfDayOrderError,
       );
       expect(mocks.tripTemplateRepository.save).not.toHaveBeenCalled();
     });
