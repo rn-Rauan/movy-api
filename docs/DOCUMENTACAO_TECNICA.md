@@ -1968,9 +1968,98 @@ Specs convertidos para `jest.useFakeTimers()` + `jest.setSystemTime(PINNED_NOW)`
 
 - **`monthlyCount` em memória stale**: se um admin criar `TripInstance` manualmente *durante* o sweep, o counter local não atualiza. Para cron diário às 02:00 UTC é aceitável. Pós-MVP: reler do DB a cada N iterações, ou usar lock otimista no plano.
 
-**Próximas fases:**
+---
 
-- ⏳ Fase 5 — Endpoint admin `POST /trip-templates/:id/generate-instances` para geração on-demand (dispara o mesmo use-case escopado a 1 template, útil pra backfill ou demo).
+### Trip Scheduling — Fase 5: Endpoint admin de geração manual
+
+**Contexto.** O cron da Fase 4 roda uma vez por dia às 02:00 UTC. Para o admin que acaba de criar um template recorrente, esperar até a próxima madrugada é UX ruim. Para backfill após downtime do scheduler, é inviável. Fase 5 expõe a mesma máquina via endpoint admin: `POST /trip-templates/:id/generate-instances`.
+
+**Decisão de arquitetura — refatorar antes de duplicar:**
+
+O loop interno do cron (por (template, dia)) era a parte mais não-trivial da Fase 4: defensive check → past skip → idempotência → plan limit → save com P2002 tolerance. Duplicar essa lógica em outra use-case viraria dois lugares pra manter sincronizados — risco real de drift. Decisão: extrair o loop para `GenerateRecurringTripInstancesUseCase.processTemplate(...)` como método público, e ter `processOrganization` (cron) e a nova `GenerateTripInstancesForTemplateUseCase` (manual) chamarem o mesmo método.
+
+```typescript
+async processTemplate(
+  template: TripTemplate,
+  organizationId: string,
+  daysAhead: number,
+  now: Date,
+  monthlyCount: number,
+): Promise<ProcessTemplateResult>
+```
+
+Retorna `{ created, skipped, failed, monthlyCount, planLimitHit }`:
+- `monthlyCount` é devolvido atualizado pra que o `processOrganization` mantenha o running tally entre templates.
+- `planLimitHit` sinaliza ao caller que halt-out é necessário (org no limite do plano).
+
+**Arquivos tocados:**
+
+| Camada | Arquivo | Mudança |
+|---|---|---|
+| Application — use case | `generate-recurring-trip-instances.use-case.ts` | Extrai `processTemplate` (público); `processOrganization` chama-o e propaga `planLimitHit`. Exporta `ProcessTemplateResult`. |
+| Application — use case | `generate-trip-instances-for-template.use-case.ts` (novo) | Faz só ownership check, ACTIVE/recurring/schedule/capacity gates, `daysAhead` resolution (override → org config → default 14), depois delega ao `processTemplate`. |
+| Application — DTOs | `generate-trip-instances.dto.ts` (novo) | `GenerateTripInstancesDto { daysAhead?: 1..90 }` (`class-validator` enforça range), `GenerateTripInstancesResponseDto { created, skipped, failed }`. |
+| Domain — errors | `trip-template.errors.ts` | Novo `TripTemplateNotRecurringError` (`TRIP_TEMPLATE_NOT_RECURRING_BAD_REQUEST` → 400). |
+| Presentation | `trip-template.controller.ts` | Novo `POST /trip-templates/:id/generate-instances` (ADMIN + Roles + TenantFilter). |
+| Wiring | `trip.module.ts` | Registra `GenerateTripInstancesForTemplateUseCase`. |
+
+**Resolução de `daysAhead`:**
+
+1. **Override do body** (`GenerateTripInstancesDto.daysAhead`, validado em [1, 90] pelo `class-validator`).
+2. Fallback para `TripSchedulingConfig.daysAhead` da org.
+3. Fallback final para a constante global `14`.
+
+Defesa em duas camadas — a DTO bloqueia entrada inválida no boundary HTTP; um `RangeError` no domínio bloqueia callers programáticos que tentarem chamar `execute()` direto com valor fora do range. Mesmos limites do `TripSchedulingConfig.validateDaysAhead` (consistência cross-feature).
+
+**Validações que retornam erros HTTP:**
+
+| Cenário | Erro | HTTP |
+|---|---|---|
+| Template não existe | `TripTemplateNotFoundError` | 404 |
+| Template de outra org | `TripTemplateAccessForbiddenError` | 403 |
+| Template INACTIVE | `TripTemplateInactiveError` | 400 |
+| `isRecurring=false` ou `frequency=[]` | `TripTemplateNotRecurringError` (novo) | 400 |
+| Legacy sem `departureTimeOfDay`/`arrivalTimeOfDay` | `InvalidTripTemplateMissingScheduleError` | 400 |
+| Legacy sem `defaultCapacity` | `InvalidTripTemplateMissingCapacityError` | 400 |
+
+A diferença vs o cron: no cron, legacy é contado como `failed` e segue; aqui é 400 explícito para o admin saber o que arrumar.
+
+**Endpoint:**
+
+```
+POST /trip-templates/{id}/generate-instances
+Authorization: Bearer <JWT>
+Body: { "daysAhead": 7 }  // optional
+
+201 Created
+{ "created": 4, "skipped": 3, "failed": 0 }
+```
+
+Guards: `JwtAuthGuard, RolesGuard, TenantFilterGuard` + `@Roles(RoleName.ADMIN)`. O path não carrega `:organizationId`, então `TenantFilterGuard` é no-op aqui — a checagem de ownership real é feita dentro do use-case via `template.organizationId !== context.organizationId`.
+
+**Testes adicionados (+1 suite, +10 testes):**
+
+- `generate-trip-instances-for-template.use-case.spec.ts`:
+  - **Happy paths (3):** delegate a `processTemplate` com args corretos (`monthlyCount` baseline, `daysAhead` da config), override do DTO ganha da config, fallback pro default 14 quando config ausente.
+  - **Validation errors (7):** not found → 404, ownership → 403, inactive → 400, isRecurring=false → 400, missing schedule → 400, missing capacity → 400, `daysAheadOverride` 0/91/1.5 → `RangeError`.
+
+**Validação pós-fase:**
+
+- `npx tsc --noEmit`: ✅ 0 erros.
+- `npx jest --config test/jest-unit.json`: ✅ **46 suites, 364 testes** (+1 suite, +10 testes vs Fase 4 review).
+- `npm run lint`: ✅ 0 warnings.
+
+**Trip Scheduling — entrega completa:**
+
+Com Fases 1-5 fechadas, o ciclo de viagens recorrentes está completo ponta a ponta:
+
+1. **Fase 1** — Template carrega hora-do-dia (UTC).
+2. **Fase 2** — Per-org config controla janela e crons.
+3. **Fase 3** — Auto-cancel sweep a cada 15min.
+4. **Fase 4** — Geração diária às 02:00 UTC com defesa em profundidade (in-memory check + DB unique + P2002 graceful).
+5. **Fase 5** — Endpoint admin manual usando o mesmo `processTemplate` que o cron.
+
+20 trip specs / 179 testes cobrem todo o ciclo.
 
 ---
 
@@ -2031,11 +2120,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio d
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
 - ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
 - ✅ **Melhorias de API (04 Mai 2026)**: `TripInstanceWithMeta` na listagem admin (bookedCount, availableSlots, campos do template via JOIN único); `paymentMethod` exposto em todas as respostas de Booking (JOIN com Payment); SRP nos mappers (`TripInstanceMapper.toDomainWithMeta`, `BookingMapper.toDomainFromRow`).
-- ✅ **Testes Unitários**: 45 suites, 354 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai)*.
+- ✅ **Testes Unitários**: 46 suites, 364 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`) e Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local). Próximo: Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances`).
+**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
 
 ---
 

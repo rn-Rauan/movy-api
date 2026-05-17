@@ -187,6 +187,23 @@ export class TripTemplateInactiveError extends DomainError {
 }
 
 /**
+ * Thrown when a manual generation endpoint targets a template that has
+ * `isRecurring = false` (or no `frequency` days) — the per-template
+ * generation only makes sense for recurring templates.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class TripTemplateNotRecurringError extends DomainError {
+  code = 'TRIP_TEMPLATE_NOT_RECURRING_BAD_REQUEST';
+
+  constructor(id: string) {
+    super(
+      `Trip template "${id}" is not recurring — manual generation only applies to recurring templates with a frequency.`,
+    );
+  }
+}
+
+/**
  * Thrown when the `TripTemplate` row cannot be persisted due to an unexpected repository error.
  *
  * @remarks Maps to HTTP `400 Bad Request`.

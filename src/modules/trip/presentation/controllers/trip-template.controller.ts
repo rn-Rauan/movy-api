@@ -28,6 +28,8 @@ import type { TenantContext } from 'src/shared/infrastructure/types/tenant-conte
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 import {
   CreateTripTemplateDto,
+  GenerateTripInstancesDto,
+  GenerateTripInstancesResponseDto,
   UpdateTripTemplateDto,
   TripTemplateResponseDto,
 } from '../../application/dtos';
@@ -35,6 +37,7 @@ import {
   CreateTripTemplateUseCase,
   FindTripTemplateByIdUseCase,
   FindAllTripTemplatesByOrganizationUseCase,
+  GenerateTripInstancesForTemplateUseCase,
   UpdateTripTemplateUseCase,
   DeactivateTripTemplateUseCase,
 } from '../../application/use-cases';
@@ -80,6 +83,7 @@ export class TripTemplateController {
     private readonly findAllTripTemplatesByOrganizationUseCase: FindAllTripTemplatesByOrganizationUseCase,
     private readonly updateTripTemplateUseCase: UpdateTripTemplateUseCase,
     private readonly deactivateTripTemplateUseCase: DeactivateTripTemplateUseCase,
+    private readonly generateTripInstancesForTemplateUseCase: GenerateTripInstancesForTemplateUseCase,
   ) {}
 
   @Post('organization/:organizationId')
@@ -178,6 +182,47 @@ export class TripTemplateController {
       context.organizationId!,
     );
     return TripTemplatePresenter.toHTTP(tripTemplate);
+  }
+
+  @Post(':id/generate-instances')
+  @UseGuards(RolesGuard, TenantFilterGuard)
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({
+    summary:
+      '[ADMIN] Manually generate the rolling-window of TripInstances for a recurring template',
+    description:
+      'Mirrors the daily cron at `0 2 * * *` UTC but scoped to a single template. ' +
+      'Useful right after creating a new recurring template (skip waiting for the next tick) ' +
+      'or to backfill after cron downtime. Same idempotency, plan-limit and unique-race ' +
+      'protections as the cron sweep.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID of the trip template' })
+  @ApiResponse({
+    status: 201,
+    description: 'Generation result counters.',
+    type: GenerateTripInstancesResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Template is not recurring, inactive, or missing schedule/capacity.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Template belongs to a different organisation.',
+  })
+  @ApiResponse({ status: 404, description: 'Template not found.' })
+  async generateInstances(
+    @Param('id') id: string,
+    @Body() dto: GenerateTripInstancesDto,
+    @GetUser() context: TenantContext,
+  ): Promise<GenerateTripInstancesResponseDto> {
+    const result = await this.generateTripInstancesForTemplateUseCase.execute(
+      id,
+      context.organizationId!,
+      dto.daysAhead,
+    );
+    return new GenerateTripInstancesResponseDto(result);
   }
 
   @Delete(':id')

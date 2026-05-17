@@ -24,6 +24,7 @@ import {
   FindPublicTripInstanceByIdUseCase,
   CancelExpiredTripInstancesUseCase,
   GenerateRecurringTripInstancesUseCase,
+  GenerateTripInstancesForTemplateUseCase,
 } from './application/use-cases';
 import { AutoCancelTripInstancesCron } from './infrastructure/cron/auto-cancel-trip-instances.cron';
 import { GenerateRecurringTripInstancesCron } from './infrastructure/cron/generate-recurring-trip-instances.cron';
@@ -100,11 +101,12 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     FindPublicTripInstancesUseCase,
     FindPublicTripInstancesByOrgSlugUseCase,
     FindPublicTripInstanceByIdUseCase,
-    // Scheduled jobs
+    // Scheduled jobs + admin-triggered generation
     CancelExpiredTripInstancesUseCase,
     AutoCancelTripInstancesCron,
     GenerateRecurringTripInstancesUseCase,
     GenerateRecurringTripInstancesCron,
+    GenerateTripInstancesForTemplateUseCase,
     {
       provide: TripInstanceRepository,
       useClass: PrismaTripInstanceRepository,

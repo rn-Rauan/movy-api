@@ -26,6 +26,20 @@ export interface GenerateRecurringTripInstancesResult {
   failed: number;
 }
 
+/**
+ * Per-template result used by {@link GenerateRecurringTripInstancesUseCase.processTemplate}.
+ * Includes the updated `monthlyCount` (so the caller's running tally stays accurate)
+ * and a `planLimitHit` signal so the org-level loop knows to halt the remaining
+ * templates cleanly.
+ */
+export interface ProcessTemplateResult {
+  created: number;
+  skipped: number;
+  failed: number;
+  monthlyCount: number;
+  planLimitHit: boolean;
+}
+
 const UTC_DAY_ORDER: DayOfWeek[] = [
   DayOfWeek.SUNDAY,
   DayOfWeek.MONDAY,
@@ -151,106 +165,159 @@ export class GenerateRecurringTripInstancesUseCase {
     let failed = 0;
 
     for (const template of templates) {
-      for (let offset = 0; offset < daysAhead; offset++) {
-        const dateISO = this.computeDateISO(now, offset);
+      const result = await this.processTemplate(
+        template,
+        organizationId,
+        daysAhead,
+        now,
+        monthlyCount,
+      );
+      created += result.created;
+      skipped += result.skipped;
+      failed += result.failed;
+      monthlyCount = result.monthlyCount;
 
-        if (!template.frequency.includes(this.computeDayOfWeek(dateISO))) {
-          continue;
-        }
-
-        // Defensive: legacy templates without scheduling fields should already
-        // be purged by migration 20260517100000, but we still log + count if
-        // any slip through (manual DB edits, partial restores).
-        if (!template.departureTimeOfDay || !template.arrivalTimeOfDay) {
-          failed++;
-          this.logger.error(
-            `[GenerateRecurring] template=${template.id} missing schedule — skipping`,
-          );
-          break; // every day for this template would fail the same way
-        }
-        if (!template.defaultCapacity) {
-          failed++;
-          this.logger.error(
-            `[GenerateRecurring] template=${template.id} missing defaultCapacity — skipping`,
-          );
-          break;
-        }
-
-        const departureTime = combineDateAndTime(
-          dateISO,
-          template.departureTimeOfDay,
-        );
-
-        // Don't generate trips whose departure is already in the past.
-        // Admin can create those manually if a backfill is needed.
-        if (departureTime.getTime() < now.getTime()) {
-          skipped++;
-          continue;
-        }
-
-        // Idempotency check first — cheapest signal and the most common skip
-        // path. Avoids paying for a plan-limit check on a no-op day.
-        const { dayStart, dayEnd } = this.computeDayWindow(dateISO);
-        const alreadyExists =
-          await this.tripInstanceRepository.existsForTemplateOnDay(
-            template.id,
-            dayStart,
-            dayEnd,
-          );
-        if (alreadyExists) {
-          skipped++;
-          continue;
-        }
-
-        // Plan-limit check only when we'd actually create. Halts this org's
-        // window cleanly when the cap is hit, without aborting the sweep.
-        try {
-          await this.planLimitService.assertMonthlyTripLimit(
-            organizationId,
-            monthlyCount,
-          );
-        } catch (err) {
-          if (err instanceof MonthlyTripLimitExceededError) {
-            this.logger.warn(
-              `[GenerateRecurring] org=${organizationId} hit monthly plan limit — skipping remaining window`,
-            );
-            return { created, skipped, failed };
-          }
-          throw err; // bubble to processOrganization → execute() org-level catch
-        }
-
-        try {
-          const saved = await this.persistInstance(
-            template,
-            dateISO,
-            departureTime,
-            organizationId,
-          );
-          if (saved) {
-            created++;
-            monthlyCount++;
-          } else {
-            skipped++;
-          }
-        } catch (err) {
-          if (this.isUniqueViolation(err)) {
-            // Another replica beat us to it between existsForTemplateOnDay and save.
-            // The row exists now → not a failure, just a no-op.
-            skipped++;
-            this.logger.debug(
-              `[GenerateRecurring] template=${template.id} date=${dateISO} lost the insert race — already created by another replica`,
-            );
-            continue;
-          }
-          failed++;
-          this.logger.error(
-            `[GenerateRecurring] template=${template.id} date=${dateISO} org=${organizationId}: ${(err as Error).message}`,
-          );
-        }
+      if (result.planLimitHit) {
+        return { created, skipped, failed };
       }
     }
 
     return { created, skipped, failed };
+  }
+
+  /**
+   * Runs the per-template inner loop: iterates `[today, today + daysAhead)` in
+   * UTC and applies the same generation pipeline used by the recurring cron
+   * (defensive validation → past skip → idempotency → plan limit → save with
+   * unique-race tolerance).
+   *
+   * Exposed publicly so {@link GenerateTripInstancesForTemplateUseCase} can
+   * reuse the exact same logic for the admin-triggered manual endpoint —
+   * keeping the cron path and the manual path identical.
+   *
+   * Caller is responsible for validating that the template belongs to the
+   * organisation and is in a generatable state (active, recurring, scheduled,
+   * with `defaultCapacity`). This method only enforces the per-day mechanics.
+   *
+   * @returns Per-template counters plus the updated `monthlyCount` (so the
+   *          caller's running tally stays accurate) and a `planLimitHit`
+   *          signal that lets the caller break early.
+   */
+  async processTemplate(
+    template: TripTemplate,
+    organizationId: string,
+    daysAhead: number,
+    now: Date,
+    monthlyCount: number,
+  ): Promise<ProcessTemplateResult> {
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (let offset = 0; offset < daysAhead; offset++) {
+      const dateISO = this.computeDateISO(now, offset);
+
+      if (!template.frequency.includes(this.computeDayOfWeek(dateISO))) {
+        continue;
+      }
+
+      // Defensive: legacy templates without scheduling fields should already
+      // be purged by migration 20260517100000, but we still log + count if
+      // any slip through (manual DB edits, partial restores).
+      if (!template.departureTimeOfDay || !template.arrivalTimeOfDay) {
+        failed++;
+        this.logger.error(
+          `[GenerateRecurring] template=${template.id} missing schedule — skipping`,
+        );
+        break; // every day for this template would fail the same way
+      }
+      if (!template.defaultCapacity) {
+        failed++;
+        this.logger.error(
+          `[GenerateRecurring] template=${template.id} missing defaultCapacity — skipping`,
+        );
+        break;
+      }
+
+      const departureTime = combineDateAndTime(
+        dateISO,
+        template.departureTimeOfDay,
+      );
+
+      // Don't generate trips whose departure is already in the past.
+      // Admin can create those manually if a backfill is needed.
+      if (departureTime.getTime() < now.getTime()) {
+        skipped++;
+        continue;
+      }
+
+      // Idempotency check first — cheapest signal and the most common skip
+      // path. Avoids paying for a plan-limit check on a no-op day.
+      const { dayStart, dayEnd } = this.computeDayWindow(dateISO);
+      const alreadyExists =
+        await this.tripInstanceRepository.existsForTemplateOnDay(
+          template.id,
+          dayStart,
+          dayEnd,
+        );
+      if (alreadyExists) {
+        skipped++;
+        continue;
+      }
+
+      // Plan-limit check only when we'd actually create.
+      try {
+        await this.planLimitService.assertMonthlyTripLimit(
+          organizationId,
+          monthlyCount,
+        );
+      } catch (err) {
+        if (err instanceof MonthlyTripLimitExceededError) {
+          this.logger.warn(
+            `[GenerateRecurring] org=${organizationId} hit monthly plan limit — halting template window`,
+          );
+          return {
+            created,
+            skipped,
+            failed,
+            monthlyCount,
+            planLimitHit: true,
+          };
+        }
+        throw err; // bubble to processOrganization → execute() org-level catch
+      }
+
+      try {
+        const saved = await this.persistInstance(
+          template,
+          dateISO,
+          departureTime,
+          organizationId,
+        );
+        if (saved) {
+          created++;
+          monthlyCount++;
+        } else {
+          skipped++;
+        }
+      } catch (err) {
+        if (this.isUniqueViolation(err)) {
+          // Another replica beat us to it between existsForTemplateOnDay and save.
+          // The row exists now → not a failure, just a no-op.
+          skipped++;
+          this.logger.debug(
+            `[GenerateRecurring] template=${template.id} date=${dateISO} lost the insert race — already created by another replica`,
+          );
+          continue;
+        }
+        failed++;
+        this.logger.error(
+          `[GenerateRecurring] template=${template.id} date=${dateISO} org=${organizationId}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    return { created, skipped, failed, monthlyCount, planLimitHit: false };
   }
 
   /**
