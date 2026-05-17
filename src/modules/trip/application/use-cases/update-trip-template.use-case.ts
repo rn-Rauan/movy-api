@@ -79,9 +79,19 @@ export class UpdateTripTemplateUseCase {
     this.updateRouteIfProvided(tripTemplate, input);
     this.updateStopsIfProvided(tripTemplate, input);
     this.updateScheduleIfProvided(tripTemplate, input);
+    this.updateDefaultCapacityIfProvided(tripTemplate, input);
     this.updatePricingIfProvided(tripTemplate, input);
     this.updateRecurrenceIfProvided(tripTemplate, input);
     this.updateAutoCancelIfProvided(tripTemplate, input);
+  }
+
+  private updateDefaultCapacityIfProvided(
+    tripTemplate: TripTemplate,
+    input: UpdateTripTemplateDto,
+  ): void {
+    if (input.defaultCapacity !== undefined) {
+      tripTemplate.updateDefaultCapacity(input.defaultCapacity);
+    }
   }
 
   private updateScheduleIfProvided(

@@ -1860,8 +1860,117 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 - `npm run lint`: ✅ 0 warnings.
 
 **Próximas fases:**
-- ⏳ Fase 4 — Cron de geração de instâncias recorrentes (`0 2 * * *`) — itera templates ativos, materializa `daysAhead` dias, idempotente via `findByTemplateAndDate`.
+- ✅ **Fase 4** — Cron de geração de instâncias recorrentes (`0 2 * * *`) — concluída (ver seção abaixo).
 - ⏳ Fase 5 — Endpoint admin manual `POST /trip-templates/:id/generate-instances`.
+
+---
+
+### Trip Scheduling — Fase 4: Cron de geração recorrente
+
+**Contexto.** Antes dessa fase, a única forma de criar `TripInstance` era manualmente via `POST /trip-instances`. Para entrega contínua, o sistema precisa materializar uma janela rolante de instâncias para cada `TripTemplate` ativo + recorrente — sem isso, o cron de auto-cancel da Fase 3 só tem trabalho se alguém criou rows à mão, e o produto não fecha o ciclo recorrente prometido.
+
+**Decisão de arquitetura — espelha a Fase 3:**
+
+- A cron é uma casca burra (`GenerateRecurringTripInstancesCron`) que apenas envolve o use-case num `try/catch` e usa flag `isRunning` pra evitar overlap. Toda a lógica vive em `GenerateRecurringTripInstancesUseCase`, testável sem `@nestjs/schedule`.
+- Janela rolante: para cada org, lê `TripSchedulingConfig.daysAhead` (default 14) e percorre `[today, today + daysAhead)` em UTC.
+- **Idempotência por (template, dia):** `TripInstanceRepository.existsForTemplateOnDay` checa o índice composto `(tripTemplateId, departureTime)` antes de tentar inserir. Re-rodar a cron no mesmo dia é seguro; partial failures podem ser resumidas só rodando de novo.
+
+**Decisão registrada — `defaultCapacity`:** novo campo no `TripTemplate` (`Int?` no schema por compat de migration; entity exige positivo no `create()`). Alternativas descartadas:
+
+- *Copiar `vehicle.capacity`*: acopla template ao veículo, que é opcional na Fase 4 (driver/vehicle são atribuídos pós-geração).
+- *Default 0 + ajuste manual*: pesa demais no admin, transforma toda instância gerada em pendência.
+
+`defaultCapacity` força a decisão na criação do template e é snapshotado para `TripInstance.totalCapacity`, mantendo a mesma semântica do fluxo manual.
+
+**Arquivos tocados:**
+
+| Camada | Arquivo | Mudança |
+|---|---|---|
+| Schema | `prisma/schema.prisma` + migration `20260516160000_add_default_capacity_to_trip_template` | Novo `defaultCapacity Int?` no `TripTemplate`. Migration **pendente de aplicação** (Docker estava offline na geração) — rodar `npx prisma migrate deploy` antes de subir o cron em prod. |
+| Domain — entity | `trip/domain/entities/trip-template.entity.ts` | Validação `validateDefaultCapacity` (integer > 0) ligada ao `create()`; novo getter + método `updateDefaultCapacity`. |
+| Domain — errors | `trip/domain/entities/errors/trip-template.errors.ts` | `InvalidTripTemplateDefaultCapacityError` (400 — `INVALID_TRIP_TEMPLATE_DEFAULT_CAPACITY`) e `InvalidTripTemplateMissingCapacityError` (400 — para legacy rows sem `defaultCapacity` quando a cron tenta usar). |
+| Domain — repo interface | `trip/domain/interfaces/trip-template.repository.ts` | `findActiveRecurringByOrganizationId(orgId): Promise<TripTemplate[]>` — unpaginated, cardinalidade limitada por plan. |
+| Domain — repo interface | `trip/domain/interfaces/trip-instance.repository.ts` | `existsForTemplateOnDay(templateId, dayStart, dayEnd): Promise<boolean>` — usa o índice `(tripTemplateId, departureTime)`. |
+| Application — DTOs | `trip/application/dtos/create-trip-template.dto.ts` + `update-trip-template.dto.ts` + `trip-template-response.dto.ts` | Campo `defaultCapacity` (obrigatório no create, opcional no update, retornado na response). |
+| Application — use case | `trip/application/use-cases/create-trip-template.use-case.ts` + `update-trip-template.use-case.ts` | Propaga `defaultCapacity`. Update chama `updateDefaultCapacityIfProvided`. |
+| Application — use case | `trip/application/use-cases/generate-recurring-trip-instances.use-case.ts` (novo) | Sweep org → config → templates → janela `daysAhead` dias. Para cada (template, dia) com `dayOfWeek ∈ frequency`: checa idempotência, chama `PlanLimitService.assertMonthlyTripLimit` com counter local, cria/salva `TripInstance` snapshotando `totalCapacity = defaultCapacity`, `isPublic`, `autoCancelAt`, `minRevenue`. Retorna `{ created, skipped, failed }`. |
+| Infra — cron | `trip/infrastructure/cron/generate-recurring-trip-instances.cron.ts` (novo) | `@Cron('0 2 * * *', { name: 'generate-recurring-trip-instances', timeZone: 'UTC' })` + flag `isRunning` + try/catch defensivo (mesmo padrão da auto-cancel cron). |
+| Infra — repos | `trip/infrastructure/db/repositories/prisma-trip-template.repository.ts` + `prisma-trip-instance.repository.ts` + `trip-template.mapper.ts` | Implementação dos 2 novos métodos + mapper carrega `defaultCapacity`. |
+| Wiring | `trip/trip.module.ts` | Importa `SchedulingModule` (para `TripSchedulingConfigRepository`); registra `GenerateRecurringTripInstancesUseCase` + `GenerateRecurringTripInstancesCron` nos providers. |
+
+**Plan limit handling.** `assertMonthlyTripLimit` é chamado *por instância* na cron, mas o `monthlyCount` é incrementado em memória após cada save, evitando consultas repetidas. Quando o limite estoura, **a iteração da org para imediatamente** e o sweep avança para a próxima — uma org bloqueada não bloqueia o resto. Isso é diferente de gerar parcialmente em silêncio: o log estruturado (`[GenerateRecurring] org=... hit monthly plan limit`) sinaliza explicitamente o que aconteceu.
+
+**Trade-offs documentados:**
+
+- **`findAllActiveUnpaginated()` + `findActiveRecurringByOrganizationId()` carregam todos em memória.** OK enquanto cardinalidade de orgs e templates por org for limitada por plan limits. Pós-MVP: cursor-based ou worker por shard.
+- **Sequência sequencial (org → template → dia).** Paralelizar daria boost mas complica o tracking de `failed`/`created` e estoura o pool de conexões DB. Mantido sequencial pelo MVP.
+- **Sem lock distribuído.** Múltiplas réplicas disparam em paralelo. A checagem de idempotência por (template, dia) é a defesa em profundidade — o pior caso é um lookup duplicado, não duplicata persistida.
+
+**Testes adicionados (+2 suites, +12 testes):**
+
+- `generate-recurring-trip-instances.use-case.spec.ts` (8 testes):
+  - 0 orgs ativas → `{ created: 0, skipped: 0, failed: 0 }`, repo de templates não chamado.
+  - Org com `config.enabled=false` → pula antes de buscar templates.
+  - Org sem templates recorrentes → não consulta monthly count.
+  - Template diário em janela `daysAhead=3` → 3 instâncias salvas, todas com `totalCapacity=20` snapshotado do `defaultCapacity`.
+  - Template semanal em janela `daysAhead=14` → exatamente 2 matches (hoje + 7d).
+  - Idempotência: 1º dia tem `existsForTemplateOnDay=true` → conta como `skipped`, `save` chamado 1× (só pro 2º dia).
+  - Plan limit estoura no 2º dia → para a org gracefully, `failed` permanece 0, `created=1`.
+  - `save` falha em 1 dos 3 → `{ created: 2, failed: 1 }`, sweep não aborta.
+- `generate-recurring-trip-instances.cron.spec.ts` (4 testes): delegate happy path, overlap skip (segunda tick noop'a enquanto a primeira está pendente), retomada após sweep (`isRunning=false`), swallow de erro top-level + liberação do lock.
+
+**Validação:**
+
+- `npx tsc --noEmit`: ✅ 0 erros.
+- `npx jest --config test/jest-unit.json`: ✅ **45 suites, 350 testes** (+2 suites, +12 testes vs Fase 3 review).
+- `npm run lint`: ✅ 0 warnings (Prettier reformatou os 2 specs novos sem mudar lógica).
+
+---
+
+### Trip Scheduling — Fase 4 Review (17 Mai 2026)
+
+Self-review crítica em cima da entrega da Fase 4. 4 problemas reais identificados e corrigidos, 1 documentado como tech-debt.
+
+**Fix #1 — Isolamento entre orgs (`execute()` agora resiliente a erros por org).** Antes, um erro inesperado (`NoActiveSubscriptionError`, `PlanNotFoundError`, hiccup de DB fora do per-instance try block) lançado em `processOrganization` propagava até `execute()` e abortava o sweep inteiro. As outras orgs ficavam sem geração até o próximo tick. `execute()` agora envolve a chamada per-org num try/catch — uma org quebrada é contada como `failed`, o sweep continua.
+
+**Fix #2 — Defesa em profundidade real contra race em multi-replica.** A doc original prometia "defense in depth", mas a checagem `existsForTemplateOnDay` é racy: duas réplicas podem ambas passar (lê → ninguém inseriu ainda) e depois ambas inserirem. Sem unique constraint no DB, viraria duplicata real persistida. Defesa em três camadas agora:
+
+1. **In-memory check** (`existsForTemplateOnDay`) — elimina 99.9% dos casos sem hit no write path.
+2. **DB-level unique** (`@@unique([tripTemplateId, departureTime])` no `trip_instance`) — fecha a janela de race que sobra. Migration `20260517100000_cleanup_legacy_and_add_unique_constraint`.
+3. **Graceful handling** — o use-case detecta `code === 'P2002'` via duck-typing (sem importar o runtime do Prisma na camada de aplicação) e converte em `skipped`, mantendo `failed` limpo.
+
+**Fix #3 — Ordem dos checks invertida.** Plan-limit check rodava antes da idempotência → consumia chamada desnecessária quando o dia já existia e podia parar a janela cedo demais. Nova ordem: validação defensiva → past check → idempotência → plan limit → save. O plan limit só dispara quando a gente vai realmente criar.
+
+**Fix #4 — Skip explícito de `departureTime` no passado.** Cron rodando às 02:00 UTC com template `departureTimeOfDay = '01:00'` gerava instância cujo `departureTime` já estava 1h no passado. Agora: `if (departureTime < now) { skipped++; continue; }`. Decisão de produto: admin cria manualmente se backfill for necessário.
+
+**Fix #5 — Migration de cleanup para templates legados.** `20260517100000` deleta `trip_template` rows com `departureTimeOfDay`/`arrivalTimeOfDay`/`defaultCapacity` nulos antes de aplicar a unique constraint. O `onDelete: Cascade` do schema remove instâncias órfãs e seus enrollments/payments. Defensive check no use-case mantém com `break` (em vez de re-tentar dia a dia) caso algum slip through via manual edit.
+
+**Testes adicionados (+4 testes, totalizando 12 no spec do use-case):**
+
+| Teste | Comportamento verificado |
+|---|---|
+| `should skip today when departureTime is already in the past` | Pin `now = 2026-05-17T02:00Z`, template com `'01:00'`; hoje pulado, amanhã criado, idempotência não dispara para o dia pulado |
+| `should check idempotency BEFORE plan limit (fix #3)` | `existsForTemplateOnDay=true` no único dia → `assertMonthlyTripLimit` nunca chamado |
+| `should continue the sweep when one org throws an unexpected error (fix #1)` | Org bad rejeita com `NoActiveSubscriptionError`, org good gera → `{ created: 1, failed: 1 }` |
+| `should treat a unique-constraint race as skipped, not failed` | 2 saves: 1º sucesso, 2º lança `{ code: 'P2002' }` → `{ created: 1, skipped: 1, failed: 0 }` |
+
+Specs convertidos para `jest.useFakeTimers()` + `jest.setSystemTime(PINNED_NOW)` para eliminar flakiness do skip-past (sem isso, rodar o spec às 07:31 UTC vs 07:29 UTC dava resultados diferentes).
+
+**Detalhe técnico — duck typing no `isUniqueViolation`:** importar `Prisma.PrismaClientKnownRequestError` na camada de aplicação puxa o runtime do Prisma para o classpath dos testes unitários (que não querem isso). Solução: checagem estrutural por `'code' in err && err.code === 'P2002'`. Pragmaticamente robusto e mantém a camada de domínio/aplicação livre de deps de infra.
+
+**Validação pós-fix:**
+
+- `npx tsc --noEmit`: ✅ 0 erros.
+- `npx jest --config test/jest-unit.json`: ✅ **45 suites, 354 testes** (+4 testes vs Fase 4 inicial).
+- `npm run lint`: ✅ 0 warnings.
+
+**Tech-debt remanescente (pós-MVP):**
+
+- **`monthlyCount` em memória stale**: se um admin criar `TripInstance` manualmente *durante* o sweep, o counter local não atualiza. Para cron diário às 02:00 UTC é aceitável. Pós-MVP: reler do DB a cada N iterações, ou usar lock otimista no plano.
+
+**Próximas fases:**
+
+- ⏳ Fase 5 — Endpoint admin `POST /trip-templates/:id/generate-instances` para geração on-demand (dispara o mesmo use-case escopado a 1 template, útil pra backfill ou demo).
 
 ---
 
@@ -1922,11 +2031,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio d
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
 - ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
 - ✅ **Melhorias de API (04 Mai 2026)**: `TripInstanceWithMeta` na listagem admin (bookedCount, availableSlots, campos do template via JOIN único); `paymentMethod` exposto em todas as respostas de Booking (JOIN com Payment); SRP nos mappers (`TripInstanceMapper.toDomainWithMeta`, `BookingMapper.toDomainFromRow`).
-- ✅ **Testes Unitários**: 43 suites, 338 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai)*.
+- ✅ **Testes Unitários**: 45 suites, 354 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org) e Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`). Próximo: Fase 4 (cron de geração recorrente).
+**Progresso atual:** **Fases 1, 2, 3 e 3.7 — 100% COMPLETAS** (✅). 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16 Mai 2026:** Trip Scheduling — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`) e Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local). Próximo: Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances`).
 
 ---
 

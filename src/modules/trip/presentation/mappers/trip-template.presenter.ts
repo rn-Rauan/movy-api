@@ -24,6 +24,7 @@ export class TripTemplatePresenter {
       shift: entity.shift,
       departureTimeOfDay: entity.departureTimeOfDay,
       arrivalTimeOfDay: entity.arrivalTimeOfDay,
+      defaultCapacity: entity.defaultCapacity,
       frequency: entity.frequency,
       priceOneWay: entity.priceOneWay?.toNumber() ?? null,
       priceReturn: entity.priceReturn?.toNumber() ?? null,

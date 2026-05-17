@@ -156,4 +156,20 @@ export abstract class TripInstanceRepository {
     organizationId: string,
     threshold: Date,
   ): Promise<TripInstance[]>;
+
+  /**
+   * Checks whether a TripInstance already exists for the given template + departure
+   * date (UTC day window). Used by the recurring-generation cron to keep generation
+   * idempotent — if a row exists for that (template, day) pair, the cron skips it.
+   *
+   * @param templateId - UUID of the parent {@link TripTemplate}
+   * @param dayStart - 00:00:00.000 UTC of the target departure day (inclusive)
+   * @param dayEnd - 23:59:59.999 UTC of the target departure day (inclusive)
+   * @returns `true` if any instance already falls within the day, `false` otherwise
+   */
+  abstract existsForTemplateOnDay(
+    templateId: string,
+    dayStart: Date,
+    dayEnd: Date,
+  ): Promise<boolean>;
 }

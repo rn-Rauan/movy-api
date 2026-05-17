@@ -12,6 +12,7 @@ import {
   InvalidTripPriceConfigurationError,
   InvalidTripRoutePointsError,
   InvalidTripStopsError,
+  InvalidTripTemplateDefaultCapacityError,
   InvalidTripTimeOfDayFormatError,
   InvalidTripTimeOfDayOrderError,
 } from './errors/trip-template.errors';
@@ -29,6 +30,7 @@ export interface TripTemplateProps {
   stops: string[];
   departureTimeOfDay?: string | null;
   arrivalTimeOfDay?: string | null;
+  defaultCapacity?: number | null;
   priceOneWay?: Money | null;
   priceReturn?: Money | null;
   priceRoundTrip?: Money | null;
@@ -55,6 +57,7 @@ interface TripTemplateState {
   stops: string[];
   departureTimeOfDay: string | null;
   arrivalTimeOfDay: string | null;
+  defaultCapacity: number | null;
   priceOneWay: Money | null;
   priceReturn: Money | null;
   priceRoundTrip: Money | null;
@@ -99,6 +102,7 @@ export class TripTemplate {
       stops: props.stops.map((stop) => stop.trim()),
       departureTimeOfDay: props.departureTimeOfDay ?? null,
       arrivalTimeOfDay: props.arrivalTimeOfDay ?? null,
+      defaultCapacity: props.defaultCapacity ?? null,
       priceOneWay: props.priceOneWay ?? null,
       priceReturn: props.priceReturn ?? null,
       priceRoundTrip: props.priceRoundTrip ?? null,
@@ -154,6 +158,8 @@ export class TripTemplate {
       props.departureTimeOfDay,
       props.arrivalTimeOfDay,
     );
+
+    TripTemplate.validateDefaultCapacity(props.defaultCapacity ?? null);
 
     return new TripTemplate(props);
   }
@@ -218,6 +224,18 @@ export class TripTemplate {
   ): void {
     if (isRecurring && (!frequency || frequency.length === 0)) {
       throw new InvalidTripFrequencyError();
+    }
+  }
+
+  /**
+   * Validates that `defaultCapacity` is a positive integer. Required at create()
+   * time so the recurring-generation cron can snapshot it into each TripInstance.
+   *
+   * @throws {@link InvalidTripTemplateDefaultCapacityError} for missing or non-positive values
+   */
+  private static validateDefaultCapacity(value: number | null): void {
+    if (value === null || !Number.isInteger(value) || value <= 0) {
+      throw new InvalidTripTemplateDefaultCapacityError(value);
     }
   }
 
@@ -298,6 +316,10 @@ export class TripTemplate {
 
   get arrivalTimeOfDay(): string | null {
     return this.props.arrivalTimeOfDay;
+  }
+
+  get defaultCapacity(): number | null {
+    return this.props.defaultCapacity;
   }
 
   get priceOneWay(): Money | null {
@@ -422,6 +444,16 @@ export class TripTemplate {
     TripTemplate.validateSchedule(departureTimeOfDay, arrivalTimeOfDay);
     this.props.departureTimeOfDay = departureTimeOfDay;
     this.props.arrivalTimeOfDay = arrivalTimeOfDay;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Replace the `defaultCapacity` used when generating TripInstances from this template.
+   * @throws {@link InvalidTripTemplateDefaultCapacityError} for missing or non-positive values
+   */
+  updateDefaultCapacity(value: number): void {
+    TripTemplate.validateDefaultCapacity(value);
+    this.props.defaultCapacity = value;
     this.props.updatedAt = new Date();
   }
 

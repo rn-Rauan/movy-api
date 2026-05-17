@@ -46,6 +46,7 @@ export class CreateTripTemplateUseCase {
       shift: input.shift,
       departureTimeOfDay: input.departureTimeOfDay,
       arrivalTimeOfDay: input.arrivalTimeOfDay,
+      defaultCapacity: input.defaultCapacity,
       frequency: input.frequency ?? [],
       priceOneWay:
         input.priceOneWay == null ? null : Money.create(input.priceOneWay),

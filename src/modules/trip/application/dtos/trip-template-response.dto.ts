@@ -59,6 +59,14 @@ export class TripTemplateResponseDto {
   arrivalTimeOfDay: string | null;
 
   @ApiProperty({
+    example: 20,
+    description:
+      'Default seat capacity copied into each TripInstance generated from this template.',
+    nullable: true,
+  })
+  defaultCapacity: number | null;
+
+  @ApiProperty({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY],
     description: 'Recurrence days',
     enum: DayOfWeek,

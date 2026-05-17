@@ -26,6 +26,7 @@ export class TripTemplateMapper {
       stops: raw.stops,
       departureTimeOfDay: raw.departureTimeOfDay,
       arrivalTimeOfDay: raw.arrivalTimeOfDay,
+      defaultCapacity: raw.defaultCapacity,
       priceOneWay: raw.priceOneWay
         ? Money.restore(Number(raw.priceOneWay))
         : null,
@@ -64,6 +65,7 @@ export class TripTemplateMapper {
       stops: entity.stops,
       departureTimeOfDay: entity.departureTimeOfDay,
       arrivalTimeOfDay: entity.arrivalTimeOfDay,
+      defaultCapacity: entity.defaultCapacity,
       priceOneWay: entity.priceOneWay?.toNumber() ?? null,
       priceReturn: entity.priceReturn?.toNumber() ?? null,
       priceRoundTrip: entity.priceRoundTrip?.toNumber() ?? null,

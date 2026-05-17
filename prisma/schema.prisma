@@ -275,6 +275,11 @@ model TripTemplate {
   departureTimeOfDay String?  @db.VarChar(5)
   arrivalTimeOfDay   String?  @db.VarChar(5)
 
+  // Capacity snapshot copied into TripInstance.totalCapacity when the recurring
+  // generation cron creates instances. Nullable at the schema level for migration
+  // safety; entity enforces presence at create() time.
+  defaultCapacity    Int?
+
   priceOneWay    Decimal?    @db.Decimal(10, 2)
   priceReturn    Decimal?    @db.Decimal(10, 2)
   priceRoundTrip Decimal?    @db.Decimal(10, 2)
@@ -330,7 +335,12 @@ model TripInstance {
   enrollments  Enrollment[]         @relation("EnrollmentTripInstance")
   organization Organization          @relation("TripInstanceOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([tripTemplateId, departureTime])
+  // Unique constraint that defends the recurring-generation cron against
+  // duplicate inserts when multiple replicas race past the existsForTemplateOnDay
+  // pre-check. The combination (template, exact departure time) is unique because
+  // a template has one fixed time-of-day — re-running the cron for the same day
+  // produces an identical departureTime, which the DB rejects with P2002.
+  @@unique([tripTemplateId, departureTime])
   @@index([tripTemplateId, organizationId])
   @@index([driverId, organizationId])
   @@index([vehicleId, organizationId])

@@ -119,6 +119,35 @@ export class InvalidTripTemplateMissingScheduleError extends TripTemplateValidat
 }
 
 /**
+ * Thrown when `defaultCapacity` is missing or not a positive integer.
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class InvalidTripTemplateDefaultCapacityError extends TripTemplateValidationError {
+  code = 'INVALID_TRIP_TEMPLATE_DEFAULT_CAPACITY';
+
+  constructor(value: number | null | undefined) {
+    super(
+      `defaultCapacity must be a positive integer (received: ${value ?? 'null'}).`,
+    );
+  }
+}
+
+/**
+ * Thrown when the recurring-generation cron encounters a template with no
+ * `defaultCapacity` set (legacy rows created before the field was introduced).
+ *
+ * @remarks Maps to HTTP `400 Bad Request`.
+ */
+export class InvalidTripTemplateMissingCapacityError extends TripTemplateValidationError {
+  code = 'INVALID_TRIP_TEMPLATE_MISSING_CAPACITY';
+
+  constructor(templateId: string) {
+    super(`Trip template ${templateId} is missing defaultCapacity.`);
+  }
+}
+
+/**
  * Thrown when a `TripTemplate` cannot be found by the provided UUID.
  *
  * @remarks Maps to HTTP `404 Not Found`.

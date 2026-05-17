@@ -302,4 +302,23 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     });
     return rows.map((row) => TripInstanceMapper.toDomain(row));
   }
+
+  /**
+   * Idempotency check for the recurring-generation cron: returns `true` if any
+   * TripInstance already exists for the given template within the UTC day window.
+   * Uses the `(tripTemplateId, departureTime)` composite index.
+   */
+  async existsForTemplateOnDay(
+    templateId: string,
+    dayStart: Date,
+    dayEnd: Date,
+  ): Promise<boolean> {
+    const count = await this.db.tripInstance.count({
+      where: {
+        tripTemplateId: templateId,
+        departureTime: { gte: dayStart, lte: dayEnd },
+      },
+    });
+    return count > 0;
+  }
 }

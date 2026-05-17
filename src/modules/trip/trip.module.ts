@@ -5,6 +5,7 @@ import { DriverModule } from 'src/modules/driver/driver.module';
 import { VehicleModule } from 'src/modules/vehicle/vehicle.module';
 import { OrganizationModule } from 'src/modules/organization/organization.module';
 import { SubscriptionsModule } from 'src/modules/subscriptions/subscriptions.module';
+import { SchedulingModule } from 'src/modules/scheduling/scheduling.module';
 import {
   CreateTripTemplateUseCase,
   UpdateTripTemplateUseCase,
@@ -22,8 +23,10 @@ import {
   FindPublicTripInstancesByOrgSlugUseCase,
   FindPublicTripInstanceByIdUseCase,
   CancelExpiredTripInstancesUseCase,
+  GenerateRecurringTripInstancesUseCase,
 } from './application/use-cases';
 import { AutoCancelTripInstancesCron } from './infrastructure/cron/auto-cancel-trip-instances.cron';
+import { GenerateRecurringTripInstancesCron } from './infrastructure/cron/generate-recurring-trip-instances.cron';
 import {
   TripInstanceRepository,
   TripTemplateRepository,
@@ -68,6 +71,7 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     VehicleModule,
     OrganizationModule,
     SubscriptionsModule,
+    SchedulingModule,
   ],
   controllers: [
     TripTemplateController,
@@ -99,6 +103,8 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     // Scheduled jobs
     CancelExpiredTripInstancesUseCase,
     AutoCancelTripInstancesCron,
+    GenerateRecurringTripInstancesUseCase,
+    GenerateRecurringTripInstancesCron,
     {
       provide: TripInstanceRepository,
       useClass: PrismaTripInstanceRepository,

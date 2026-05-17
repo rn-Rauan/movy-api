@@ -14,3 +14,4 @@ export * from './find-public-trip-instances.use-case';
 export * from './find-public-trip-instances-by-org-slug.use-case';
 export * from './find-public-trip-instance-by-id.use-case';
 export * from './cancel-expired-trip-instances.use-case';
+export * from './generate-recurring-trip-instances.use-case';

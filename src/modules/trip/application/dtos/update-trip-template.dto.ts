@@ -92,6 +92,17 @@ export class UpdateTripTemplateDto {
   arrivalTimeOfDay?: string;
 
   @ApiPropertyOptional({
+    example: 20,
+    description:
+      'Default seat capacity copied into each TripInstance generated from this template.',
+    minimum: 1,
+  })
+  @IsOptional()
+  @IsInt({ message: 'defaultCapacity must be an integer' })
+  @Min(1, { message: 'defaultCapacity must be at least 1' })
+  defaultCapacity?: number;
+
+  @ApiPropertyOptional({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY],
     description: 'Days of the week when the trip recurs',
     enum: DayOfWeek,

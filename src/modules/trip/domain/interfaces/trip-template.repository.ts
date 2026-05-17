@@ -58,6 +58,20 @@ export abstract class TripTemplateRepository {
   ): Promise<PaginatedResponse<TripTemplate>>;
 
   /**
+   * Returns every `ACTIVE` + `isRecurring = true` template for an organisation.
+   *
+   * Unpaginated by design: consumed by the recurring-generation cron, which
+   * iterates them in-memory. Cardinality is low (templates per org are bounded
+   * by plan limits) so the result set fits comfortably in memory.
+   *
+   * @param organizationId - UUID of the organisation
+   * @returns Array of active recurring {@link TripTemplate} items
+   */
+  abstract findActiveRecurringByOrganizationId(
+    organizationId: string,
+  ): Promise<TripTemplate[]>;
+
+  /**
    * Updates an existing trip template entity.
    *
    * @param tripTemplate - The {@link TripTemplate} with updated state

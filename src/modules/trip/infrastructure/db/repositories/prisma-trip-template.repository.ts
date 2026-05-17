@@ -133,6 +133,26 @@ export class PrismaTripTemplateRepository implements TripTemplateRepository {
   }
 
   /**
+   * Returns every `ACTIVE` + `isRecurring = true` template for an organisation.
+   *
+   * @param organizationId - UUID of the organisation
+   * @returns Array of active recurring {@link TripTemplate} items
+   */
+  async findActiveRecurringByOrganizationId(
+    organizationId: string,
+  ): Promise<TripTemplate[]> {
+    const rows = await this.db.tripTemplate.findMany({
+      where: {
+        organizationId,
+        status: 'ACTIVE',
+        isRecurring: true,
+      },
+    });
+
+    return rows.map((row) => TripTemplateMapper.toDomain(row));
+  }
+
+  /**
    * Updates an existing template row via `prisma.tripTemplate.update`.
    *
    * @param tripTemplate - The {@link TripTemplate} with updated state

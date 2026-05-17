@@ -13,6 +13,7 @@ export function makeCreateTripTemplateDto(
     shift: Shift.MORNING,
     departureTimeOfDay: '07:30',
     arrivalTimeOfDay: '08:30',
+    defaultCapacity: 20,
     priceOneWay: 12.5,
     ...overrides,
   };

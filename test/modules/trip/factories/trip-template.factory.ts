@@ -14,6 +14,7 @@ type TripTemplateOverrides = Partial<{
   frequency: DayOfWeek[];
   departureTimeOfDay: string | null;
   arrivalTimeOfDay: string | null;
+  defaultCapacity: number | null;
   priceOneWay: number | null;
   priceReturn: number | null;
   priceRoundTrip: number | null;
@@ -59,6 +60,10 @@ export function makeTripTemplate(
       overrides.arrivalTimeOfDay === null
         ? null
         : (overrides.arrivalTimeOfDay ?? '08:30'),
+    defaultCapacity:
+      overrides.defaultCapacity === null
+        ? null
+        : (overrides.defaultCapacity ?? 20),
     priceOneWay: toMoney(overrides.priceOneWay, 12.5),
     priceReturn: toMoney(overrides.priceReturn, null),
     priceRoundTrip: toMoney(overrides.priceRoundTrip, null),
@@ -70,11 +75,12 @@ export function makeTripTemplate(
   };
 
   // restore() bypasses domain invariants — required when overriding status or
-  // simulating legacy rows that pre-date the time-of-day migration.
+  // simulating legacy rows that pre-date the time-of-day / capacity migration.
   const needsRestore =
     overrides.status !== undefined ||
     props.departureTimeOfDay === null ||
-    props.arrivalTimeOfDay === null;
+    props.arrivalTimeOfDay === null ||
+    props.defaultCapacity === null;
 
   if (needsRestore) {
     return TripTemplate.restore({
