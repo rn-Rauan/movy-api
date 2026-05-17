@@ -422,17 +422,24 @@ Create a trip template.
 | `destination` | string (max 255) | ✅ | |
 | `stops` | string[] (min 2) | ✅ | Ordered stop names |
 | `shift` | `"MORNING"`\|`"AFTERNOON"`\|`"EVENING"` | ✅ | |
-| `frequency` | `("SUNDAY"\|"MONDAY"\|...\|"SATURDAY")[]` | | Recurrence days |
+| `departureTimeOfDay` | string (`HH:mm`, UTC) | ✅ | 24-hour clock, e.g. `"07:30"` |
+| `arrivalTimeOfDay` | string (`HH:mm`, UTC) | ✅ | 24-hour clock, e.g. `"08:30"`. May be earlier than `departureTimeOfDay` for trips that cross midnight |
+| `defaultCapacity` | integer (min 1) | ✅ | Default seat count copied into each generated `TripInstance` |
+| `frequency` | `("SUNDAY"\|"MONDAY"\|...\|"SATURDAY")[]` | | Recurrence days (required when `isRecurring = true`) |
 | `priceOneWay` | number | | BRL |
 | `priceReturn` | number | | BRL |
 | `priceRoundTrip` | number | | BRL |
 | `isPublic` | boolean | | Visible on public listing (default: `false`) |
-| `isRecurring` | boolean | | |
+| `isRecurring` | boolean | | When `true`, the scheduler generates `TripInstance`s automatically on the frequency days |
 | `autoCancelEnabled` | boolean | | |
 | `minRevenue` | number | | Required if `autoCancelEnabled = true` |
 | `autoCancelOffset` | number | | Minutes before departure (required if `autoCancelEnabled = true`) |
 
+> At least one of `priceOneWay`, `priceReturn`, or `priceRoundTrip` is required.
+> Times are stored in **UTC**. Send the HH:mm value the API should treat as the departure/arrival clock in UTC.
+
 **Response `201`** → [TripTemplateResponse](#triptemplateresponse)
+**`400`** → `INVALID_TRIP_TIME_OF_DAY_FORMAT`, `INVALID_TRIP_TEMPLATE_DEFAULT_CAPACITY`
 
 ---
 
@@ -451,9 +458,48 @@ Get a trip template by ID.
 ---
 
 ### `PUT /trip-templates/{id}` 🛡️ ADMIN
-Update a trip template. All fields optional.
+Update a trip template. All fields optional — only provided fields are applied (partial pricing updates merge with the stored prices).
+
+**Body**
+| Field | Type | Notes |
+|---|---|---|
+| `departurePoint` | string (max 255) | |
+| `destination` | string (max 255) | |
+| `stops` | string[] (min 2) | |
+| `shift` | `"MORNING"`\|`"AFTERNOON"`\|`"EVENING"` | |
+| `departureTimeOfDay` | string (`HH:mm`, UTC) | |
+| `arrivalTimeOfDay` | string (`HH:mm`, UTC) | |
+| `defaultCapacity` | integer (min 1) | |
+| `frequency` | `("SUNDAY"\|"MONDAY"\|...\|"SATURDAY")[]` | |
+| `priceOneWay` | number | BRL |
+| `priceReturn` | number | BRL |
+| `priceRoundTrip` | number | BRL |
+| `isPublic` | boolean | |
+| `isRecurring` | boolean | |
+| `autoCancelEnabled` | boolean | |
+| `minRevenue` | number | |
+| `autoCancelOffset` | number | |
 
 **Response `200`** → [TripTemplateResponse](#triptemplateresponse)
+
+---
+
+### `POST /trip-templates/{id}/generate-instances` 🛡️ ADMIN
+Manually generate the rolling-window of `TripInstance`s for a **recurring** template. Mirrors the daily cron sweep (`0 2 * * *` UTC) but scoped to a single template.
+
+Useful right after creating a new recurring template (so admins don't have to wait until 02:00 UTC for the next cron tick) or to backfill after cron downtime. Same idempotency (one instance per `[templateId, calendarDay]`), plan-limit checks (`MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN`), and unique-constraint race protections as the cron sweep.
+
+Past departures are **skipped** — the endpoint never creates instances with a `departureTime` in the past. To schedule a past-dated trip use `POST /trip-instances/organization/{organizationId}` directly.
+
+**Body** (all optional)
+| Field | Type | Notes |
+|---|---|---|
+| `daysAhead` | integer (1..90) | Rolling-window size. Falls back to the org [Scheduling Config](#scheduling-configuration) `daysAhead`, then to `14` |
+
+**Response `201`** → [GenerateInstancesResponse](#generateinstancesresponse)
+**`400`** → `TRIP_TEMPLATE_NOT_RECURRING_BAD_REQUEST`, `INVALID_TRIP_TEMPLATE_MISSING_SCHEDULE`, `INVALID_TRIP_TEMPLATE_MISSING_CAPACITY`, or template inactive
+**`403`** → Template belongs to another organization, or plan trip-quota exceeded mid-sweep
+**`404`** → Template not found
 
 ---
 
@@ -464,6 +510,35 @@ Deactivate a trip template (soft delete).
 
 ---
 
+## Scheduling Configuration
+
+Per-organization knobs for the scheduler that auto-generates `TripInstance`s from recurring templates and auto-cancels low-revenue trips. A row is created automatically on org registration.
+
+### `GET /organizations/{organizationId}/scheduling-config` 🛡️ ADMIN
+Fetch the scheduling configuration for the organization.
+
+**Response `200`** → [TripSchedulingConfigResponse](#tripschedulingconfigresponse)
+**`404`** → Config not found for the organization
+
+---
+
+### `PATCH /organizations/{organizationId}/scheduling-config` 🛡️ ADMIN
+Partially update the scheduling configuration. Any field omitted is left unchanged.
+
+**Body** (all optional)
+| Field | Type | Notes |
+|---|---|---|
+| `daysAhead` | integer (1..90) | How many days ahead the generator creates instances each run |
+| `generationCron` | string (cron expression, UTC) | Default `"0 2 * * *"` |
+| `autoCancelCron` | string (cron expression, UTC) | Default `"*/15 * * * *"` |
+| `enabled` | boolean | Master switch for both jobs on this org |
+
+**Response `200`** → [TripSchedulingConfigResponse](#tripschedulingconfigresponse)
+**`400`** → Invalid `daysAhead` or cron expression
+**`404`** → Config not found for the organization
+
+---
+
 ## Trip Instances
 
 A trip instance is a scheduled occurrence of a trip template (a real departure on a specific date/time).
@@ -471,19 +546,22 @@ A trip instance is a scheduled occurrence of a trip template (a real departure o
 ### `POST /trip-instances/organization/{organizationId}` 🛡️ ADMIN
 Create a trip instance from a template.
 
+> ⚠️ **BREAKING CHANGE** — the request body no longer accepts `departureTime` / `arrivalEstimate`. Send `departureDate` (calendar day only) instead; the server combines it with the template's `departureTimeOfDay` / `arrivalTimeOfDay` (UTC) to produce the final timestamps. The response still exposes the absolute `departureTime` and `arrivalEstimate` fields.
+
 **Body**
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `tripTemplateId` | string (UUID) | ✅ | |
-| `departureTime` | string (ISO 8601) | ✅ | e.g. `"2026-05-10T07:30:00.000Z"` |
-| `arrivalEstimate` | string (ISO 8601) | ✅ | Must be after `departureTime` |
-| `totalCapacity` | number | ✅ | Seat count snapshot |
+| `departureDate` | string (`YYYY-MM-DD`) | ✅ | e.g. `"2026-05-10"`. Time-of-day is taken from the template |
+| `totalCapacity` | number | ✅ | Seat count snapshot (positive integer) |
 | `driverId` | string (UUID) | | Required if `initialStatus = "SCHEDULED"` |
 | `vehicleId` | string (UUID) | | Required if `initialStatus = "SCHEDULED"` |
 | `minRevenue` | number | | Override template min revenue |
 | `initialStatus` | `"DRAFT"` \| `"SCHEDULED"` | | Default: `"DRAFT"`. Use `"SCHEDULED"` to publish immediately (requires driver + vehicle) |
 
 **Response `201`** → [TripInstanceResponse](#tripinstanceresponse)
+**`400`** → `INVALID_TRIP_TEMPLATE_MISSING_SCHEDULE` (template has no time-of-day) or generic validation
+**`403`** → Plan monthly-trip limit exceeded (`MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN`)
 
 ---
 
@@ -888,6 +966,9 @@ Fail a PENDING payment (simulated).
   "destination": "Universidade Federal",
   "stops": ["Terminal Rodoviário", "Praça Central", "Universidade Federal"],
   "shift": "MORNING",
+  "departureTimeOfDay": "07:30",
+  "arrivalTimeOfDay": "08:30",
+  "defaultCapacity": 20,
   "frequency": ["MONDAY", "WEDNESDAY", "FRIDAY"],
   "priceOneWay": 12.50,
   "priceReturn": 12.50,
@@ -902,6 +983,8 @@ Fail a PENDING payment (simulated).
   "updatedAt": "..."
 }
 ```
+
+> `departureTimeOfDay`, `arrivalTimeOfDay`, and `defaultCapacity` may be `null` on legacy templates created before the scheduling feature. These templates cannot be used by the auto-generator until they are populated via `PUT /trip-templates/{id}`.
 
 ### TripInstanceResponse
 ```json
@@ -1058,6 +1141,33 @@ Same as BookingResponse plus:
 }
 ```
 
+### TripSchedulingConfigResponse
+```json
+{
+  "id": "uuid",
+  "organizationId": "uuid",
+  "daysAhead": 14,
+  "generationCron": "0 2 * * *",
+  "autoCancelCron": "*/15 * * * *",
+  "enabled": true,
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+### GenerateInstancesResponse
+```json
+{
+  "created": 6,
+  "skipped": 8,
+  "failed": 0
+}
+```
+
+- `created` — `TripInstance` rows inserted by this run.
+- `skipped` — days skipped because the day fell outside the template frequency, an instance already existed (idempotency), the departure was in the past, or a parallel writer won the unique-constraint race.
+- `failed` — per-day save failures (logged server-side; the sweep does **not** abort on a single failure).
+
 ---
 
 ## Common Errors
@@ -1093,3 +1203,17 @@ The `error` field carries a stable domain error code — use it (not `message`) 
 | `BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST` | Departure is within 30 minutes | "Cancellation closes 30 minutes before departure." |
 | `BOOKING_TRIP_TERMINAL_BAD_REQUEST` | Trip is `IN_PROGRESS` or `FINISHED` | "This trip already started — bookings can no longer be cancelled." |
 | `BOOKING_ALREADY_INACTIVE_BAD_REQUEST` | Booking is already cancelled | "This booking has already been cancelled." |
+
+### Trip Scheduling Error Codes
+
+Returned by `POST /trip-templates`, `PUT /trip-templates/{id}`, `POST /trip-templates/{id}/generate-instances`, and `POST /trip-instances/organization/{organizationId}`:
+
+| `error` | HTTP | Meaning |
+|---|---|---|
+| `INVALID_TRIP_TIME_OF_DAY_FORMAT` | 400 | `departureTimeOfDay` / `arrivalTimeOfDay` is not in `HH:mm` 24-hour format |
+| `INVALID_TRIP_TIME_OF_DAY_ORDER` | 400 | Domain-level rejection of an invalid time-of-day pair (reserved; same-day crossings are allowed) |
+| `INVALID_TRIP_TEMPLATE_DEFAULT_CAPACITY` | 400 | `defaultCapacity` is missing or `< 1` |
+| `INVALID_TRIP_TEMPLATE_MISSING_SCHEDULE` | 400 | Template has no `departureTimeOfDay` / `arrivalTimeOfDay`. Populate them via `PUT /trip-templates/{id}` before generating instances |
+| `INVALID_TRIP_TEMPLATE_MISSING_CAPACITY` | 400 | Template has no `defaultCapacity`. Populate it before generating instances |
+| `TRIP_TEMPLATE_NOT_RECURRING_BAD_REQUEST` | 400 | `POST /trip-templates/{id}/generate-instances` was called on a non-recurring or inactive template |
+| `MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN` | 403 | Organization has reached its plan's monthly trip quota |
