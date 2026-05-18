@@ -15,6 +15,8 @@ type TripTemplateOverrides = Partial<{
   departureTimeOfDay: string | null;
   arrivalTimeOfDay: string | null;
   defaultCapacity: number | null;
+  defaultDriverId: string | null;
+  defaultVehicleId: string | null;
   priceOneWay: number | null;
   priceReturn: number | null;
   priceRoundTrip: number | null;
@@ -64,6 +66,8 @@ export function makeTripTemplate(
       overrides.defaultCapacity === null
         ? null
         : (overrides.defaultCapacity ?? 20),
+    defaultDriverId: overrides.defaultDriverId ?? null,
+    defaultVehicleId: overrides.defaultVehicleId ?? null,
     priceOneWay: toMoney(overrides.priceOneWay, 12.5),
     priceReturn: toMoney(overrides.priceReturn, null),
     priceRoundTrip: toMoney(overrides.priceRoundTrip, null),

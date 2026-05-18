@@ -1,4 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import {
+  DriverAccessForbiddenError,
+  DriverNotFoundError,
+} from 'src/modules/driver/domain/entities';
+import { DriverRepository } from 'src/modules/driver/domain/interfaces';
+import {
+  VehicleAccessForbiddenError,
+  VehicleNotFoundError,
+} from 'src/modules/vehicle/domain/entities';
+import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
 import { Money } from 'src/shared/domain/entities/value-objects';
 import { TripTemplate } from '../../domain/entities';
 import {
@@ -20,6 +30,8 @@ import { UpdateTripTemplateDto } from '../dtos';
 export class UpdateTripTemplateUseCase {
   constructor(
     private readonly tripTemplateRepository: TripTemplateRepository,
+    private readonly driverRepository: DriverRepository,
+    private readonly vehicleRepository: VehicleRepository,
   ) {}
 
   /**
@@ -32,6 +44,10 @@ export class UpdateTripTemplateUseCase {
    * @throws {@link TripTemplateNotFoundError} if the template does not exist
    * @throws {@link TripTemplateAccessForbiddenError} if the template belongs to a different org
    * @throws {@link TripTemplateInactiveError} if the template is inactive
+   * @throws {@link DriverNotFoundError} if `defaultDriverId` does not exist
+   * @throws {@link DriverAccessForbiddenError} if `defaultDriverId` belongs to a different org
+   * @throws {@link VehicleNotFoundError} if `defaultVehicleId` does not exist
+   * @throws {@link VehicleAccessForbiddenError} if `defaultVehicleId` belongs to a different org
    */
   async execute(
     id: string,
@@ -40,7 +56,7 @@ export class UpdateTripTemplateUseCase {
   ): Promise<TripTemplate> {
     const tripTemplate = await this.findActiveTripTemplate(id, organizationId);
 
-    this.applyUpdates(tripTemplate, input);
+    await this.applyUpdates(tripTemplate, input, organizationId);
 
     const updated = await this.tripTemplateRepository.update(tripTemplate);
 
@@ -72,17 +88,78 @@ export class UpdateTripTemplateUseCase {
     return tripTemplate;
   }
 
-  private applyUpdates(
+  private async applyUpdates(
     tripTemplate: TripTemplate,
     input: UpdateTripTemplateDto,
-  ): void {
+    organizationId: string,
+  ): Promise<void> {
     this.updateRouteIfProvided(tripTemplate, input);
     this.updateStopsIfProvided(tripTemplate, input);
     this.updateScheduleIfProvided(tripTemplate, input);
     this.updateDefaultCapacityIfProvided(tripTemplate, input);
+    await this.updateDefaultsIfProvided(tripTemplate, input, organizationId);
     this.updatePricingIfProvided(tripTemplate, input);
     this.updateRecurrenceIfProvided(tripTemplate, input);
     this.updateAutoCancelIfProvided(tripTemplate, input);
+  }
+
+  private async updateDefaultsIfProvided(
+    tripTemplate: TripTemplate,
+    input: UpdateTripTemplateDto,
+    organizationId: string,
+  ): Promise<void> {
+    const driverProvided = input.defaultDriverId !== undefined;
+    const vehicleProvided = input.defaultVehicleId !== undefined;
+
+    if (!driverProvided && !vehicleProvided) {
+      return;
+    }
+
+    const nextDriverId = driverProvided
+      ? input.defaultDriverId!
+      : tripTemplate.defaultDriverId;
+    const nextVehicleId = vehicleProvided
+      ? input.defaultVehicleId!
+      : tripTemplate.defaultVehicleId;
+
+    if (driverProvided && nextDriverId !== null) {
+      await this.assertDriverBelongsToOrg(nextDriverId, organizationId);
+    }
+    if (vehicleProvided && nextVehicleId !== null) {
+      await this.assertVehicleBelongsToOrg(nextVehicleId, organizationId);
+    }
+
+    tripTemplate.updateDefaults(nextDriverId, nextVehicleId);
+  }
+
+  private async assertDriverBelongsToOrg(
+    driverId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const driver = await this.driverRepository.findById(driverId);
+    if (!driver) {
+      throw new DriverNotFoundError(driverId);
+    }
+    const belongs = await this.driverRepository.belongsToOrganization(
+      driverId,
+      organizationId,
+    );
+    if (!belongs) {
+      throw new DriverAccessForbiddenError(driverId);
+    }
+  }
+
+  private async assertVehicleBelongsToOrg(
+    vehicleId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const vehicle = await this.vehicleRepository.findById(vehicleId);
+    if (!vehicle) {
+      throw new VehicleNotFoundError(vehicleId);
+    }
+    if (vehicle.organizationId !== organizationId) {
+      throw new VehicleAccessForbiddenError(vehicleId);
+    }
   }
 
   private updateDefaultCapacityIfProvided(

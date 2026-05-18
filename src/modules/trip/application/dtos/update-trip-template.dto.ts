@@ -8,9 +8,11 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { DayOfWeek } from '../../domain/interfaces/enums/day-of-week.enum';
 import { Shift } from '../../domain/interfaces/enums/shift.enum';
@@ -101,6 +103,32 @@ export class UpdateTripTemplateDto {
   @IsInt({ message: 'defaultCapacity must be an integer' })
   @Min(1, { message: 'defaultCapacity must be at least 1' })
   defaultCapacity?: number;
+
+  @ApiPropertyOptional({
+    example: '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a',
+    description:
+      'Default driver for generated instances. Pass null to clear. When both ' +
+      'defaultDriverId and defaultVehicleId are set, generated instances are ' +
+      'promoted from DRAFT to SCHEDULED automatically.',
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID('4', { message: 'defaultDriverId must be a valid UUID' })
+  defaultDriverId?: string | null;
+
+  @ApiPropertyOptional({
+    example: '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a',
+    description:
+      'Default vehicle for generated instances. Pass null to clear. When both ' +
+      'defaultDriverId and defaultVehicleId are set, generated instances are ' +
+      'promoted from DRAFT to SCHEDULED automatically.',
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID('4', { message: 'defaultVehicleId must be a valid UUID' })
+  defaultVehicleId?: string | null;
 
   @ApiPropertyOptional({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY],

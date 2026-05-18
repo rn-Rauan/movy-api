@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMinSize,
   IsArray,
@@ -9,6 +9,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   Min,
@@ -95,6 +96,28 @@ export class CreateTripTemplateDto {
   @IsInt({ message: 'defaultCapacity must be an integer' })
   @Min(1, { message: 'defaultCapacity must be at least 1' })
   defaultCapacity: number;
+
+  @ApiPropertyOptional({
+    example: '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a',
+    description:
+      'Default driver assigned to instances generated from this template. ' +
+      'When BOTH defaultDriverId and defaultVehicleId are set, generated ' +
+      'instances are promoted from DRAFT to SCHEDULED automatically.',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'defaultDriverId must be a valid UUID' })
+  defaultDriverId?: string;
+
+  @ApiPropertyOptional({
+    example: '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a',
+    description:
+      'Default vehicle assigned to instances generated from this template. ' +
+      'When BOTH defaultDriverId and defaultVehicleId are set, generated ' +
+      'instances are promoted from DRAFT to SCHEDULED automatically.',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'defaultVehicleId must be a valid UUID' })
+  defaultVehicleId?: string;
 
   @ApiProperty({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY],

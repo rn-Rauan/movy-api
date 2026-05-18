@@ -31,6 +31,8 @@ export interface TripTemplateProps {
   departureTimeOfDay?: string | null;
   arrivalTimeOfDay?: string | null;
   defaultCapacity?: number | null;
+  defaultDriverId?: string | null;
+  defaultVehicleId?: string | null;
   priceOneWay?: Money | null;
   priceReturn?: Money | null;
   priceRoundTrip?: Money | null;
@@ -58,6 +60,8 @@ interface TripTemplateState {
   departureTimeOfDay: string | null;
   arrivalTimeOfDay: string | null;
   defaultCapacity: number | null;
+  defaultDriverId: string | null;
+  defaultVehicleId: string | null;
   priceOneWay: Money | null;
   priceReturn: Money | null;
   priceRoundTrip: Money | null;
@@ -103,6 +107,8 @@ export class TripTemplate {
       departureTimeOfDay: props.departureTimeOfDay ?? null,
       arrivalTimeOfDay: props.arrivalTimeOfDay ?? null,
       defaultCapacity: props.defaultCapacity ?? null,
+      defaultDriverId: props.defaultDriverId ?? null,
+      defaultVehicleId: props.defaultVehicleId ?? null,
       priceOneWay: props.priceOneWay ?? null,
       priceReturn: props.priceReturn ?? null,
       priceRoundTrip: props.priceRoundTrip ?? null,
@@ -322,6 +328,14 @@ export class TripTemplate {
     return this.props.defaultCapacity;
   }
 
+  get defaultDriverId(): string | null {
+    return this.props.defaultDriverId;
+  }
+
+  get defaultVehicleId(): string | null {
+    return this.props.defaultVehicleId;
+  }
+
   get priceOneWay(): Money | null {
     return this.props.priceOneWay;
   }
@@ -454,6 +468,23 @@ export class TripTemplate {
   updateDefaultCapacity(value: number): void {
     TripTemplate.validateDefaultCapacity(value);
     this.props.defaultCapacity = value;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Replace `defaultDriverId` and `defaultVehicleId` atomically. Either side
+   * may be null to clear the default. When BOTH are set, the recurring
+   * generation use case promotes new instances from DRAFT to SCHEDULED.
+   *
+   * Existence and cross-tenant validation live in the use case, not here —
+   * the domain only stores the chosen IDs.
+   */
+  updateDefaults(
+    defaultDriverId: string | null,
+    defaultVehicleId: string | null,
+  ): void {
+    this.props.defaultDriverId = defaultDriverId;
+    this.props.defaultVehicleId = defaultVehicleId;
     this.props.updatedAt = new Date();
   }
 

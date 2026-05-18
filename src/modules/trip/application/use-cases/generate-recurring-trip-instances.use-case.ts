@@ -12,6 +12,7 @@ import {
 import {
   DayOfWeek,
   TripInstanceRepository,
+  TripStatus,
   TripTemplateRepository,
 } from '../../domain/interfaces';
 import {
@@ -369,6 +370,17 @@ export class GenerateRecurringTripInstancesUseCase {
       minRevenue,
       autoCancelAt,
     });
+
+    // When the template has BOTH default driver and vehicle, skip the manual
+    // assignment step admins used to forget — assign the defaults and promote
+    // the instance from DRAFT to SCHEDULED so it becomes visible to passengers
+    // immediately. Partial defaults (only one side) keep DRAFT semantics: the
+    // admin can still pick a different driver/vehicle for this specific date.
+    if (template.defaultDriverId && template.defaultVehicleId) {
+      instance.assignDriver(template.defaultDriverId);
+      instance.assignVehicle(template.defaultVehicleId);
+      instance.transitionTo(TripStatus.SCHEDULED);
+    }
 
     return this.tripInstanceRepository.save(instance);
   }

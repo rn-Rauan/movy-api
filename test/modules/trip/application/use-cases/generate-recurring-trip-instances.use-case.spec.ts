@@ -9,6 +9,7 @@ import {
 import {
   DayOfWeek,
   TripInstanceRepository,
+  TripStatus,
   TripTemplateRepository,
 } from 'src/modules/trip/domain/interfaces';
 import { makeOrganization } from '../../../organization/factories/organization.factory';
@@ -502,6 +503,111 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       expect(result.created).toBe(1);
       expect(result.skipped).toBe(1);
       expect(result.failed).toBe(0);
+    });
+  });
+
+  describe('default driver/vehicle promotion to SCHEDULED', () => {
+    const DRIVER_ID = '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a';
+    const VEHICLE_ID = '7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d';
+
+    function setupOneInstanceRun(
+      template: ReturnType<typeof makeTripTemplate>,
+    ) {
+      const org = makeOrganization({ id: 'org-1' });
+      mocks.organizationRepository.findAllActiveUnpaginated.mockResolvedValue([
+        org,
+      ]);
+      mocks.schedulingConfigRepository.findByOrganizationId.mockResolvedValue(
+        makeTripSchedulingConfig({ organizationId: org.id, daysAhead: 1 }),
+      );
+      mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
+        [template],
+      );
+      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+        0,
+      );
+      mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
+        false,
+      );
+      mocks.tripInstanceRepository.save.mockImplementation(
+        async (entity) => entity,
+      );
+      mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(
+        undefined,
+      );
+      return org;
+    }
+
+    it('should promote to SCHEDULED when template has BOTH default driver and vehicle', async () => {
+      const template = makeTripTemplate({
+        organizationId: 'org-1',
+        isRecurring: true,
+        frequency: ALL_DAYS,
+        defaultDriverId: DRIVER_ID,
+        defaultVehicleId: VEHICLE_ID,
+      });
+      setupOneInstanceRun(template);
+
+      const result = await sut.execute();
+
+      expect(result.created).toBe(1);
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.tripStatus).toBe(TripStatus.SCHEDULED);
+      expect(saved.driverId).toBe(DRIVER_ID);
+      expect(saved.vehicleId).toBe(VEHICLE_ID);
+    });
+
+    it('should keep DRAFT when template has no defaults', async () => {
+      const template = makeTripTemplate({
+        organizationId: 'org-1',
+        isRecurring: true,
+        frequency: ALL_DAYS,
+      });
+      setupOneInstanceRun(template);
+
+      const result = await sut.execute();
+
+      expect(result.created).toBe(1);
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.tripStatus).toBe(TripStatus.DRAFT);
+      expect(saved.driverId).toBeNull();
+      expect(saved.vehicleId).toBeNull();
+    });
+
+    it('should keep DRAFT when only defaultDriverId is set (partial defaults)', async () => {
+      const template = makeTripTemplate({
+        organizationId: 'org-1',
+        isRecurring: true,
+        frequency: ALL_DAYS,
+        defaultDriverId: DRIVER_ID,
+      });
+      setupOneInstanceRun(template);
+
+      const result = await sut.execute();
+
+      expect(result.created).toBe(1);
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.tripStatus).toBe(TripStatus.DRAFT);
+      expect(saved.driverId).toBeNull();
+      expect(saved.vehicleId).toBeNull();
+    });
+
+    it('should keep DRAFT when only defaultVehicleId is set (partial defaults)', async () => {
+      const template = makeTripTemplate({
+        organizationId: 'org-1',
+        isRecurring: true,
+        frequency: ALL_DAYS,
+        defaultVehicleId: VEHICLE_ID,
+      });
+      setupOneInstanceRun(template);
+
+      const result = await sut.execute();
+
+      expect(result.created).toBe(1);
+      const saved = mocks.tripInstanceRepository.save.mock.calls[0][0];
+      expect(saved.tripStatus).toBe(TripStatus.DRAFT);
+      expect(saved.driverId).toBeNull();
+      expect(saved.vehicleId).toBeNull();
     });
   });
 });

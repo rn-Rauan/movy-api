@@ -234,8 +234,9 @@ model Driver {
   updatedAt      DateTime       @updatedAt
 
   // Relations
-  user          User           @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
-  tripInstances TripInstance[] @relation("TripDriver")
+  user               User           @relation("DriverUser", fields: [userId], references: [id], onDelete: Cascade)
+  tripInstances      TripInstance[] @relation("TripDriver")
+  defaultInTemplates TripTemplate[] @relation("TripTemplateDefaultDriver")
 
   @@map("driver")
 }
@@ -252,8 +253,9 @@ model Vehicle {
   updatedAt      DateTime       @updatedAt
 
   // Relations
-  organization   Organization   @relation("VehicleOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
-  tripInstances  TripInstance[] @relation("TripVehicle")
+  organization       Organization   @relation("VehicleOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+  tripInstances      TripInstance[] @relation("TripVehicle")
+  defaultInTemplates TripTemplate[] @relation("TripTemplateDefaultVehicle")
 
   @@index([organizationId])
   @@index([status])
@@ -280,6 +282,14 @@ model TripTemplate {
   // safety; entity enforces presence at create() time.
   defaultCapacity    Int?
 
+  // Optional default driver/vehicle assigned to instances generated from this
+  // template. When BOTH are set, the recurring generation promotes the new
+  // instance from DRAFT to SCHEDULED automatically. onDelete: SetNull so that
+  // removing a driver/vehicle never blocks deletion — the template simply
+  // loses its default and future instances fall back to DRAFT.
+  defaultDriverId    String?
+  defaultVehicleId   String?
+
   priceOneWay    Decimal?    @db.Decimal(10, 2)
   priceReturn    Decimal?    @db.Decimal(10, 2)
   priceRoundTrip Decimal?    @db.Decimal(10, 2)
@@ -300,10 +310,14 @@ model TripTemplate {
   //Relations
   organization   Organization   @relation("TripTemplateOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
   tripInstances  TripInstance[] @relation("TripInstanceTemplate")
+  defaultDriver  Driver?        @relation("TripTemplateDefaultDriver", fields: [defaultDriverId], references: [id], onDelete: SetNull)
+  defaultVehicle Vehicle?       @relation("TripTemplateDefaultVehicle", fields: [defaultVehicleId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
   @@index([status])
   @@index([isPublic])
+  @@index([defaultDriverId])
+  @@index([defaultVehicleId])
   @@map("trip_template")
 }
 

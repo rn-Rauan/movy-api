@@ -425,6 +425,8 @@ Create a trip template.
 | `departureTimeOfDay` | string (`HH:mm`, UTC) | ✅ | 24-hour clock, e.g. `"07:30"` |
 | `arrivalTimeOfDay` | string (`HH:mm`, UTC) | ✅ | 24-hour clock, e.g. `"08:30"`. May be earlier than `departureTimeOfDay` for trips that cross midnight |
 | `defaultCapacity` | integer (min 1) | ✅ | Default seat count copied into each generated `TripInstance` |
+| `defaultDriverId` | string (UUID) | | Default driver assigned to generated instances. Must belong to the same org. When set **together with** `defaultVehicleId`, generated instances are auto-promoted from `DRAFT` to `SCHEDULED` (visible to passengers immediately) |
+| `defaultVehicleId` | string (UUID) | | Default vehicle assigned to generated instances. Must belong to the same org. See `defaultDriverId` for the auto-promotion rule |
 | `frequency` | `("SUNDAY"\|"MONDAY"\|...\|"SATURDAY")[]` | | Recurrence days (required when `isRecurring = true`) |
 | `priceOneWay` | number | | BRL |
 | `priceReturn` | number | | BRL |
@@ -437,9 +439,11 @@ Create a trip template.
 
 > At least one of `priceOneWay`, `priceReturn`, or `priceRoundTrip` is required.
 > Times are stored in **UTC**. Send the HH:mm value the API should treat as the departure/arrival clock in UTC.
+> `defaultDriverId` and `defaultVehicleId` are independent: you can set one without the other. Only when **both** are present does the generator skip `DRAFT` and create the instance directly as `SCHEDULED`. With one or zero defaults, instances stay in `DRAFT` and require manual driver/vehicle assignment before they become public.
 
 **Response `201`** → [TripTemplateResponse](#triptemplateresponse)
-**`400`** → `INVALID_TRIP_TIME_OF_DAY_FORMAT`, `INVALID_TRIP_TEMPLATE_DEFAULT_CAPACITY`
+**`400`** → `INVALID_TRIP_TIME_OF_DAY_FORMAT`, `INVALID_TRIP_TEMPLATE_DEFAULT_CAPACITY`, `DRIVER_NOT_FOUND_BAD_REQUEST`, `VEHICLE_NOT_FOUND`
+**`403`** → `DRIVER_ACCESS_FORBIDDEN`, `VEHICLE_ACCESS_FORBIDDEN` (default driver/vehicle belongs to another org)
 
 ---
 
@@ -470,6 +474,8 @@ Update a trip template. All fields optional — only provided fields are applied
 | `departureTimeOfDay` | string (`HH:mm`, UTC) | |
 | `arrivalTimeOfDay` | string (`HH:mm`, UTC) | |
 | `defaultCapacity` | integer (min 1) | |
+| `defaultDriverId` | string (UUID) \| `null` | Pass a UUID to set/replace the default driver, or `null` to clear it. Must belong to the same org |
+| `defaultVehicleId` | string (UUID) \| `null` | Pass a UUID to set/replace the default vehicle, or `null` to clear it. Must belong to the same org |
 | `frequency` | `("SUNDAY"\|"MONDAY"\|...\|"SATURDAY")[]` | |
 | `priceOneWay` | number | BRL |
 | `priceReturn` | number | BRL |
@@ -481,6 +487,8 @@ Update a trip template. All fields optional — only provided fields are applied
 | `autoCancelOffset` | number | |
 
 **Response `200`** → [TripTemplateResponse](#triptemplateresponse)
+**`400`** → `DRIVER_NOT_FOUND_BAD_REQUEST`, `VEHICLE_NOT_FOUND`
+**`403`** → `DRIVER_ACCESS_FORBIDDEN`, `VEHICLE_ACCESS_FORBIDDEN`
 
 ---
 
@@ -490,6 +498,10 @@ Manually generate the rolling-window of `TripInstance`s for a **recurring** temp
 Useful right after creating a new recurring template (so admins don't have to wait until 02:00 UTC for the next cron tick) or to backfill after cron downtime. Same idempotency (one instance per `[templateId, calendarDay]`), plan-limit checks (`MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN`), and unique-constraint race protections as the cron sweep.
 
 Past departures are **skipped** — the endpoint never creates instances with a `departureTime` in the past. To schedule a past-dated trip use `POST /trip-instances/organization/{organizationId}` directly.
+
+**Initial status of generated instances** depends on the template's defaults:
+- Template has **both** `defaultDriverId` and `defaultVehicleId` → instances are created as `SCHEDULED` with the defaults pre-assigned (visible on the public listing immediately).
+- Template has **neither, or only one** of the defaults → instances are created as `DRAFT` with `driverId = null` and `vehicleId = null`. Admin must assign driver+vehicle (via `PUT /trip-instances/{id}/driver` and `/vehicle`) and then transition to `SCHEDULED` via `PATCH /trip-instances/{id}/status` before passengers can see/book the trip.
 
 **Body** (all optional)
 | Field | Type | Notes |
@@ -969,6 +981,8 @@ Fail a PENDING payment (simulated).
   "departureTimeOfDay": "07:30",
   "arrivalTimeOfDay": "08:30",
   "defaultCapacity": 20,
+  "defaultDriverId": "uuid or null",
+  "defaultVehicleId": "uuid or null",
   "frequency": ["MONDAY", "WEDNESDAY", "FRIDAY"],
   "priceOneWay": 12.50,
   "priceReturn": 12.50,
@@ -985,6 +999,7 @@ Fail a PENDING payment (simulated).
 ```
 
 > `departureTimeOfDay`, `arrivalTimeOfDay`, and `defaultCapacity` may be `null` on legacy templates created before the scheduling feature. These templates cannot be used by the auto-generator until they are populated via `PUT /trip-templates/{id}`.
+> `defaultDriverId` and `defaultVehicleId` are independently nullable. They are nullified automatically (FK `ON DELETE SET NULL`) if the referenced driver/vehicle is deleted — the template stays valid, future instances just fall back to `DRAFT`.
 
 ### TripInstanceResponse
 ```json
@@ -1216,4 +1231,8 @@ Returned by `POST /trip-templates`, `PUT /trip-templates/{id}`, `POST /trip-temp
 | `INVALID_TRIP_TEMPLATE_MISSING_SCHEDULE` | 400 | Template has no `departureTimeOfDay` / `arrivalTimeOfDay`. Populate them via `PUT /trip-templates/{id}` before generating instances |
 | `INVALID_TRIP_TEMPLATE_MISSING_CAPACITY` | 400 | Template has no `defaultCapacity`. Populate it before generating instances |
 | `TRIP_TEMPLATE_NOT_RECURRING_BAD_REQUEST` | 400 | `POST /trip-templates/{id}/generate-instances` was called on a non-recurring or inactive template |
+| `DRIVER_NOT_FOUND_BAD_REQUEST` | 400 | `defaultDriverId` on the template body does not match any driver |
+| `VEHICLE_NOT_FOUND` | 404 | `defaultVehicleId` on the template body does not match any vehicle |
+| `DRIVER_ACCESS_FORBIDDEN` | 403 | `defaultDriverId` belongs to a different organization |
+| `VEHICLE_ACCESS_FORBIDDEN` | 403 | `defaultVehicleId` belongs to a different organization |
 | `MONTHLY_TRIP_PLAN_LIMIT_FORBIDDEN` | 403 | Organization has reached its plan's monthly trip quota |

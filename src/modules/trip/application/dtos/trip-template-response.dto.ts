@@ -66,6 +66,24 @@ export class TripTemplateResponseDto {
   })
   defaultCapacity: number | null;
 
+  @ApiPropertyOptional({
+    example: '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a',
+    description:
+      'Default driver assigned to generated instances. When both this and ' +
+      'defaultVehicleId are set, instances are auto-promoted to SCHEDULED.',
+    nullable: true,
+  })
+  defaultDriverId: string | null;
+
+  @ApiPropertyOptional({
+    example: '6f9c2c2b-5a9b-4d7a-9c1e-1e2c8a3d4f5a',
+    description:
+      'Default vehicle assigned to generated instances. When both this and ' +
+      'defaultDriverId are set, instances are auto-promoted to SCHEDULED.',
+    nullable: true,
+  })
+  defaultVehicleId: string | null;
+
   @ApiProperty({
     example: [DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY],
     description: 'Recurrence days',
