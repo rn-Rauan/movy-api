@@ -59,4 +59,15 @@ export abstract class PaymentRepository {
    * @returns The updated entity, or `null` on unexpected failure
    */
   abstract update(payment: PaymentEntity): Promise<PaymentEntity | null>;
+
+  /**
+   * Resolves the UUID of the driver assigned to the TripInstance behind the
+   * payment by navigating Payment → Enrollment → TripInstance.driverId in a
+   * single query. Used for driver-ownership authorization checks.
+   *
+   * @param paymentId - The payment UUID
+   * @returns The assigned driver's UUID, or `null` if the payment does not exist
+   *   or its TripInstance has no driver assigned.
+   */
+  abstract findDriverIdByPaymentId(paymentId: string): Promise<string | null>;
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SharedModule } from 'src/shared';
 import { PrismaModule } from 'src/shared/infrastructure/database/prisma.module';
+import { DriverModule } from 'src/modules/driver/driver.module';
 import { PaymentRepository } from './domain/interfaces/payment.repository';
 import { PrismaPaymentRepository } from './infrastructure/db/repositories/prisma-payment.repository';
 import {
@@ -21,7 +22,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
  * All read endpoints require the `ADMIN` role and are scoped to the requesting organisation.
  */
 @Module({
-  imports: [PrismaModule, SharedModule],
+  imports: [PrismaModule, SharedModule, DriverModule],
   controllers: [PaymentController],
   providers: [
     { provide: PaymentRepository, useClass: PrismaPaymentRepository },

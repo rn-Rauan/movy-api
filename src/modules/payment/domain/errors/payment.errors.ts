@@ -38,3 +38,17 @@ export class PaymentAlreadyProcessedError extends DomainError {
     super(`Payment "${id}" has already been processed and cannot be modified`);
   }
 }
+
+/**
+ * Thrown when a driver attempts to confirm/fail a payment whose trip instance
+ * is assigned to a different driver (or no driver at all).
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
+export class PaymentNotAssignedToDriverError extends DomainError {
+  readonly code = 'PAYMENT_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN';
+
+  constructor(id: string) {
+    super(`Payment "${id}" is not assigned to the requesting driver`);
+  }
+}

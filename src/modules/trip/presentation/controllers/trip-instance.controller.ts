@@ -48,30 +48,16 @@ import { TripInstancePresenter } from '../mappers/trip-instance.presenter';
 /**
  * HTTP controller for the Trip Instances sub-resource.
  *
- * All endpoints require authentication (`JwtAuthGuard`) and are further
- * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ * All endpoints require authentication (`JwtAuthGuard`). Most are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`);
+ * `GET /trip-instances/driver/me` is scoped to the `DRIVER` role.
  *
  * Endpoints:
  * - `POST /trip-instances/organization/:organizationId` — create instance from template
  * - `GET /trip-instances/organization/:organizationId` — list by org (paginated)
  * - `GET /trip-instances/template/:templateId` — list by template (paginated)
- * - `GET /trip-instances/:id` — get by ID
- * - `PATCH /trip-instances/:id/status` — transition lifecycle status
- * - `PUT /trip-instances/:id/driver` — assign / unassign driver
- * - `PUT /trip-instances/:id/vehicle` — assign / unassign vehicle
- *
- * Base path: `/trip-instances`
- */
-/**
- * HTTP controller for the Trip Instances sub-resource.
- *
- * All endpoints require authentication (`JwtAuthGuard`) and are further
- * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
- *
- * Endpoints:
- * - `POST /trip-instances/organization/:organizationId` — create instance from template
- * - `GET /trip-instances/organization/:organizationId` — list by org (paginated)
- * - `GET /trip-instances/template/:templateId` — list by template (paginated)
+ * - `GET /trip-instances/driver/me` — list trips assigned to the current driver
+ *   (paginated, scoped to the caller's organisation; filters by status)
  * - `GET /trip-instances/:id` — get by ID
  * - `PATCH /trip-instances/:id/status` — transition lifecycle status
  * - `PUT /trip-instances/:id/driver` — assign / unassign driver
@@ -211,6 +197,7 @@ export class TripInstanceController {
     const limit = query.limit ?? 10;
     const result = await this.findTripInstancesByDriverMeUseCase.execute(
       context.userId,
+      context.organizationId,
       { page, limit },
       query.status,
     );

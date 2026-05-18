@@ -74,11 +74,19 @@ export class PaymentController {
 
   /**
    * Simulates payment confirmation (PENDING → COMPLETED). No gateway involved.
+   *
+   * Authorization:
+   * - ADMIN of the tenant: always allowed.
+   * - DRIVER of the tenant: allowed only when the payment's TripInstance is
+   *   assigned to the driver profile linked to the calling user.
    */
   @Patch(':id/confirm')
   @UseGuards(TenantFilterGuard, RolesGuard)
-  @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Confirm a pending payment (simulated)' })
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
+  @ApiOperation({
+    summary:
+      '[ADMIN | DRIVER] Confirm a pending payment (simulated). Drivers may only confirm payments on trip instances assigned to them.',
+  })
   @ApiParam({ name: 'organizationId' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: PaymentResponseDto })
@@ -87,17 +95,28 @@ export class PaymentController {
     @GetUser() ctx: TenantContext,
   ): Promise<PaymentResponseDto> {
     return PaymentPresenter.toHTTP(
-      await this.confirmPayment.execute(id, ctx.organizationId!),
+      await this.confirmPayment.execute(id, ctx.organizationId!, {
+        userId: ctx.userId,
+        role: ctx.role,
+      }),
     );
   }
 
   /**
    * Simulates payment failure (PENDING → FAILED). No gateway involved.
+   *
+   * Authorization:
+   * - ADMIN of the tenant: always allowed.
+   * - DRIVER of the tenant: allowed only when the payment's TripInstance is
+   *   assigned to the driver profile linked to the calling user.
    */
   @Patch(':id/fail')
   @UseGuards(TenantFilterGuard, RolesGuard)
-  @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Fail a pending payment (simulated)' })
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
+  @ApiOperation({
+    summary:
+      '[ADMIN | DRIVER] Fail a pending payment (simulated). Drivers may only fail payments on trip instances assigned to them.',
+  })
   @ApiParam({ name: 'organizationId' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: PaymentResponseDto })
@@ -106,7 +125,10 @@ export class PaymentController {
     @GetUser() ctx: TenantContext,
   ): Promise<PaymentResponseDto> {
     return PaymentPresenter.toHTTP(
-      await this.failPayment.execute(id, ctx.organizationId!),
+      await this.failPayment.execute(id, ctx.organizationId!, {
+        userId: ctx.userId,
+        role: ctx.role,
+      }),
     );
   }
 

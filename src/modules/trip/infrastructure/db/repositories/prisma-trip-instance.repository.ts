@@ -230,11 +230,14 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Returns a paginated list of instances assigned to a driver, enriched with
-   * template fields + active enrollment count. Optional `status` filter.
+   * Returns a paginated list of instances assigned to a driver **within a
+   * specific organisation**, enriched with template fields + active enrollment
+   * count. Optional `status` filter. The `organizationId` predicate prevents
+   * cross-tenant leaks for drivers holding memberships in multiple orgs.
    */
   async findByDriverIdWithMeta(
     driverId: string,
+    organizationId: string,
     options: PaginationOptions,
     status?: TripStatus,
   ): Promise<PaginatedResponse<TripInstanceWithMeta>> {
@@ -242,6 +245,7 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     const skip = (page - 1) * limit;
     const where = {
       driverId,
+      organizationId,
       ...(status ? { tripStatus: status } : {}),
     };
 

@@ -112,17 +112,26 @@ export abstract class TripInstanceRepository {
   ): Promise<PaginatedResponse<TripInstanceWithMeta>>;
 
   /**
-   * Returns a paginated list of trip instances assigned to a specific driver,
-   * enriched with booking occupancy counts and denormalised template fields.
-   * Optionally filtered by lifecycle status. Ordered by `departureTime` ascending.
+   * Returns a paginated list of trip instances assigned to a specific driver
+   * **within a specific organisation**, enriched with booking occupancy counts
+   * and denormalised template fields. Optionally filtered by lifecycle status.
+   * Ordered by `departureTime` ascending.
+   *
+   * The `organizationId` filter is required to enforce multi-tenant isolation:
+   * a `Driver` entity is 1:1 with a `User` (see schema: `Driver.userId @unique`),
+   * but the same user may hold DRIVER memberships in multiple organisations.
+   * Without this scope, calling `/trip-instances/driver/me` would leak trips
+   * across tenants.
    *
    * @param driverId - UUID of the driver
+   * @param organizationId - UUID of the organisation the caller's JWT is scoped to
    * @param options - Pagination parameters `{ page, limit }`
    * @param status - Optional {@link TripStatus} filter
    * @returns A {@link PaginatedResponse} of {@link TripInstanceWithMeta} items
    */
   abstract findByDriverIdWithMeta(
     driverId: string,
+    organizationId: string,
     options: PaginationOptions,
     status?: TripStatus,
   ): Promise<PaginatedResponse<TripInstanceWithMeta>>;

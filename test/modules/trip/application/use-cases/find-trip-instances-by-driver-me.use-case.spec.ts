@@ -1,4 +1,5 @@
 import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
+import { DriverStatus } from 'src/modules/driver/domain/interfaces/enums/driver-status.enum';
 import { FindTripInstancesByDriverMeUseCase } from 'src/modules/trip/application/use-cases/find-trip-instances-by-driver-me.use-case';
 import {
   TripInstanceRepository,
@@ -57,6 +58,7 @@ function makePaginatedResponse(
 
 const USER_ID = 'user-id-stub';
 const DRIVER_ID = 'driver-id-stub';
+const ORG_ID = 'org-id-stub';
 const PAGINATION = { page: 1, limit: 10 };
 
 describe('FindTripInstancesByDriverMeUseCase', () => {
@@ -72,7 +74,7 @@ describe('FindTripInstancesByDriverMeUseCase', () => {
   });
 
   describe('happy path', () => {
-    it('should resolve driver from userId and return paginated trip instances', async () => {
+    it('should resolve driver from userId and return paginated trip instances scoped to org', async () => {
       // Arrange
       const driver = makeDriver({ id: DRIVER_ID, userId: USER_ID });
       const items = [makeTripInstanceWithMeta(), makeTripInstanceWithMeta()];
@@ -82,13 +84,13 @@ describe('FindTripInstancesByDriverMeUseCase', () => {
       );
 
       // Act
-      const result = await sut.execute(USER_ID, PAGINATION);
+      const result = await sut.execute(USER_ID, ORG_ID, PAGINATION);
 
       // Assert
       expect(mocks.driverRepository.findByUserId).toHaveBeenCalledWith(USER_ID);
       expect(
         mocks.tripInstanceRepository.findByDriverIdWithMeta,
-      ).toHaveBeenCalledWith(DRIVER_ID, PAGINATION, undefined);
+      ).toHaveBeenCalledWith(DRIVER_ID, ORG_ID, PAGINATION, undefined);
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(2);
     });
@@ -102,22 +104,27 @@ describe('FindTripInstancesByDriverMeUseCase', () => {
       );
 
       // Act
-      await sut.execute(USER_ID, PAGINATION, TripStatus.SCHEDULED);
+      await sut.execute(USER_ID, ORG_ID, PAGINATION, TripStatus.SCHEDULED);
 
       // Assert
       expect(
         mocks.tripInstanceRepository.findByDriverIdWithMeta,
-      ).toHaveBeenCalledWith(DRIVER_ID, PAGINATION, TripStatus.SCHEDULED);
+      ).toHaveBeenCalledWith(
+        DRIVER_ID,
+        ORG_ID,
+        PAGINATION,
+        TripStatus.SCHEDULED,
+      );
     });
   });
 
-  describe('user has no driver profile yet', () => {
-    it('should return an empty page without hitting the trip repository', async () => {
+  describe('empty page short-circuits', () => {
+    it('should return empty page when user has no driver profile', async () => {
       // Arrange
       mocks.driverRepository.findByUserId.mockResolvedValue(null);
 
       // Act
-      const result = await sut.execute(USER_ID, PAGINATION);
+      const result = await sut.execute(USER_ID, ORG_ID, PAGINATION);
 
       // Assert
       expect(result).toEqual({
@@ -127,6 +134,53 @@ describe('FindTripInstancesByDriverMeUseCase', () => {
         limit: PAGINATION.limit,
         totalPages: 0,
       });
+      expect(
+        mocks.tripInstanceRepository.findByDriverIdWithMeta,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should return empty page when driver is INACTIVE', async () => {
+      // Arrange
+      const driver = makeDriver({
+        id: DRIVER_ID,
+        userId: USER_ID,
+        driverStatus: DriverStatus.INACTIVE,
+      });
+      mocks.driverRepository.findByUserId.mockResolvedValue(driver);
+
+      // Act
+      const result = await sut.execute(USER_ID, ORG_ID, PAGINATION);
+
+      // Assert
+      expect(result.data).toEqual([]);
+      expect(
+        mocks.tripInstanceRepository.findByDriverIdWithMeta,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should return empty page when driver is SUSPENDED', async () => {
+      const driver = makeDriver({
+        id: DRIVER_ID,
+        userId: USER_ID,
+        driverStatus: DriverStatus.SUSPENDED,
+      });
+      mocks.driverRepository.findByUserId.mockResolvedValue(driver);
+
+      const result = await sut.execute(USER_ID, ORG_ID, PAGINATION);
+
+      expect(result.data).toEqual([]);
+      expect(
+        mocks.tripInstanceRepository.findByDriverIdWithMeta,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should return empty page when caller has no organisation in session (dev/B2C)', async () => {
+      // Arrange — guard against cross-tenant leak: never query without an org scope.
+      const result = await sut.execute(USER_ID, undefined, PAGINATION);
+
+      // Assert
+      expect(result.data).toEqual([]);
+      expect(mocks.driverRepository.findByUserId).not.toHaveBeenCalled();
       expect(
         mocks.tripInstanceRepository.findByDriverIdWithMeta,
       ).not.toHaveBeenCalled();

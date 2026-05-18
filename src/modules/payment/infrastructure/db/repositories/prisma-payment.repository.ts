@@ -106,4 +106,22 @@ export class PrismaPaymentRepository implements PaymentRepository {
     });
     return result ? PaymentMapper.toDomain(result) : null;
   }
+
+  /**
+   * Resolves the driver UUID assigned to the payment's TripInstance in one
+   * round-trip via `prisma.payment.findUnique` + nested `select`.
+   */
+  async findDriverIdByPaymentId(paymentId: string): Promise<string | null> {
+    const row = await this.db.payment.findUnique({
+      where: { id: paymentId },
+      select: {
+        enrollment: {
+          select: {
+            tripInstance: { select: { driverId: true } },
+          },
+        },
+      },
+    });
+    return row?.enrollment?.tripInstance?.driverId ?? null;
+  }
 }
