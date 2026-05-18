@@ -7,6 +7,7 @@ export * from './create-trip-instance.use-case';
 export * from './find-trip-instance-by-id.use-case';
 export * from './find-all-trip-instances-by-organization.use-case';
 export * from './find-trip-instances-by-template.use-case';
+export * from './find-trip-instances-by-driver-me.use-case';
 export * from './transition-trip-instance-status.use-case';
 export * from './assign-driver-to-trip-instance.use-case';
 export * from './assign-vehicle-to-trip-instance.use-case';

@@ -3,6 +3,7 @@ import { TripInstance } from 'src/modules/trip/domain/entities';
 import {
   TripInstanceRepository,
   TripInstanceWithMeta,
+  TripStatus,
 } from 'src/modules/trip/domain/interfaces';
 import {
   PaginatedResponse,
@@ -221,6 +222,56 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
         take: limit,
       }),
       this.db.tripInstance.count({ where: { organizationId } }),
+    ]);
+
+    const data = rows.map((row) => TripInstanceMapper.toDomainWithMeta(row));
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  /**
+   * Returns a paginated list of instances assigned to a driver, enriched with
+   * template fields + active enrollment count. Optional `status` filter.
+   */
+  async findByDriverIdWithMeta(
+    driverId: string,
+    options: PaginationOptions,
+    status?: TripStatus,
+  ): Promise<PaginatedResponse<TripInstanceWithMeta>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+    const where = {
+      driverId,
+      ...(status ? { tripStatus: status } : {}),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.db.tripInstance.findMany({
+        where,
+        include: {
+          tripTemplate: {
+            select: {
+              id: true,
+              departurePoint: true,
+              destination: true,
+              stops: true,
+              priceOneWay: true,
+              priceReturn: true,
+              priceRoundTrip: true,
+              isRecurring: true,
+            },
+          },
+          _count: {
+            select: {
+              enrollments: { where: { status: 'ACTIVE' } },
+            },
+          },
+        },
+        orderBy: { departureTime: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.db.tripInstance.count({ where }),
     ]);
 
     const data = rows.map((row) => TripInstanceMapper.toDomainWithMeta(row));

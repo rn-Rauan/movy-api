@@ -28,15 +28,18 @@ import type { TenantContext } from 'src/shared/infrastructure/types/tenant-conte
 import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 import {
   CreateTripInstanceDto,
+  FindTripInstancesByDriverQueryDto,
   TransitionTripInstanceStatusDto,
   TripInstanceResponseDto,
 } from '../../application/dtos';
+import { TripStatus } from '../../domain/interfaces';
 import {
   AssignDriverToTripInstanceUseCase,
   AssignVehicleToTripInstanceUseCase,
   CreateTripInstanceUseCase,
   FindAllTripInstancesByOrganizationUseCase,
   FindTripInstanceByIdUseCase,
+  FindTripInstancesByDriverMeUseCase,
   FindTripInstancesByTemplateUseCase,
   TransitionTripInstanceStatusUseCase,
 } from '../../application/use-cases';
@@ -88,6 +91,7 @@ export class TripInstanceController {
     private readonly transitionTripInstanceStatusUseCase: TransitionTripInstanceStatusUseCase,
     private readonly assignDriverToTripInstanceUseCase: AssignDriverToTripInstanceUseCase,
     private readonly assignVehicleToTripInstanceUseCase: AssignVehicleToTripInstanceUseCase,
+    private readonly findTripInstancesByDriverMeUseCase: FindTripInstancesByDriverMeUseCase,
   ) {}
 
   @Post('organization/:organizationId')
@@ -174,6 +178,44 @@ export class TripInstanceController {
     );
     return new PaginatedDto(
       TripInstancePresenter.toHTTPList(result.data),
+      result.total,
+      result.page,
+      result.limit,
+    );
+  }
+
+  @Get('driver/me')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.DRIVER)
+  @ApiOperation({
+    summary:
+      '[DRIVER] List trip instances assigned to the current driver (paginated)',
+    description:
+      'Resolves the driver profile linked to the authenticated user and ' +
+      'returns the trip instances assigned to them. If the user has no ' +
+      'driver profile yet, returns an empty page (not an error).',
+  })
+  @ApiQuery({ name: 'status', required: false, enum: TripStatus })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of trip instances for the current driver.',
+    type: PaginatedDto<TripInstanceResponseDto>,
+  })
+  async findByDriverMe(
+    @GetUser() context: TenantContext,
+    @Query() query: FindTripInstancesByDriverQueryDto,
+  ): Promise<PaginatedDto<TripInstanceResponseDto>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const result = await this.findTripInstancesByDriverMeUseCase.execute(
+      context.userId,
+      { page, limit },
+      query.status,
+    );
+    return new PaginatedDto(
+      TripInstancePresenter.toHTTPListWithMeta(result.data),
       result.total,
       result.page,
       result.limit,

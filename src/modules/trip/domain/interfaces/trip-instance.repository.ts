@@ -3,6 +3,7 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 import { TripInstance } from '../entities';
+import { TripStatus } from './enums/trip-status.enum';
 
 /**
  * Enriched data bag returned by {@link TripInstanceRepository.findByOrganizationIdWithMeta}.
@@ -108,6 +109,22 @@ export abstract class TripInstanceRepository {
   abstract findByOrganizationIdWithMeta(
     organizationId: string,
     options: PaginationOptions,
+  ): Promise<PaginatedResponse<TripInstanceWithMeta>>;
+
+  /**
+   * Returns a paginated list of trip instances assigned to a specific driver,
+   * enriched with booking occupancy counts and denormalised template fields.
+   * Optionally filtered by lifecycle status. Ordered by `departureTime` ascending.
+   *
+   * @param driverId - UUID of the driver
+   * @param options - Pagination parameters `{ page, limit }`
+   * @param status - Optional {@link TripStatus} filter
+   * @returns A {@link PaginatedResponse} of {@link TripInstanceWithMeta} items
+   */
+  abstract findByDriverIdWithMeta(
+    driverId: string,
+    options: PaginationOptions,
+    status?: TripStatus,
   ): Promise<PaginatedResponse<TripInstanceWithMeta>>;
 
   /**
