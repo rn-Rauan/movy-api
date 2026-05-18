@@ -1,5 +1,6 @@
 import {
   DriverAccessForbiddenError,
+  DriverEntity,
   DriverNotFoundError,
 } from 'src/modules/driver/domain/entities';
 import { DriverRepository } from 'src/modules/driver/domain/interfaces';
@@ -204,7 +205,7 @@ describe('UpdateTripTemplateUseCase', () => {
       setupHappyPath(mocks);
       mocks.driverRepository.findById.mockResolvedValue({
         id: DRIVER_ID,
-      } as any);
+      } as unknown as DriverEntity);
       mocks.driverRepository.belongsToOrganization.mockResolvedValue(true);
       mocks.vehicleRepository.findById.mockResolvedValue({
         id: VEHICLE_ID,
@@ -288,7 +289,7 @@ describe('UpdateTripTemplateUseCase', () => {
       setupHappyPath(mocks);
       mocks.driverRepository.findById.mockResolvedValue({
         id: DRIVER_ID,
-      } as any);
+      } as unknown as DriverEntity);
       mocks.driverRepository.belongsToOrganization.mockResolvedValue(false);
 
       const dto = makeUpdateTripTemplateDto({ defaultDriverId: DRIVER_ID });
