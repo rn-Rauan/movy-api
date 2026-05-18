@@ -85,6 +85,8 @@ describe('LoginUseCase', () => {
         id: user.id,
         name: user.name,
         email: user.email,
+        telephone: user.telephone,
+        emailVerifiedAt: null,
       });
     });
 

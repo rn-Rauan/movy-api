@@ -134,6 +134,14 @@ Factories are in `test/modules/<module>/factories/`. Use `make<Entity>()` helper
 | `JWT_EXPIRATION` | ❌ | Seconds; default 3600 (1h) |
 | `JWT_REFRESH_EXPIRATION` | ❌ | Seconds; default 604800 (7d) |
 | `DEV_EMAILS` | ❌ | Comma-separated emails; bypass org/role checks |
+| `DISABLE_CRON` | ❌ | Set `true` to skip `ScheduleModule.forRoot()` (use in tests/local dev to silence cron jobs) |
+
+`main.ts` loads `dotenv` at evaluation time (before NestFactory) so flags like `DISABLE_CRON` take effect before `AppModule` is constructed.
+
+## Global Cross-Cutting Concerns (AppModule)
+
+- **Rate limiting:** `ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 60 }] })` + global `ThrottlerGuard` → 60 req/min/IP across all routes.
+- **Cron:** `ScheduleModule.forRoot()` is registered **conditionally** (skipped when `DISABLE_CRON=true`). Cron jobs live under `src/modules/<module>/infrastructure/cron/`. Current jobs (trip module): `generate-recurring-trip-instances`, `auto-cancel-trip-instances`.
 
 ## Plan Limits Enforcement
 
@@ -167,3 +175,18 @@ Payments are confirmed/failed via `PATCH /organizations/:orgId/payments/:id/conf
 - **Path aliases:** `src/` and `generated/` are aliased in `tsconfig.json` and `jest-unit.json`; use `src/modules/...` imports.
 - **Swagger:** available at `/api` in dev.
 - **Auto-subscription:** `RegisterOrganizationWithAdminUseCase` auto-subscribes new orgs to the FREE plan after the main transaction. Requires `db:seed` to have run first (FREE plan must exist).
+- **Financial-history protection:** relations from `Driver` / `Vehicle` to `TripInstance` use Prisma `onDelete: Restrict` so historical trips cannot be silently orphaned.
+- **No framework mocks in tests:** unit tests use plain `jest.fn()` and manual constructor injection — never `Test.createTestingModule` or NestJS DI for use-case tests.
+
+## Additional Documentation
+
+The `docs/` folder contains deeper references that aren't duplicated here. Notable ones:
+
+- `docs/DOCUMENTACAO_TECNICA.md` — module-by-module architecture and decisions
+- `docs/ARCHITECTURAL-DECISIONS.md`, `docs/ARCHITECTURE.md` — design rationale
+- `docs/DATA-MODEL.md` — schema and relationships
+- `docs/SECURITY.md` — guard composition, IDOR, multi-tenant isolation
+- `docs/GUIA_TRIP_SCHEDULING.md` — trip template → instance generation flow
+- `docs/ROADMAP.md`, `docs/PROGRESS.md` — phase tracking
+
+Consult these before large changes to the corresponding subsystem rather than reverse-engineering from code.

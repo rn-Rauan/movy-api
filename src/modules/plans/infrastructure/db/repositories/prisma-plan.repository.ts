@@ -97,4 +97,30 @@ export class PrismaPlanRepository implements PlanRepository {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+  async findAllActive(
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<PlanEntity>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+
+    const where = { isActive: true };
+    const [plans, total] = await Promise.all([
+      this.db.plan.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.db.plan.count({ where }),
+    ]);
+
+    return {
+      data: plans.map((plan) => PlanMapper.toDomain(plan)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 }

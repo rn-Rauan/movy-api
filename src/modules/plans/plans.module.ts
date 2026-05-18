@@ -6,11 +6,13 @@ import { PrismaPlanRepository } from './infrastructure/db/repositories/prisma-pl
 import {
   CreatePlanUseCase,
   DeactivatePlanUseCase,
+  FindAllActivePlansUseCase,
   FindAllPlansUseCase,
   FindPlanByIdUseCase,
   UpdatePlanUseCase,
 } from './application/use-cases';
 import { PlanController } from './presentation/controllers/plan.controller';
+import { PublicPlanController } from './presentation/controllers/public-plan.controller';
 
 /**
  * NestJS module responsible for managing subscription plans on the Movy platform.
@@ -22,7 +24,7 @@ import { PlanController } from './presentation/controllers/plan.controller';
  */
 @Module({
   imports: [PrismaModule, SharedModule],
-  controllers: [PlanController],
+  controllers: [PlanController, PublicPlanController],
   providers: [
     { provide: PlanRepository, useClass: PrismaPlanRepository },
     CreatePlanUseCase,
@@ -30,6 +32,7 @@ import { PlanController } from './presentation/controllers/plan.controller';
     DeactivatePlanUseCase,
     FindPlanByIdUseCase,
     FindAllPlansUseCase,
+    FindAllActivePlansUseCase,
   ],
   exports: [PlanRepository],
 })

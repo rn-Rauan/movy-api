@@ -55,4 +55,16 @@ export abstract class PlanRepository {
   abstract findAll(
     options: PaginationOptions,
   ): Promise<PaginatedResponse<PlanEntity>>;
+
+  /**
+   * Returns a paginated list of plans where `isActive = true`, ordered by `id` ascending.
+   * Used by the public catalogue endpoint so unauthenticated visitors only see
+   * plans available for new subscriptions.
+   *
+   * @param options - Pagination parameters `{ page, limit }`
+   * @returns A {@link PaginatedResponse} containing the requested page of active plans
+   */
+  abstract findAllActive(
+    options: PaginationOptions,
+  ): Promise<PaginatedResponse<PlanEntity>>;
 }

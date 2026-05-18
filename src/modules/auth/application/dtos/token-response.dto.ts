@@ -26,6 +26,8 @@ export class TokenResponseDto {
       id: '123e4567-e89b-12d3-a456-426614174000',
       name: 'John Doe',
       email: 'john@example.com',
+      telephone: '+5511999999999',
+      emailVerifiedAt: null,
     },
     description: 'User information',
   })
@@ -33,5 +35,7 @@ export class TokenResponseDto {
     id: string;
     name: string;
     email: string;
+    telephone: string;
+    emailVerifiedAt: Date | null;
   };
 }

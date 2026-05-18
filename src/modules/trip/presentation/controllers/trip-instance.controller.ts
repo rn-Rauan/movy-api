@@ -229,6 +229,10 @@ export class TripInstanceController {
   @Roles(RoleName.ADMIN)
   @ApiOperation({
     summary: '[ADMIN] Assign or unassign a driver to a trip instance',
+    description:
+      'Driver UUID is passed via querystring (not body) intentionally: ' +
+      'this is a single-field idempotent toggle. Omitting the querystring ' +
+      'unassigns the driver. UUIDs are non-secret and safe to log.',
   })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiQuery({
@@ -259,6 +263,10 @@ export class TripInstanceController {
   @Roles(RoleName.ADMIN)
   @ApiOperation({
     summary: '[ADMIN] Assign or unassign a vehicle to a trip instance',
+    description:
+      'Vehicle UUID is passed via querystring (not body) intentionally: ' +
+      'this is a single-field idempotent toggle. Omitting the querystring ' +
+      'unassigns the vehicle. UUIDs are non-secret and safe to log.',
   })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiQuery({
