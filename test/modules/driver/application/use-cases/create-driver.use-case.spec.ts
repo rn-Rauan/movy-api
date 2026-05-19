@@ -50,7 +50,7 @@ describe('CreateDriverUseCase', () => {
       // Assert
       expect(result.userId).toBe(USER_ID);
       expect(result.cnh.value_).toBe(dto.cnh);
-      expect(result.cnhCategory.value_).toBe(dto.cnhCategory);
+      expect([...result.cnhCategories.values]).toEqual(dto.cnhCategories);
       expect(mocks.driverRepository.save).toHaveBeenCalledTimes(1);
     });
 

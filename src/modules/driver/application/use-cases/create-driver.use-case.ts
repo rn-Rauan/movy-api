@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
-import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
+import { Cnh, CnhCategories } from '../../domain/entities/value-objects';
 import { CreateDriverDto } from '../dtos';
 import { randomUUID } from 'crypto';
 import {
@@ -46,7 +46,7 @@ export class CreateDriverUseCase {
       id: randomUUID(),
       userId,
       cnh: Cnh.create(input.cnh),
-      cnhCategory: CnhCategory.create(input.cnhCategory),
+      cnhCategories: CnhCategories.create(input.cnhCategories),
       cnhExpiresAt: new Date(input.cnhExpiresAt),
     });
 

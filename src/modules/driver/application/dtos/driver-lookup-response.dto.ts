@@ -27,8 +27,13 @@ export class DriverLookupResponseDto {
   @ApiProperty({ example: 'joao@email.com' })
   userEmail: string;
 
-  @ApiProperty({ example: 'B' })
-  cnhCategory: string;
+  @ApiProperty({
+    example: ['A', 'B'],
+    description: 'Held CNH categories (drivers may hold multiple).',
+    isArray: true,
+    enum: ['A', 'B', 'C', 'D', 'E'],
+  })
+  cnhCategories: string[];
 
   @ApiProperty({ example: '2028-12-31T00:00:00.000Z' })
   cnhExpiresAt: Date;

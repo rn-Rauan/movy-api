@@ -1,5 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsIn,
   IsOptional,
@@ -9,11 +12,13 @@ import {
 } from 'class-validator';
 
 /**
- * Input DTO for the {@link UpdateDriverUseCase} — `PUT /drivers/:id`.
+ * Input DTO for the {@link UpdateDriverUseCase} — `PUT /drivers/:id` (ADMIN only).
  *
  * @remarks
- * All fields are optional but CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`)
- * must be provided together — partial CNH updates throw {@link PartialCnhUpdateError}.
+ * All fields are optional but CNH fields (`cnh`, `cnhCategories`,
+ * `cnhExpiresAt`) must be provided together — partial CNH updates throw
+ * {@link PartialCnhUpdateError}. For driver self-service updates of
+ * `cnhExpiresAt` / `cnhCategories`, use `PATCH /drivers/me`.
  */
 export class UpdateDriverDto {
   @ApiPropertyOptional({
@@ -29,16 +34,22 @@ export class UpdateDriverDto {
   cnh?: string;
 
   @ApiPropertyOptional({
-    example: 'B',
-    description: 'Driver license category (A, B, C, D, E)',
+    example: ['A', 'B'],
+    description: 'Held CNH categories (drivers may hold multiple).',
+    isArray: true,
     enum: ['A', 'B', 'C', 'D', 'E'],
+    minItems: 1,
+    maxItems: 5,
   })
   @IsOptional()
-  @IsString({ message: 'CNH category must be a string' })
+  @IsArray({ message: 'cnhCategories must be an array' })
+  @ArrayMinSize(1, { message: 'At least one CNH category is required' })
+  @ArrayMaxSize(5, { message: 'At most 5 CNH categories are allowed' })
   @IsIn(['A', 'B', 'C', 'D', 'E'], {
-    message: 'CNH category must be one of: A, B, C, D, E',
+    each: true,
+    message: 'Each CNH category must be one of: A, B, C, D, E',
   })
-  cnhCategory?: string;
+  cnhCategories?: string[];
 
   @ApiPropertyOptional({
     example: '2028-12-31',

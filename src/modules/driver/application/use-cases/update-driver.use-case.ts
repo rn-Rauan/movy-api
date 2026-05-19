@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DriverRepository } from '../../domain/interfaces';
 import { DriverEntity } from '../../domain/entities/driver.entity';
-import { Cnh, CnhCategory } from '../../domain/entities/value-objects';
+import { Cnh, CnhCategories } from '../../domain/entities/value-objects';
 import { UpdateDriverDto } from '../dtos';
 import {
   DriverAccessForbiddenError,
@@ -14,7 +14,7 @@ import {
  * Partially updates a driver profile, scoped to the requesting organization.
  *
  * @remarks
- * CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`) follow an all-or-nothing rule:
+ * CNH fields (`cnh`, `cnhCategories`, `cnhExpiresAt`) follow an all-or-nothing rule:
  * providing only some of them throws {@link PartialCnhUpdateError}.
  * Organization ownership is verified before any mutation.
  */
@@ -53,9 +53,9 @@ export class UpdateDriverUseCase {
       throw new DriverAccessForbiddenError(id);
     }
 
-    const hasCnhFields = input.cnh || input.cnhCategory || input.cnhExpiresAt;
+    const hasCnhFields = input.cnh || input.cnhCategories || input.cnhExpiresAt;
     const hasAllCnhFields =
-      input.cnh && input.cnhCategory && input.cnhExpiresAt;
+      input.cnh && input.cnhCategories && input.cnhExpiresAt;
 
     if (hasCnhFields && !hasAllCnhFields) {
       throw new PartialCnhUpdateError();
@@ -64,7 +64,7 @@ export class UpdateDriverUseCase {
     if (hasAllCnhFields) {
       driver.updateCnh(
         Cnh.create(input.cnh!),
-        CnhCategory.create(input.cnhCategory!),
+        CnhCategories.create(input.cnhCategories!),
         new Date(input.cnhExpiresAt!),
       );
     }

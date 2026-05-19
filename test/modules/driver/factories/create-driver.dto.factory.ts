@@ -7,7 +7,7 @@ export function makeCreateDriverDto(
 ): CreateDriverDto {
   return {
     cnh: overrides.cnh ?? '123456789',
-    cnhCategory: overrides.cnhCategory ?? 'B',
+    cnhCategories: overrides.cnhCategories ?? ['B'],
     cnhExpiresAt: overrides.cnhExpiresAt ?? '2030-12-31',
   };
 }

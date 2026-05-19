@@ -105,3 +105,36 @@ export class TripInstanceCreationFailedError extends DomainError {
     super('Trip instance could not be persisted');
   }
 }
+
+/**
+ * Thrown when a driver attempts to act on a `TripInstance` they are not assigned to,
+ * or have no active driver profile in the requesting organisation.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`. Same message regardless of which sub-case
+ * triggered it (missing profile / inactive / not the assigned driver) to avoid
+ * leaking driver state to the caller.
+ */
+export class TripNotAssignedToDriverError extends DomainError {
+  code = 'TRIP_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN';
+
+  constructor(id: string) {
+    super(`Trip instance "${id}" is not assigned to the requesting driver`);
+  }
+}
+
+/**
+ * Thrown when a driver attempts to transition a trip to a status they are not
+ * allowed to set. Drivers may only transition to `IN_PROGRESS` (boarding) or
+ * `FINISHED` (arrival); all other transitions remain admin-only.
+ *
+ * @remarks Maps to HTTP `403 Forbidden`.
+ */
+export class DriverTripStatusTransitionForbiddenError extends DomainError {
+  code = 'DRIVER_TRIP_STATUS_TRANSITION_FORBIDDEN';
+
+  constructor(target: TripStatus) {
+    super(
+      `Drivers may only transition trips to IN_PROGRESS or FINISHED; "${target}" is not allowed`,
+    );
+  }
+}

@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsIn,
   IsNotEmpty,
@@ -13,7 +16,9 @@ import {
  *
  * @remarks
  * All three CNH fields are required. The CNH number must be 9–12 alphanumeric
- * characters; `cnhExpiresAt` must be a future ISO 8601 date string.
+ * characters; `cnhCategories` must contain at least one valid category
+ * (drivers may legally hold A+B simultaneously); `cnhExpiresAt` must be a
+ * future ISO 8601 date string.
  */
 export class CreateDriverDto {
   @ApiProperty({
@@ -29,16 +34,22 @@ export class CreateDriverDto {
   cnh: string;
 
   @ApiProperty({
-    example: 'B',
-    description: 'Driver license category (A, B, C, D, E)',
+    example: ['A', 'B'],
+    description:
+      'Held CNH categories. Drivers may hold multiple simultaneously.',
+    isArray: true,
     enum: ['A', 'B', 'C', 'D', 'E'],
+    minItems: 1,
+    maxItems: 5,
   })
-  @IsString({ message: 'CNH category must be a string' })
+  @IsArray({ message: 'cnhCategories must be an array' })
+  @ArrayMinSize(1, { message: 'At least one CNH category is required' })
+  @ArrayMaxSize(5, { message: 'At most 5 CNH categories are allowed' })
   @IsIn(['A', 'B', 'C', 'D', 'E'], {
-    message: 'CNH category must be one of: A, B, C, D, E',
+    each: true,
+    message: 'Each CNH category must be one of: A, B, C, D, E',
   })
-  @IsNotEmpty({ message: 'CNH category is required' })
-  cnhCategory: string;
+  cnhCategories: string[];
 
   @ApiProperty({
     example: '2028-12-31',

@@ -50,7 +50,7 @@ export class LookupDriverUseCase {
       userId: user.id,
       userName: user.name,
       userEmail: user.email,
-      cnhCategory: driver.cnhCategory.value_,
+      cnhCategories: [...driver.cnhCategories.values],
       cnhExpiresAt: driver.cnhExpiresAt,
       driverStatus: driver.driverStatus,
     });

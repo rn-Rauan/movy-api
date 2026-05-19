@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Put,
   Delete,
@@ -29,6 +30,7 @@ import {
 import {
   CreateDriverDto,
   UpdateDriverDto,
+  UpdateOwnDriverDto,
   DriverResponseDto,
   DriverLookupResponseDto,
   DriverNameResponseDto,
@@ -41,6 +43,7 @@ import {
   FindDriverByUserIdUseCase,
   FindDriverNameByIdUseCase,
   UpdateDriverUseCase,
+  UpdateOwnDriverUseCase,
   RemoveDriverUseCase,
   FindAllDriversByOrganizationUseCase,
   LookupDriverUseCase,
@@ -53,6 +56,7 @@ import {
  * Self-service endpoints (authenticated user, any role):
  * - `POST /drivers` — create own driver profile
  * - `GET /drivers/me` — get own driver profile
+ * - `PATCH /drivers/me` — update own CNH expiration / categories
  *
  * Admin-only endpoints (`RolesGuard` + `ADMIN` role):
  * - `GET /drivers/lookup` — look up a driver by email + CNH (enrollment)
@@ -73,6 +77,7 @@ export class DriverController {
     private readonly findDriverByUserIdUseCase: FindDriverByUserIdUseCase,
     private readonly findDriverNameByIdUseCase: FindDriverNameByIdUseCase,
     private readonly updateDriverUseCase: UpdateDriverUseCase,
+    private readonly updateOwnDriverUseCase: UpdateOwnDriverUseCase,
     private readonly removeDriverUseCase: RemoveDriverUseCase,
     private readonly findAllDriversByOrganizationUseCase: FindAllDriversByOrganizationUseCase,
     private readonly lookupDriverUseCase: LookupDriverUseCase,
@@ -107,6 +112,32 @@ export class DriverController {
   })
   async getMe(@GetUser() context: TenantContext): Promise<DriverResponseDto> {
     const driver = await this.findDriverByUserIdUseCase.execute(context.userId);
+    return DriverPresenter.toHTTP(driver);
+  }
+
+  @Patch('me')
+  @ApiOperation({
+    summary: 'Update own driver profile (CNH expiration / categories)',
+    description:
+      'Self-service update for the authenticated driver. Only ' +
+      '`cnhExpiresAt` and `cnhCategories` may be changed; changing the CNH ' +
+      'number or driver status requires an admin (PUT /drivers/:id). ' +
+      'Drivers in INACTIVE or SUSPENDED state cannot self-update. ' +
+      'An empty payload is a no-op.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated driver profile.',
+    type: DriverResponseDto,
+  })
+  async updateMe(
+    @Body() updateDto: UpdateOwnDriverDto,
+    @GetUser() context: TenantContext,
+  ): Promise<DriverResponseDto> {
+    const driver = await this.updateOwnDriverUseCase.execute(
+      context.userId,
+      updateDto,
+    );
     return DriverPresenter.toHTTP(driver);
   }
 

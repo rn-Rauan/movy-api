@@ -24,15 +24,20 @@ export class InvalidCnhError extends DriverValidationError {
 }
 
 /**
- * Thrown when a CNH category is not one of the allowed values (A, B, C, D, E).
- * HTTP 400 — code: `INVALID_CNH_CATEGORY`
+ * Thrown when the CNH categories collection is empty or contains an unknown value.
+ * HTTP 400 — code: `INVALID_CNH_CATEGORIES_BAD_REQUEST`
  */
-export class InvalidCnhCategoryError extends DriverValidationError {
-  code = 'INVALID_CNH_CATEGORY';
+export class InvalidCnhCategoriesError extends DriverValidationError {
+  code = 'INVALID_CNH_CATEGORIES_BAD_REQUEST';
 
-  constructor(category: string) {
+  constructor(values: unknown, reason?: string) {
+    const printable = Array.isArray(values)
+      ? `[${values.join(', ')}]`
+      : String(values);
     super(
-      `Invalid CNH category "${category}". Valid categories are: A, B, C, D, E`,
+      reason
+        ? `Invalid CNH categories ${printable}: ${reason}. Valid categories are: A, B, C, D, E`
+        : `Invalid CNH categories ${printable}. Valid categories are: A, B, C, D, E`,
     );
   }
 }
@@ -163,7 +168,7 @@ export class PartialCnhUpdateError extends DriverValidationError {
 
   constructor() {
     super(
-      'To update CNH, all fields must be provided: cnh, cnhCategory, cnhExpiresAt',
+      'To update CNH, all fields must be provided: cnh, cnhCategories, cnhExpiresAt',
     );
   }
 }
@@ -177,5 +182,31 @@ export class DriverAccessForbiddenError extends DomainError {
 
   constructor(id: string) {
     super(`Access to driver "${id}" is forbidden`);
+  }
+}
+
+/**
+ * Thrown when the authenticated user has no driver profile yet.
+ * Used by self-service driver endpoints (e.g. `PATCH /drivers/me`).
+ * HTTP 404 — code: `DRIVER_PROFILE_NOT_FOUND`
+ */
+export class DriverProfileNotFoundError extends DriverValidationError {
+  code = 'DRIVER_PROFILE_NOT_FOUND';
+
+  constructor(userId: string) {
+    super(`User "${userId}" has no driver profile`);
+  }
+}
+
+/**
+ * Thrown when an inactive driver attempts a self-service action.
+ * Inactive covers `INACTIVE` (soft-deleted) and `SUSPENDED`.
+ * HTTP 403 — code: `DRIVER_INACTIVE_FORBIDDEN`
+ */
+export class DriverInactiveError extends DomainError {
+  code = 'DRIVER_INACTIVE_FORBIDDEN';
+
+  constructor(driverId: string, status: string) {
+    super(`Driver "${driverId}" is ${status} and cannot perform this action`);
   }
 }

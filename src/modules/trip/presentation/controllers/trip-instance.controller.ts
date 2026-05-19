@@ -49,8 +49,10 @@ import { TripInstancePresenter } from '../mappers/trip-instance.presenter';
  * HTTP controller for the Trip Instances sub-resource.
  *
  * All endpoints require authentication (`JwtAuthGuard`). Most are further
- * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`);
- * `GET /trip-instances/driver/me` is scoped to the `DRIVER` role.
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ * `GET /trip-instances/driver/me` is scoped to the `DRIVER` role;
+ * `PATCH /trip-instances/:id/status` is open to `ADMIN` and `DRIVER` with
+ * fine-grained authorisation enforced inside the use case.
  *
  * Endpoints:
  * - `POST /trip-instances/organization/:organizationId` — create instance from template
@@ -60,6 +62,7 @@ import { TripInstancePresenter } from '../mappers/trip-instance.presenter';
  *   (paginated, scoped to the caller's organisation; filters by status)
  * - `GET /trip-instances/:id` — get by ID
  * - `PATCH /trip-instances/:id/status` — transition lifecycle status
+ *   (ADMIN: any valid transition; DRIVER: own trips, IN_PROGRESS / FINISHED only)
  * - `PUT /trip-instances/:id/driver` — assign / unassign driver
  * - `PUT /trip-instances/:id/vehicle` — assign / unassign vehicle
  *
@@ -230,9 +233,14 @@ export class TripInstanceController {
 
   @Patch(':id/status')
   @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
   @ApiOperation({
-    summary: '[ADMIN] Transition trip instance to a new lifecycle status',
+    summary:
+      '[ADMIN | DRIVER] Transition trip instance to a new lifecycle status',
+    description:
+      'ADMIN may invoke any valid state transition. DRIVER may only transition ' +
+      'trips assigned to them, and only to IN_PROGRESS (boarding) or FINISHED ' +
+      '(arrival). Other transitions remain admin-only.',
   })
   @ApiParam({ name: 'id', description: 'UUID of the trip instance' })
   @ApiResponse({
@@ -249,6 +257,7 @@ export class TripInstanceController {
       id,
       dto,
       context.organizationId!,
+      { userId: context.userId, role: context.role },
     );
     return TripInstancePresenter.toHTTP(instance);
   }

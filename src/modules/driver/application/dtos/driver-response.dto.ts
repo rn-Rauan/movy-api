@@ -27,10 +27,12 @@ export class DriverResponseDto {
   cnh: string;
 
   @ApiProperty({
-    example: 'B',
-    description: 'Driver license category',
+    example: ['A', 'B'],
+    description: 'Held CNH categories (drivers may hold multiple).',
+    isArray: true,
+    enum: ['A', 'B', 'C', 'D', 'E'],
   })
-  cnhCategory: string;
+  cnhCategories: string[];
 
   @ApiProperty({
     example: '2028-12-31T00:00:00.000Z',

@@ -3,6 +3,7 @@ export * from './find-driver-by-id.use-case';
 export * from './find-driver-by-user-id.use-case';
 export * from './find-driver-name-by-id.use-case';
 export * from './update-driver.use-case';
+export * from './update-own-driver.use-case';
 export * from './remove-driver.use-case';
 export * from './find-all-drivers-by-organization.use-case';
 export * from './lookup-driver.use-case';

@@ -258,7 +258,7 @@ model Driver {
   id             String         @id @default(uuid())
   userId         String         @unique
   cnh            String         @unique @db.VarChar(20)
-  cnhCategory    String         @db.VarChar(5)
+  cnhCategories  String[]
   cnhExpiresAt   DateTime
   driverStatus   DriverStatus   @default(ACTIVE)
   createdAt      DateTime       @default(now())

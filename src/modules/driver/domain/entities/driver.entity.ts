@@ -1,12 +1,12 @@
 import { DriverStatus } from '../interfaces/enums/driver-status.enum';
-import { Cnh, CnhCategory } from './value-objects';
+import { Cnh, CnhCategories } from './value-objects';
 
 /** @internal */
 export interface DriverProps {
   readonly id: string;
   userId: string;
   cnh: Cnh;
-  cnhCategory: CnhCategory;
+  cnhCategories: CnhCategories;
   cnhExpiresAt: Date;
   readonly createdAt?: Date;
   updatedAt?: Date;
@@ -18,8 +18,9 @@ export interface DriverProps {
  *
  * @remarks
  * A driver is always associated with exactly one user (`userId`).
- * CNH fields (`cnh`, `cnhCategory`, `cnhExpiresAt`) can only be updated
- * atomically — partial updates throw {@link PartialCnhUpdateError}.
+ * CNH fields (`cnh`, `cnhCategories`, `cnhExpiresAt`) can be updated atomically
+ * via {@link updateCnh} (admin flow, all-or-nothing) or partially via
+ * {@link setCnhExpiresAt} / {@link setCnhCategories} (driver self-service).
  * Status transitions: `ACTIVE` → `INACTIVE` | `SUSPENDED`.
  *
  * @see {@link DriverRepository} for persistence operations
@@ -40,9 +41,6 @@ export class DriverEntity {
 
   /**
    * Creates a new driver profile with default `ACTIVE` status.
-   *
-   * @param props - Driver properties (omits `createdAt`, `updatedAt`)
-   * @returns A new {@link DriverEntity} instance
    */
   static create(
     props: Omit<DriverProps, 'createdAt' | 'status' | 'updatedAt'>,
@@ -52,9 +50,6 @@ export class DriverEntity {
 
   /**
    * Restores a driver from persisted data (skips default assignment).
-   *
-   * @param props - Full driver properties from storage
-   * @returns A hydrated {@link DriverEntity} instance
    */
   static restore(props: DriverProps): DriverEntity {
     return new DriverEntity(props);
@@ -72,8 +67,8 @@ export class DriverEntity {
     return this.props.cnh;
   }
 
-  get cnhCategory(): CnhCategory {
-    return this.props.cnhCategory;
+  get cnhCategories(): CnhCategories {
+    return this.props.cnhCategories;
   }
 
   get cnhExpiresAt(): Date {
@@ -108,37 +103,45 @@ export class DriverEntity {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 
-  /**
-   * Activate driver
-   */
   activate(): void {
     this.props.driverStatus = DriverStatus.ACTIVE;
     this.props.updatedAt = new Date();
   }
 
-  /**
-   * Deactivate driver
-   */
   deactivate(): void {
     this.props.driverStatus = DriverStatus.INACTIVE;
     this.props.updatedAt = new Date();
   }
 
-  /**
-   * Suspend driver
-   */
   suspend(): void {
     this.props.driverStatus = DriverStatus.SUSPENDED;
     this.props.updatedAt = new Date();
   }
 
   /**
-   * Update CNH information
+   * Atomic CNH update — replaces all three fields together (admin flow).
    */
-  updateCnh(cnh: Cnh, category: CnhCategory, expiresAt: Date): void {
+  updateCnh(cnh: Cnh, categories: CnhCategories, expiresAt: Date): void {
     this.props.cnh = cnh;
-    this.props.cnhCategory = category;
+    this.props.cnhCategories = categories;
     this.props.cnhExpiresAt = expiresAt;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Partial update for driver self-service: refresh CNH expiration date only.
+   */
+  setCnhExpiresAt(expiresAt: Date): void {
+    this.props.cnhExpiresAt = expiresAt;
+    this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Partial update for driver self-service: replace held CNH categories.
+   * Use this when a driver gains/loses a category (e.g. adds D after a course).
+   */
+  setCnhCategories(categories: CnhCategories): void {
+    this.props.cnhCategories = categories;
     this.props.updatedAt = new Date();
   }
 }

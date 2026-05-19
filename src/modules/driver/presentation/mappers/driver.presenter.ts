@@ -4,7 +4,7 @@ import { DriverResponseDto } from '../../application/dtos/driver-response.dto';
 /**
  * Serialises a {@link DriverEntity} domain object into the HTTP response shape {@link DriverResponseDto}.
  *
- * Extracts raw values from Value Objects (`Cnh.value_`, `CnhCategory.value_`).
+ * Extracts raw values from Value Objects (`Cnh.value_`, `CnhCategories.values`).
  * Should be called exclusively from controller methods, never from use cases.
  */
 export class DriverPresenter {
@@ -19,7 +19,7 @@ export class DriverPresenter {
       id: driver.id,
       userId: driver.userId,
       cnh: driver.cnh.value_,
-      cnhCategory: driver.cnhCategory.value_,
+      cnhCategories: [...driver.cnhCategories.values],
       cnhExpiresAt: driver.cnhExpiresAt,
       driverStatus: driver.driverStatus,
       createdAt: driver.createdAt,
