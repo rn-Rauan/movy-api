@@ -166,7 +166,7 @@ export class SetupOrganizationForExistingUserUseCase {
         name: user.name,
         email: user.email,
         telephone: user.telephone,
-        emailVerifiedAt: null,
+        emailVerifiedAt: user.emailVerifiedAt,
       },
     };
   }

@@ -3,3 +3,7 @@ export * from './register.use-case';
 export * from './register-organization-with-admin.use-case';
 export * from './setup-organization-for-existing-user.use-case';
 export * from './refresh-token.use-case';
+export * from './forgot-password.use-case';
+export * from './reset-password.use-case';
+export * from './verify-email.use-case';
+export * from './send-email-verification.use-case';

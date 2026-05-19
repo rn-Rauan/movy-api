@@ -16,6 +16,7 @@ import { JwtPayloadService } from '../services/jwt-payload.service';
 import { RegisterOrganizationWithAdminDto } from '../dtos/register-organization.dto';
 import { TokenResponseDto } from '../dtos';
 import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
+import { SendEmailVerificationUseCase } from './send-email-verification.use-case';
 
 /**
  * Atomically registers a new user, an organization, and an `ADMIN` membership
@@ -48,6 +49,7 @@ export class RegisterOrganizationWithAdminUseCase {
     private readonly subscribeToPlanUseCase: SubscribeToPlanUseCase,
     private readonly planRepository: PlanRepository,
     private readonly tripSchedulingConfigRepository: TripSchedulingConfigRepository,
+    private readonly sendEmailVerification: SendEmailVerificationUseCase,
   ) {}
 
   /**
@@ -135,6 +137,15 @@ export class RegisterOrganizationWithAdminUseCase {
       );
     }
 
+    // Fire-and-forget email verification — failure must not break registration.
+    try {
+      await this.sendEmailVerification.execute(user.id, user.email, user.name);
+    } catch (err) {
+      this.logger.warn(
+        `[RegisterOrg] verification email failed for userId=${user.id}: ${(err as Error).message}`,
+      );
+    }
+
     // 4. Generate JWT directly (no re-authentication needed)
     const enrichedPayload = await this.jwtPayloadService.enrichPayload(user.id);
     const accessToken = this.jwtService.sign(enrichedPayload);
@@ -154,7 +165,7 @@ export class RegisterOrganizationWithAdminUseCase {
         name: user.name,
         email: user.email,
         telephone: user.telephone,
-        emailVerifiedAt: null,
+        emailVerifiedAt: user.emailVerifiedAt,
       },
     };
   }

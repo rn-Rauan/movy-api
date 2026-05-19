@@ -175,24 +175,55 @@ model Role {
 }
 
 model User {
-  id             String       @id @default(uuid())
-  name           String       @db.VarChar(255)
-  email          String       @unique @db.VarChar(255)
-  passwordHash   String
-  telephone      String       @db.VarChar(20)
-  status         Status       @default(ACTIVE)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id               String       @id @default(uuid())
+  name             String       @db.VarChar(255)
+  email            String       @unique @db.VarChar(255)
+  passwordHash     String
+  telephone        String       @db.VarChar(20)
+  status           Status       @default(ACTIVE)
+  emailVerifiedAt  DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   // Relations
-  userRoles      OrganizationMembership[] @relation("UserToMembership")
-  driver         Driver?                  @relation("DriverUser")
-  enrollments    Enrollment[]             @relation("EnrollmentUser")
-  auditLogs      AuditLog[]               @relation("AuditLogUser")
-  refreshTokens  RefreshToken[]           @relation("UserRefreshTokens")
+  userRoles                OrganizationMembership[]   @relation("UserToMembership")
+  driver                   Driver?                    @relation("DriverUser")
+  enrollments              Enrollment[]               @relation("EnrollmentUser")
+  auditLogs                AuditLog[]                 @relation("AuditLogUser")
+  refreshTokens            RefreshToken[]             @relation("UserRefreshTokens")
+  passwordResetTokens      PasswordResetToken[]       @relation("UserPasswordResetTokens")
+  emailVerificationTokens  EmailVerificationToken[]   @relation("UserEmailVerificationTokens")
 
   @@index([status])
   @@map("user")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_token")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation("UserEmailVerificationTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_token")
 }
 
 model RefreshToken {

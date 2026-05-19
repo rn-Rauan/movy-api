@@ -24,6 +24,13 @@ export class UserResponseDto {
   @ApiProperty({ enum: ['ACTIVE', 'INACTIVE'] })
   status: Status;
 
+  @ApiProperty({
+    nullable: true,
+    description:
+      'Timestamp when the user verified their email; null until verified',
+  })
+  emailVerifiedAt: Date | null;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -36,6 +43,7 @@ export class UserResponseDto {
     email: string;
     telephone: string;
     status: Status;
+    emailVerifiedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -44,6 +52,7 @@ export class UserResponseDto {
     this.email = data.email;
     this.telephone = data.telephone;
     this.status = data.status;
+    this.emailVerifiedAt = data.emailVerifiedAt;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }

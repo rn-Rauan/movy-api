@@ -17,6 +17,7 @@ import { makeJwtPayload } from '../../factories/jwt-payload.factory';
 import { makeRegisterOrgDto } from '../../factories/register-org.dto.factory';
 import { TransactionManager } from 'src/shared/infrastructure/database/transaction-manager';
 import { makeMembership } from 'test/modules/membership/factories/membership.factory';
+import { SendEmailVerificationUseCase } from 'src/modules/auth/application/use-cases/send-email-verification.use-case';
 
 // ── Mock helpers ────────────────────────────────────────────
 
@@ -55,6 +56,10 @@ function makeMocks() {
     update: jest.fn(),
   } as any as jest.Mocked<TripSchedulingConfigRepository>;
 
+  const sendEmailVerificationUseCase = {
+    execute: jest.fn().mockResolvedValue(undefined),
+  } as any as jest.Mocked<SendEmailVerificationUseCase>;
+
   return {
     createUserUseCase,
     createOrganizationUseCase,
@@ -66,6 +71,7 @@ function makeMocks() {
     subscribeToPlanUseCase,
     planRepository,
     tripSchedulingConfigRepository,
+    sendEmailVerificationUseCase,
   };
 }
 
@@ -112,6 +118,7 @@ describe('RegisterOrganizationWithAdminUseCase', () => {
       mocks.subscribeToPlanUseCase,
       mocks.planRepository,
       mocks.tripSchedulingConfigRepository,
+      mocks.sendEmailVerificationUseCase,
     );
   });
 

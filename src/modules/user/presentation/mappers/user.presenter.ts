@@ -21,6 +21,7 @@ export class UserPresenter {
       email: user.email,
       telephone: user.telephone,
       status: user.status,
+      emailVerifiedAt: user.emailVerifiedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

@@ -27,6 +27,7 @@ export class UserMapper {
       passwordHash: PasswordHash.create(raw.passwordHash),
       telephone: Telephone.restore(raw.telephone),
       status: raw.status,
+      emailVerifiedAt: raw.emailVerifiedAt,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -47,6 +48,7 @@ export class UserMapper {
       passwordHash: user.passwordHash,
       telephone: user.telephone,
       status: user.status,
+      emailVerifiedAt: user.emailVerifiedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

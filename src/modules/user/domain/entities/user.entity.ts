@@ -15,6 +15,7 @@ export interface UserProps {
   readonly createdAt?: Date;
   updatedAt?: Date;
   status?: Status;
+  emailVerifiedAt?: Date | null;
 }
 /**
  * Aggregate root representing a registered user of the Movy platform.
@@ -41,6 +42,7 @@ export class User {
       status: props.status ?? ('ACTIVE' as Status),
       createdAt: props.createdAt ?? now,
       updatedAt: props.updatedAt ?? now,
+      emailVerifiedAt: props.emailVerifiedAt ?? null,
     };
   }
 
@@ -124,5 +126,19 @@ export class User {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  get emailVerifiedAt(): Date | null {
+    return this.props.emailVerifiedAt;
+  }
+
+  /**
+   * Marks the user's email as verified at the current instant. Idempotent — calling
+   * a second time overwrites the timestamp (acceptable since each verification token
+   * is one-shot and `usedAt`-tracked separately).
+   */
+  markEmailVerified(): void {
+    this.props.emailVerifiedAt = new Date();
+    this.props.updatedAt = new Date();
   }
 }

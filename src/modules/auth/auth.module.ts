@@ -14,17 +14,25 @@ import { BcryptHashProvider } from 'src/shared/providers/hash/bcrypt-hash.provid
 import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { AuthController } from './presentation/controllers/auth.controller';
 import {
+  ForgotPasswordUseCase,
   LoginUseCase,
   RefreshTokenUseCase,
   RegisterOrganizationWithAdminUseCase,
   RegisterUseCase,
+  ResetPasswordUseCase,
+  SendEmailVerificationUseCase,
   SetupOrganizationForExistingUserUseCase,
+  VerifyEmailUseCase,
 } from './application/use-cases';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
 import { JwtPayloadService } from './application/services/jwt-payload.service';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 import { RefreshTokenRepository } from './domain/interfaces/refresh-token-repository.interface';
 import { PrismaRefreshTokenRepository } from './infrastructure/db/repositories/prisma-refresh-token.repository';
+import { PasswordResetTokenRepository } from './domain/interfaces/password-reset-token.repository';
+import { PrismaPasswordResetTokenRepository } from './infrastructure/db/repositories/prisma-password-reset-token.repository';
+import { EmailVerificationTokenRepository } from './domain/interfaces/email-verification-token.repository';
+import { PrismaEmailVerificationTokenRepository } from './infrastructure/db/repositories/prisma-email-verification-token.repository';
 
 /**
  * NestJS module providing all authentication and JWT infrastructure.
@@ -88,6 +96,10 @@ import { PrismaRefreshTokenRepository } from './infrastructure/db/repositories/p
     SetupOrganizationForExistingUserUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
+    ForgotPasswordUseCase,
+    ResetPasswordUseCase,
+    VerifyEmailUseCase,
+    SendEmailVerificationUseCase,
     JwtPayloadService,
     JwtStrategy,
     {
@@ -97,6 +109,14 @@ import { PrismaRefreshTokenRepository } from './infrastructure/db/repositories/p
     {
       provide: RefreshTokenRepository,
       useClass: PrismaRefreshTokenRepository,
+    },
+    {
+      provide: PasswordResetTokenRepository,
+      useClass: PrismaPasswordResetTokenRepository,
+    },
+    {
+      provide: EmailVerificationTokenRepository,
+      useClass: PrismaEmailVerificationTokenRepository,
     },
   ],
   exports: [JwtStrategy, PassportModule, JwtModule],

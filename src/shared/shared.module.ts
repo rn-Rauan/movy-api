@@ -9,6 +9,10 @@ import { BcryptHashProvider } from './providers/hash/bcrypt-hash.provider';
 import { RolesGuard } from './infrastructure/guards/roles.guard';
 import { TenantFilterGuard } from './infrastructure/guards/tenant-filter.guard';
 import { DevGuard } from './infrastructure/guards/dev.guard';
+import { EmailService } from './infrastructure/email/email.service.interface';
+import { ConsoleEmailService } from './infrastructure/email/console-email.service';
+import { InMemoryEmailLog } from './infrastructure/email/in-memory-email-log';
+import { DevEmailsController } from './presentation/controllers/dev-emails.controller';
 
 /**
  * `@Global()` NestJS module that exports shared infrastructure to every module
@@ -25,6 +29,7 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
 @Global()
 @Module({
   imports: [PrismaModule],
+  controllers: [DevEmailsController],
   providers: [
     JwtAuthGuard,
     RolesGuard,
@@ -39,6 +44,8 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
     },
     BcryptHashProvider,
     TenantFilterGuard,
+    InMemoryEmailLog,
+    { provide: EmailService, useClass: ConsoleEmailService },
   ],
   exports: [
     PrismaModule,
@@ -47,6 +54,8 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
     TenantFilterGuard,
     RolesGuard,
     DevGuard,
+    EmailService,
+    InMemoryEmailLog,
   ],
 })
 export class SharedModule {}
