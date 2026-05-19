@@ -38,6 +38,7 @@ Paginated endpoints accept `?page=1&limit=10` query params and always return:
 | 🌐 Public | No auth required |
 | 🔒 JWT | Any logged-in user |
 | 🛡️ ADMIN | Requires ADMIN role in the relevant organization |
+| 🚗 DRIVER | Requires DRIVER role in the relevant organization |
 | 🧑‍💻 DEV | Dev-only emails (bypass all tenant checks) |
 
 ---
@@ -135,6 +136,53 @@ Create an organization for a user that already has an account (without a org yet
 
 **Response `201`** → [TokenResponse](#tokenresponse)  
 **`409`** → Organization already exists
+
+---
+
+### `POST /auth/forgot-password` 🌐 Public
+Request a password-reset email. **Always returns `204`**, even if the email is not registered — this is a constant-response design to prevent account enumeration. Do **not** show the user a different message based on the status code. Always render the same generic confirmation ("If your email is registered, you'll receive a recovery link").
+
+If the email maps to an `ACTIVE` user, a reset token is emailed (TTL **1 hour**). The user then submits the token to `POST /auth/reset-password`.
+
+> **In dev mode**, the email goes to the in-memory mock (see [`GET /dev/emails/latest`](#get-devemailslatest--dev)). Dev users can puxar o token de lá para auto-preencher a tela de reset.
+
+**Body**
+| Field | Type | Required |
+|---|---|---|
+| `email` | string (email format) | ✅ |
+
+**Response `204`** → No content (always, regardless of email existence)
+
+---
+
+### `POST /auth/reset-password` 🌐 Public
+Redeem a password-reset token and set a new password. On success, **all the user's active refresh tokens are revoked** (anti-takeover protection) and a fresh access/refresh pair is issued — i.e. the user is auto-logged-in. The FE should save these tokens and redirect to the dashboard, no extra login screen needed.
+
+**Body**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `token` | string | ✅ | Raw token received by email (or via `/dev/emails/latest` in dev) |
+| `newPassword` | string (min 8) | ✅ | |
+
+**Response `200`** → [TokenResponse](#tokenresponse)
+**`400`** → `INVALID_OR_EXPIRED_RESET_TOKEN_BAD_REQUEST` (token missing, expired, or already used — three cases collapse into one error)
+
+---
+
+### `POST /auth/verify-email` 🌐 Public
+Mark the authenticated user's email as verified. After a successful call, `user.emailVerifiedAt` on subsequent `TokenResponse`s will be a date (was `null`).
+
+Token TTL is **24 hours**. The token is single-use — calling twice returns `400`.
+
+After a `204`, call `POST /auth/refresh` to obtain a new `TokenResponse` with `user.emailVerifiedAt` populated (the previous JWT was issued before verification and still reflects `null` in the embedded user object).
+
+**Body**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `token` | string | ✅ | Raw token received by email (or via `/dev/emails/latest` in dev) |
+
+**Response `204`** → No content
+**`400`** → `INVALID_OR_EXPIRED_VERIFICATION_TOKEN_BAD_REQUEST`
 
 ---
 
@@ -591,6 +639,25 @@ List all instances for a specific template (paginated).
 
 ---
 
+### `GET /trip-instances/driver/me` 🚗 DRIVER
+List trip instances **assigned to the current driver**, scoped to the caller's organization. Self-service equivalent of the admin listing — the driver sees only their own trips.
+
+**Important behaviour:**
+- Scoped to `ctx.organizationId` from the JWT — drivers with memberships in multiple orgs only see trips from the org they're currently signed-in to. No cross-tenant leak.
+- If the caller has no driver profile (still onboarding) **or** their driver profile is `INACTIVE`/`SUSPENDED`, the endpoint returns an empty page (`data: [], total: 0`) — **not** a 403 or 404. The FE can render "no trips assigned yet" the same way for all three cases.
+- Returns the **same enriched shape** as the admin listing (`bookedCount`, `availableSlots`, denormalized template fields) via a single JOIN — no N+1, no follow-up calls needed.
+
+**Query**
+| Param | Type | Notes |
+|---|---|---|
+| `page` | integer (≥1) | Default 1 |
+| `limit` | integer (≥1) | Default 10 |
+| `status` | `"DRAFT"`\|`"SCHEDULED"`\|`"CONFIRMED"`\|`"IN_PROGRESS"`\|`"FINISHED"`\|`"CANCELED"` | Optional filter |
+
+**Response `200`** → Paginated [[TripInstanceResponse](#tripinstanceresponse)] (with `bookedCount`, `availableSlots`, `departurePoint`, `destination`, prices populated)
+
+---
+
 ### `GET /trip-instances/{id}` 🔒 JWT
 Get a trip instance by ID. **Enriched response** — joins the parent template (`id`, `origin`, `destination`, `stops`) and live occupancy (`bookedCount`, `availableSlots`) in a single query, so the FE no longer needs a follow-up `GET /trip-templates/{id}` call.
 
@@ -839,8 +906,19 @@ Counts come from the same repository methods used by the backend's plan-limit ga
 
 ## Plans
 
+### `GET /public/plans` 🌐 Public
+List all **active** plans (paginated), no authentication required. Use this on the onboarding/signup flow to render the "choose your plan" cards before the user has an account.
+
+Only plans with `isActive = true` are returned. Ordered by `id` ascending (matches the price tier order: FREE → BASIC → PRO → PREMIUM).
+
+**Query:** `?page=1&limit=10`
+
+**Response `200`** → Paginated [[PlanResponse](#planresponse)]
+
+---
+
 ### `GET /plans` 🔒 JWT
-List all available plans (paginated).
+List all available plans (paginated), including inactive ones. For the in-app plan management UI (post-login).
 
 **Response `200`** → Paginated [[PlanResponse](#planresponse)]
 
@@ -871,17 +949,48 @@ Get a payment by ID.
 
 ---
 
-### `PATCH /organizations/{organizationId}/payments/{id}/confirm` 🛡️ ADMIN
+### `PATCH /organizations/{organizationId}/payments/{id}/confirm` 🛡️ ADMIN | 🚗 DRIVER
 Confirm a PENDING payment (simulated — no real payment gateway).
 
+**Authorization:**
+- **ADMIN** of the tenant: always allowed (subject to the standard tenant filter).
+- **DRIVER** of the tenant: allowed **only if** the payment's TripInstance is currently assigned to this driver and the driver's profile is `ACTIVE`. Use this for the driver-app flow where the driver collects fare on boarding (e.g. cash) and confirms the payment from their phone.
+
 **Response `200`** → [PaymentResponse](#paymentresponse)
+**`400`** → `PAYMENT_ALREADY_PROCESSED_BAD_REQUEST` (payment is no longer `PENDING`)
+**`403`** → `PAYMENT_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN` (the calling driver doesn't own this trip, or is `INACTIVE`/`SUSPENDED`)
+**`404`** → `PAYMENT_NOT_FOUND` (or payment belongs to a different organization)
 
 ---
 
-### `PATCH /organizations/{organizationId}/payments/{id}/fail` 🛡️ ADMIN
-Fail a PENDING payment (simulated).
+### `PATCH /organizations/{organizationId}/payments/{id}/fail` 🛡️ ADMIN | 🚗 DRIVER
+Fail a PENDING payment (simulated). Same authorization rules and error codes as the `confirm` endpoint above.
 
 **Response `200`** → [PaymentResponse](#paymentresponse)
+**`400`** → `PAYMENT_ALREADY_PROCESSED_BAD_REQUEST`
+**`403`** → `PAYMENT_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN`
+**`404`** → `PAYMENT_NOT_FOUND`
+
+---
+
+## Dev Tools
+
+Routes restricted to **developer accounts** (`DEV_EMAILS` env var on the backend lists which emails get `isDev=true` in the JWT). Used during development to inspect side-effects that would normally happen out-of-band (e.g. email delivery).
+
+### `GET /dev/emails/latest` 🧑‍💻 DEV
+Read the in-memory log of emails "sent" by the mock `EmailService`. The backend currently uses `ConsoleEmailService` — every call to `EmailService.send(...)` (password reset, email verification) appends the message to a bounded FIFO buffer (last 50). This endpoint exposes that buffer for the FE dev tooling.
+
+Typical flow: user clicks "Forgot password" → FE polls or fetches this endpoint with `?to=<email>` → grabs the raw token from the latest entry's `metadata.token` → auto-fills the reset-password form.
+
+> **In production**, the backend swaps `ConsoleEmailService` for a real SMTP/Resend adapter. This endpoint will likely return an empty array (the prod implementation won't write to the in-memory log). Treat the FE "puxar do mock" UX as **dev-only** and gate it behind a build flag.
+
+**Query**
+| Param | Type | Notes |
+|---|---|---|
+| `to` | string (email) | Optional. When provided, returns only the **latest** email sent to that recipient (wrapped in an array; empty if none). |
+| `limit` | integer | Default 10. Ignored when `to` is provided. |
+
+**Response `200`** → array of [SentEmailRecord](#sentemailrecord), newest first
 
 ---
 
@@ -895,10 +1004,15 @@ Fail a PENDING payment (simulated).
   "user": {
     "id": "uuid",
     "name": "John Doe",
-    "email": "john@example.com"
+    "email": "john@example.com",
+    "telephone": "11999999999",
+    "emailVerifiedAt": null
   }
 }
 ```
+
+> `telephone` and `emailVerifiedAt` were added on 18 May 2026 (Phase 1 of the FE-blocker mitigation).
+> `emailVerifiedAt` is `null` until the user redeems an email-verification token via `POST /auth/verify-email`; once verified, it becomes an ISO-8601 timestamp.
 
 ### UserResponse
 ```json
@@ -908,10 +1022,13 @@ Fail a PENDING payment (simulated).
   "email": "john@example.com",
   "telephone": "11999999999",
   "status": "ACTIVE",
+  "emailVerifiedAt": null,
   "createdAt": "2026-01-01T00:00:00.000Z",
   "updatedAt": "2026-01-01T00:00:00.000Z"
 }
 ```
+
+> `emailVerifiedAt` is `null` until verified, otherwise an ISO-8601 timestamp.
 
 ### OrganizationResponse
 ```json
@@ -1183,6 +1300,27 @@ Same as BookingResponse plus:
 - `skipped` — days skipped because the day fell outside the template frequency, an instance already existed (idempotency), the departure was in the past, or a parallel writer won the unique-constraint race.
 - `failed` — per-day save failures (logged server-side; the sweep does **not** abort on a single failure).
 
+### SentEmailRecord
+Shape returned by `GET /dev/emails/latest` for each entry in the mock email buffer.
+
+```json
+{
+  "to": "user@example.com",
+  "subject": "Confirme seu email — Movy",
+  "body": "Olá João,\n\nConfirme seu email...\n\nToken: a8b9d3f0-1234-4abc-9def-fedcba987654\n\nO token expira em 24 horas...",
+  "metadata": {
+    "kind": "email_verification",
+    "userId": "uuid",
+    "token": "a8b9d3f0-1234-4abc-9def-fedcba987654"
+  },
+  "sentAt": "2026-05-18T20:32:43.123Z"
+}
+```
+
+- `metadata.kind` — either `"email_verification"` (24h TTL) or `"password_reset"` (1h TTL). Use this to know which form to autofill in the FE.
+- `metadata.token` — the **raw** token. Same value that's embedded in `body`. Use this one for autofill (the body is just for human-readable rendering in a dev inbox UI).
+- `body` is plain text in the current mock implementation.
+
 ---
 
 ## Common Errors
@@ -1218,6 +1356,25 @@ The `error` field carries a stable domain error code — use it (not `message`) 
 | `BOOKING_CANCEL_WINDOW_CLOSED_BAD_REQUEST` | Departure is within 30 minutes | "Cancellation closes 30 minutes before departure." |
 | `BOOKING_TRIP_TERMINAL_BAD_REQUEST` | Trip is `IN_PROGRESS` or `FINISHED` | "This trip already started — bookings can no longer be cancelled." |
 | `BOOKING_ALREADY_INACTIVE_BAD_REQUEST` | Booking is already cancelled | "This booking has already been cancelled." |
+
+### Auth — Password Reset & Email Verification Error Codes
+
+Returned by `POST /auth/reset-password` and `POST /auth/verify-email`. All collapse three failure modes (missing, expired, already used) into a single error to prevent information leakage — the user-facing copy should always be the same regardless of the underlying cause, with a clear next step (request a new link).
+
+| `error` | HTTP | Meaning | Suggested copy |
+|---|---|---|---|
+| `INVALID_OR_EXPIRED_RESET_TOKEN_BAD_REQUEST` | 400 | Reset token missing, expired (>1h), or already used | "This password recovery link is no longer valid. Request a new one." |
+| `INVALID_OR_EXPIRED_VERIFICATION_TOKEN_BAD_REQUEST` | 400 | Verification token missing, expired (>24h), or already used | "This verification link is no longer valid. Request a new one." |
+
+> `POST /auth/forgot-password` **never** returns these errors — it always responds `204` regardless of email existence. Do not surface "email not found" to the user; show the same generic confirmation in all cases.
+
+### Payment Driver Authorization Error Code
+
+Returned by `PATCH /organizations/{orgId}/payments/{id}/confirm` and `.../fail` when called by a DRIVER.
+
+| `error` | HTTP | Meaning |
+|---|---|---|
+| `PAYMENT_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN` | 403 | The calling driver is not assigned to the TripInstance of this payment, OR their driver profile is `INACTIVE`/`SUSPENDED`, OR the TripInstance has no driver assigned yet. ADMINs of the same tenant are not subject to this check. |
 
 ### Trip Scheduling Error Codes
 

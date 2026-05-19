@@ -2078,6 +2078,259 @@ O script de seed foi configurado para:
 3. Desconectar de forma segura após conclusão.
 4. Ser chamado automaticamente no startup do container Docker.
 
+## 6.15 Implementações (18 Mai 2026)
+
+### Mitigação de Bloqueadores do Frontend — Itens B1–B10
+
+**Contexto.** O frontend reportou 12 itens (B1–B12) misturando bloqueadores reais, inconsistências de contrato e otimizações. Com o TCC já em janela final (~2 semanas para entrega escrita ao orientador), o critério foi: priorizar o que destrava o FE sem inflar escopo. Os 6 itens com código (B1, B2, B3, B4, B6, B7) foram entregues em 4 fases sequenciais; os demais (B5, B8, B9, B10, B11, B12) foram resolvidos via documentação ou adiados.
+
+Visão por fase:
+
+| Fase | Itens | Escopo |
+|---|---|---|
+| 1 | B4 + B7 + Swagger B10 | Quick wins (DTO + endpoint público + nota de design) |
+| 2 | B1 | `GET /trip-instances/driver/me` (driver self-service) |
+| 3 | B2 | Driver confirma/falha payment próprio (authz fina) |
+| 4 | B3 + B6 | Forgot/Reset password + Email verification + mock email infrastructure |
+
+Itens fechados sem código: B5 (já era soft-delete — `RemoveDriverUseCase` → `driver.deactivate()`), B8 (`Plan.id` é `Int` no schema — fix é no contrato FE), B9 (falso alarme), B11/B12 (workarounds viáveis no FE; adiados para pós-TCC).
+
+---
+
+### Fase 1 — Quick Wins (B4 + B7 + B10)
+
+#### B4 — `telephone` e `emailVerifiedAt` em `TokenResponseDto.user`
+
+**Problema.** O FE precisava do telefone e do status de verificação imediatamente após `login/register/refresh` para renderizar o perfil. Antes só vinha `{ id, name, email }`.
+
+**Mudança.** `TokenResponseDto.user` ampliado para `{ id, name, email, telephone, emailVerifiedAt }`. Os 5 call-sites do DTO (`LoginUseCase`, `RegisterOrganizationWithAdminUseCase`, `RefreshTokenUseCase`, `SetupOrganizationForExistingUserUseCase`; `RegisterUseCase` delega ao `LoginUseCase`) propagam o valor real da entity. Quatro specs unitários atualizados.
+
+> Na Fase 1, `emailVerifiedAt` ainda era hard-coded `null` porque a coluna `User.emailVerifiedAt` só passou a existir na Fase 4. Os mesmos call-sites foram atualizados para `user.emailVerifiedAt` quando o campo entrou na entity.
+
+#### B7 — `GET /public/plans`
+
+**Problema.** Tela de "escolher plano" no onboarding precisava listar planos disponíveis antes do user fazer login.
+
+**Solução.** Endpoint público sem `@UseGuards`, sguindo o padrão de `PublicOrganizationController` e `PublicTripInstanceController`. Filtra `Plan.isActive=true` no domínio (não no controller).
+
+**Novos componentes:**
+- `PlanRepository.findAllActive(options)` — método abstrato + impl Prisma com `where: { isActive: true }`, `orderBy: { id: 'asc' }`
+- `FindAllActivePlansUseCase` — delega ao repo
+- `PublicPlanController` em `src/modules/plans/presentation/controllers/public-plan.controller.ts` — `@Controller('public/plans')`, sem guards
+- `PlansModule` registra o controller + use case
+
+**Endpoint:**
+
+```
+GET /public/plans?page=1&limit=10
+
+200 OK
+{ "data": [{ id, name, priceMonthly, maxVehicles, maxDrivers, maxMonthlyTrips, durationDays, isActive }, ...],
+  "total": 4, "page": 1, "limit": 10, "totalPages": 1 }
+```
+
+#### B10 — Querystring vs Body em `PUT /trip-instances/:id/{driver,vehicle}` (documentação)
+
+**Problema.** FE reportou que os endpoints de atribuir/desatribuir driver e veículo usam `?driverId=...` / `?vehicleId=...` no querystring em vez de body JSON, e pediu para uniformizar. Análise: a decisão foi proposital — é um toggle idempotente de campo único; omitir o querystring desatribui; UUIDs não são segredo e são seguros em logs.
+
+**Mudança.** Em vez de breaking change para body, documentação do design ficou explícita via `@ApiOperation.description` em `trip-instance.controller.ts` (rotas em `:227` e `:257`). FE mantém a chamada via querystring.
+
+---
+
+### Fase 2 — B1: `GET /trip-instances/driver/me`
+
+**Problema.** Drivers logados precisavam listar **suas próprias** viagens com filtro de status. Não existia endpoint para isso — o único listing era `GET /trip-instances/organization/:id` (ADMIN-only).
+
+**Decisão arquitetural — driver "me" pattern.** Mesmo padrão de `GET /drivers/me` (`driver.controller.ts:101-111`): resolve `userId → driverId` via `DriverRepository.findByUserId`. Se o user não tem perfil de Driver ou está `INACTIVE`/`SUSPENDED`, retorna **página vazia** (não erra) — FE trata "sem perfil" e "sem viagens" da mesma forma.
+
+**Cross-tenant safety (correção pós-revisão).** A primeira versão do repo filtrava apenas por `driverId`, o que vazaria trips entre orgs para drivers com membership em mais de uma organização (`Driver.userId @unique`, mas o user pode estar em N orgs). Correção: assinatura ampliada para `findByDriverIdWithMeta(driverId, organizationId, options, status?)` — `organizationId` propagado do `TenantContext`.
+
+**Novos componentes:**
+- `TripInstanceRepository.findByDriverIdWithMeta(driverId, organizationId, options, status?)` — abstrato + impl Prisma reusando o `include` de `findByOrganizationIdWithMeta` (template + `_count.enrollments` ACTIVE); `where: { driverId, organizationId, ...(status && { tripStatus: status }) }`; `orderBy: departureTime asc`
+- `FindTripInstancesByDriverMeUseCase` — resolve driver via `DriverRepository.findByUserId`; se driver inexistente, `INACTIVE`/`SUSPENDED`, ou `ctx.organizationId` ausente (dev/B2C), retorna `emptyPage` sem chamar o repo
+- `FindTripInstancesByDriverQueryDto` — `status?: TripStatus`, `page?`, `limit?` (validado via `class-validator` + `@Type(() => Number)`)
+- `TripInstanceController` ganha `@Get('driver/me')` **antes** do `@Get(':id')` (ordem importa — evita shadowing por `:id` capturar `'driver'`)
+- Guards: `JwtAuthGuard, RolesGuard` + `@Roles(RoleName.DRIVER)` (sem `TenantFilterGuard` porque não há `:organizationId` na URL)
+
+**Resposta enriquecida.** Reusa `TripInstancePresenter.toHTTPListWithMeta` — cada item inclui `departurePoint`, `destination`, `bookedCount`, `availableSlots`, `template.id/origin/destination/stops`. Mesma shape que admin recebe no listing por organização.
+
+**Testes:** `find-trip-instances-by-driver-me.use-case.spec.ts` (+1 suite, +6 testes) — happy path com filtro de status, sem driver profile → `[]`, driver `INACTIVE` → `[]`, driver `SUSPENDED` → `[]`, sem `organizationId` na sessão → `[]`.
+
+---
+
+### Fase 3 — B2: Driver Confirma/Falha Payment Próprio
+
+**Problema.** Drivers precisavam poder confirmar/falhar o pagamento das viagens que eles próprios estavam executando (cobrança em dinheiro no embarque, por exemplo). Antes, `PATCH /organizations/:orgId/payments/:id/confirm` e `.../fail` eram `@Roles(ADMIN)`-only.
+
+**Decisão arquitetural — authz fina no use case, não em guard.** Guards liberam apenas o role (ADMIN ou DRIVER). A regra "driver é dono da TripInstance do payment" vive no use case como regra de domínio.
+
+**Novos componentes:**
+
+- `PaymentNotAssignedToDriverError` (`PAYMENT_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN` → HTTP 403) — novo domain error em `payment.errors.ts`
+- `PaymentRepository.findDriverIdByPaymentId(id)` — abstrato + impl Prisma que navega Payment → Enrollment → TripInstance.driverId em uma query única (`findUnique` com nested `select`)
+- `PaymentActorContext` (`{ userId, role }`) — shape exportado pelo `ConfirmPaymentUseCase` e reusado pelo `FailPaymentUseCase`
+- `ConfirmPaymentUseCase` e `FailPaymentUseCase` recebem `ctx: PaymentActorContext`; se `ctx.role === RoleName.DRIVER`, executam em paralelo (`Promise.all`) a busca do Driver e do `assignedDriverId`, e validam ownership + `driverStatus === ACTIVE`
+- `PaymentController` (`payment.controller.ts:78,97`) — `@Roles(ADMIN, DRIVER)`; passa `{ userId: ctx.userId, role: ctx.role }` ao use case
+- `PaymentModule` importa `DriverModule` (que já exportava `DriverRepository`)
+
+**Ordem das verificações (defesa em profundidade):**
+
+1. Tenant — `payment.organizationId !== ctx.organizationId` → `PaymentNotFoundError`
+2. Status — `payment.status !== PENDING` → `PaymentAlreadyProcessedError`
+3. Driver ownership (só se role=DRIVER) — driver inexistente OU `driverStatus !== ACTIVE` OU `payment.tripInstance.driverId !== driver.id` → `PaymentNotAssignedToDriverError`
+
+Status check **antes** do driver check é proposital: evita 403 enganoso quando o caller é dono mas o payment já foi processado.
+
+**Testes:** `confirm-payment.use-case.spec.ts` e `fail-payment.use-case.spec.ts` (novos, +2 suites, +14 testes no total) — ADMIN sem driver check, ADMIN com tenant/status/not-found errors, DRIVER owner OK, DRIVER não-owner → 403, DRIVER sem driver profile → 403, DRIVER com `INACTIVE`/`SUSPENDED` → 403, payment já processado bate antes do driver check (`update` não chamado).
+
+Factory nova: `test/modules/payment/factories/payment.factory.ts` (`makePayment` reusa `Money.create`).
+
+---
+
+### Fase 4 — B3 + B6: Forgot/Reset Password + Email Verification (com Mock de Email)
+
+**Problema.** Duas jornadas inteiras de produção faltavam: (1) recuperação de senha (B3) e (2) verificação de email pós-cadastro (B6). Sem essas, o FE não tem como completar onboarding ou ajudar usuário que esqueceu a senha. **Restrição:** prazo TCC inviabiliza integração com SMTP/Resend real.
+
+**Decisão arquitetural — mock de email via Strategy Pattern + DI.** Aplicação depende da abstração `EmailService` (interface no `shared/`); a implementação atual (`ConsoleEmailService`) loga no console + empurra numa fila in-memory para inspeção via endpoint `@Dev()`. Migrar para SMTP real em produção é uma linha em `SharedModule.providers`: `{ provide: EmailService, useClass: SmtpEmailService }`.
+
+#### Schema (Prisma)
+
+Migration `20260519000212_email_verification_and_password_reset`:
+
+- `User.emailVerifiedAt: DateTime?` — `null` = não verificado; timestamp = data de verificação
+- `model PasswordResetToken` — `{ id, userId, tokenHash @unique, expiresAt, usedAt, createdAt }`; TTL 1h; FK `userId @relation onDelete: Cascade`; `@@index([userId])`
+- `model EmailVerificationToken` — mesmo shape; TTL 24h
+
+> **Decisão crítica:** armazenar `sha256(rawToken)` em `tokenHash`, não o raw. Mesmo padrão do `RefreshToken`. Se o banco vazar, hashes são inúteis sem o pré-imagem (raw). Raw token só vive: (a) na memória do servidor durante o use case que o criou, (b) no corpo do email enviado.
+
+#### Shared infrastructure — Email mock
+
+| Arquivo | Papel |
+|---|---|
+| `email.service.interface.ts` | `abstract class EmailService { abstract send(to, subject, body, metadata?) }` + tipo `EmailMetadata` |
+| `console-email.service.ts` | Impl mock — loga via NestJS `Logger` + chama `InMemoryEmailLog.push` |
+| `in-memory-email-log.ts` | Fila FIFO bounded (max 50); métodos `push`, `latest(limit)`, `findLatestByRecipient(to)` |
+| `presentation/controllers/dev-emails.controller.ts` | `GET /dev/emails/latest?to=&limit=` (filtra/limita); `@UseGuards(JwtAuthGuard, DevGuard)` + `@Dev()` |
+| `shared.module.ts` | Registra `InMemoryEmailLog`, `{ provide: EmailService, useClass: ConsoleEmailService }`, e o controller; exporta `EmailService` + `InMemoryEmailLog` |
+
+#### Domain — Token entities
+
+Entidades **simétricas** entre `PasswordResetToken` e `EmailVerificationToken`. Fábrica `create(userId)` gera UUID raw + `sha256(raw)` + `expiresAt = now + TTL`. Hash é compartilhado via função `hashToken(raw)` (DRY). Métodos: `isExpired()`, `isUsed()`, `isValid()` (combina os dois), `markUsed()`. Getter `rawToken` só existe imediatamente após `create()` (não persistido; nunca retornado por `restore()`).
+
+**Erros (`auth.errors.ts`):**
+
+| Erro | Code | HTTP |
+|---|---|---|
+| `InvalidOrExpiredResetTokenError` | `INVALID_OR_EXPIRED_RESET_TOKEN_BAD_REQUEST` | 400 |
+| `InvalidOrExpiredVerificationTokenError` | `INVALID_OR_EXPIRED_VERIFICATION_TOKEN_BAD_REQUEST` | 400 |
+
+> Os 3 cenários (token inexistente / expirado / já usado) **colapsam** num único erro. Diferenciar vazaria informação para atacante (sabe quais hashes já existiram, quando expiraram, se foram usados). Resposta uniforme = comportamento idêntico para usuário legítimo e atacante.
+
+#### Application — Use cases
+
+| Use case | Comportamento |
+|---|---|
+| `SendEmailVerificationUseCase` | Helper interno — gera token, persiste o hash, dispara email com o raw no corpo + `metadata: { kind: 'email_verification', userId, token }` |
+| `ForgotPasswordUseCase` | **Constant-response (sempre 204).** Se email não cadastrado ou user `INACTIVE`, sai silenciosamente. Senão: gera `PasswordResetToken` (1h), persiste hash, envia email com raw |
+| `ResetPasswordUseCase` | Valida `hashToken(raw)` → token + user ACTIVE → hash da nova senha via `HashProvider.generateHash` → `user.setPasswordHash` → `userRepo.update` → `tokenRepo.markUsed` → **`refreshTokenRepo.deleteByUserId(user.id)`** → emite novo par access/refresh (auto-login). Retorna `TokenResponseDto` |
+| `VerifyEmailUseCase` | Valida token → `user.markEmailVerified()` → persiste → marca token usado. Retorna void (204) |
+
+> **Revogar todos os refresh tokens no reset é crítico.** Se o reset foi disparado por account takeover, o atacante tinha refresh tokens válidos (até 7 dias). Sem essa revogação, troca de senha não invalida sessões já abertas dele. Com a revogação, no próximo `/auth/refresh` que ele tentar, o JTI não existe mais → 401, sessão derruba.
+
+#### Fire-and-forget no register
+
+`RegisterUseCase` e `RegisterOrganizationWithAdminUseCase` invocam `SendEmailVerificationUseCase` dentro de `try/catch` que apenas loga em caso de erro. **O cadastro nunca falha por causa do email.** Mesmo padrão da auto-subscrição FREE.
+
+#### Infrastructure — Repos Prisma
+
+- `PrismaPasswordResetTokenRepository` — `save` (escreve só `tokenHash`, ignora `rawToken`), `findByTokenHash` (rehidrata via `PasswordResetToken.restore`), `markUsed(id)` (`update usedAt: now`)
+- `PrismaEmailVerificationTokenRepository` — mesma forma
+
+#### Presentation — Auth controller
+
+```
+POST /auth/forgot-password { email }              → 204 (sempre)
+POST /auth/reset-password  { token, newPassword } → 200 TokenResponseDto (auto-login)
+POST /auth/verify-email    { token }              → 204
+```
+
+DTOs em `application/dtos/{forgot,reset,verify}-*.dto.ts` com `class-validator` (`@IsEmail`, `@IsString`, `@MinLength(8)`).
+
+#### User entity — extensão
+
+- `User.emailVerifiedAt: Date | null` (default `null`); getter exposto
+- `User.markEmailVerified()` — seta `emailVerifiedAt = new Date()`
+- `UserMapper` lê/escreve a coluna
+- `UserResponseDto` expõe o campo
+- `TokenResponseDto.user.emailVerifiedAt` agora propaga `user.emailVerifiedAt` real (estava hard-coded `null` na Fase 1)
+
+#### AuthModule wiring
+
+`AuthModule.providers` agora registra `ForgotPasswordUseCase`, `ResetPasswordUseCase`, `VerifyEmailUseCase`, `SendEmailVerificationUseCase`, e os dois novos repos (`PasswordResetTokenRepository`/`EmailVerificationTokenRepository` apontando para suas impl Prisma).
+
+#### Testes (+13 testes, +3 suites)
+
+- `forgot-password.use-case.spec.ts` — email cadastrado dispara email; email não-cadastrado/inactive resolvem 204 sem efeito
+- `reset-password.use-case.spec.ts` — happy path (revoga refresh tokens + emite novo par + auto-login); 4 caminhos de erro (token inexistente / expirado / já usado / user inactive) todos → `InvalidOrExpiredResetTokenError`
+- `verify-email.use-case.spec.ts` — happy path; mesmos 4 caminhos de erro → `InvalidOrExpiredVerificationTokenError`
+- `register-organization-with-admin.use-case.spec.ts` — mock de `SendEmailVerificationUseCase` adicionado ao construtor
+
+---
+
+### Fluxo de uso no FE (mock de email)
+
+O FE em produção usa as 3 rotas oficiais (`/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`) **sem saber que estamos com mock**. A diferença é como o FE descobre o token:
+
+- **Em produção:** user recebe o email real e cola o token (ou clica no link com `?token=...`).
+- **Em desenvolvimento:** o FE oferece um botão "[DEV] Puxar do mock" que chama `GET /dev/emails/latest?to=<email>` (precisa estar logado como dev — `DEV_EMAILS` no `.env`) e auto-preenche o campo de token. Também pode-se renderizar uma tela `/dev/inbox` que polla a fila in-memory e exibe os emails como uma caixa de entrada.
+
+Migrar para SMTP real **não muda o FE**. Só o BE: troca `useClass: ConsoleEmailService` por `useClass: SmtpEmailService` no `SharedModule`.
+
+---
+
+### Decisões de segurança consolidadas
+
+| Item | Decisão | Motivo |
+|---|---|---|
+| Armazenamento de token | Apenas `sha256(raw)` no DB | Banco vazado ≠ tokens roubados |
+| Forgot password response | 204 constante | Anti account-enumeration via status code |
+| Mensagens de erro de token | Genérico ("invalid, expired or used") | Não vazar estado interno do token |
+| TTL reset | 1 hora | Chave do reino — janela curta |
+| TTL verify | 24 horas | Menos sensível — UX-friendly |
+| Reset → revoke refresh tokens | `deleteByUserId` antes de auto-login | Mitiga account takeover |
+| User INACTIVE em verify/reset | Mesmo erro genérico | Não confirmar existência da conta |
+| Email envio | Fire-and-forget no register | Email transient failure não bloqueia signup |
+| Senha em texto | Hasheada no use case via `HashProvider.generateHash` | Domínio não conhece bcrypt |
+
+---
+
+### Validação pós-fase consolidada
+
+| Fase | tsc | jest (cumulativo) | lint |
+|---|---|---|---|
+| Pré-mitigação | ✅ 0 erros | 381 testes / 46 suites | ✅ 0 |
+| Fase 1 | ✅ | 381 (manteve — só DTO/route, sem casos novos) | ✅ |
+| Fase 2 | ✅ | 384 (+3) | ✅ |
+| Pós-revisão (cross-tenant + driver status) | ✅ | 404 (+20 — incluindo casos INACTIVE/SUSPENDED em B1+B2) | ✅ |
+| Fase 3 | ✅ | 398 (+14) | ✅ |
+| Fase 4 | ✅ | **417 (+13)** / **52 suites** | ✅ |
+
+> Após a Fase 4: **417 testes, 52 suites, 0 erros, 0 warnings de lint.**
+
+---
+
+### Itens fechados sem código
+
+| Item | Resolução |
+|---|---|
+| **B5** | `DELETE /drivers/:id` já é soft-delete (`remove-driver.use-case.ts:43` → `driver.deactivate()` → `driverStatus=INACTIVE`). FE provavelmente viu o registro sumir do listing porque listings filtram `INACTIVE`. Documentação respondida ao FE. |
+| **B8** | `Plan.id` é `Int` no `schema.prisma`. Fix no contrato de tipos do FE (era `string`). |
+| **B9** | Falso alarme confirmado. |
+| **B11** | `GET /bookings/by-trip/:tripId/mine` — workaround viável via filtros do listing atual. P2 no backlog. |
+| **B12** | Preview de próximas instâncias — UX-only, não trava nada. Pós-TCC. |
+
+---
+
 ## 7. Próximos Passos
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
@@ -2088,22 +2341,24 @@ O script de seed foi configurado para:
 6. ~~**Módulo de Bookings**~~ ✅ **CONCLUÍDO (25 Abr)** — 9 use cases, 85 testes, preço server-side, controle de capacidade, org-only confirm, availability check, detalhe enriquecido.
 7. ~~**Fase 3 (Monetização) — Plans, Payment, Subscriptions**~~ ✅ **CONCLUÍDO (26 Abr)** — Plans (5 use cases, DevGuard, PlanName enum), Payment (read-only API, criação via Bookings), Subscriptions (4 use cases, 30 dias, ADMIN-only).
 8. ~~**Mitigação de Defeitos Críticos (Fase 3.7):** Payment simulation, Subscription lazy expiration, Plan limits enforcement, Auto-FREE subscription.~~ ✅ **CONCLUÍDO (29 Abr)** — 4 defeitos críticos corrigidos; sistema demonstrável ponta a ponta.
-9. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
-10. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows, plan limit paths).
+9. ~~**Mitigação de Bloqueadores do FE (B1–B10):**~~ ✅ **CONCLUÍDO (18 Mai)** — 4 fases sequenciais cobrindo: driver self-listing (B1), driver payment authz (B2), forgot/reset password + email verification + mock infra (B3+B6), telephone+emailVerifiedAt em TokenResponseDto (B4), endpoint público de planos (B7), nota de Swagger para querystring intencional (B10). 6 itens com código + 6 itens fechados via documentação. 36 testes novos, 52 suites totais, 417 testes passando.
+10. **Integração SMTP real:** substituir `ConsoleEmailService` por adapter de produção (Resend/SES/SMTP) — uma linha em `SharedModule.providers`, FE não muda.
+11. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
+12. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows, plan limit paths).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio de 2026, as **Fases 1, 2, 3 e 3.7 estão 100% completas** com 13 módulos implementados e o sistema demonstrável ponta a ponta:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 18 de maio de 2026, as **Fases 1, 2, 3, 3.7 e a Mitigação de Bloqueadores FE (B1–B10)** estão 100% completas com 13 módulos implementados e o sistema demonstrável ponta a ponta:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
-- ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*. Auto-subscrição FREE ao criar organização *(29 Abr)*.
+- ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*. Auto-subscrição FREE ao criar organização *(29 Abr)*. **Recuperação de senha (forgot/reset) e verificação de email** com tokens hasheados (sha256, TTL 1h/24h), constant-response em forgot (anti-enumeration), revogação total de refresh tokens em reset (anti account-takeover), erros unificados (`InvalidOrExpired...`), auto-login pós-reset, fire-and-forget no register *(18 Mai)*. `TokenResponseDto.user` ampliado com `telephone` e `emailVerifiedAt` *(18 Mai)*.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy, soft delete, decoupling total do Membership module e `GET /organizations/me` para ADMIN e DRIVER *(21 Abr)*.
 - ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*.
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError`, plan limit enforcement via `PlanLimitService` *(17 Abr, limit 29 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Trip Module**: TripTemplate + TripInstance completos — 14 endpoints REST (12 autenticados + 2 públicos sem auth), 14 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK e ownership antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService`, endpoints públicos `GET /public/trip-instances` e `GET /public/trip-instances/org/:slug` via `PublicTripQueryService`, `GET /trip-instances/organization/{organizationId}` retorna resposta enriquecida com `bookedCount`, `availableSlots` e campos do template via JOIN único (`findByOrganizationIdWithMeta`) *(21 Abr, limit 29 Abr, public routes + ownership validation 30 Abr, meta fields 04 Mai)*.
+- ✅ **Trip Module**: TripTemplate + TripInstance completos — 14 endpoints REST (12 autenticados + 2 públicos sem auth), 14 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK e ownership antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService`, endpoints públicos `GET /public/trip-instances` e `GET /public/trip-instances/org/:slug` via `PublicTripQueryService`, `GET /trip-instances/organization/{organizationId}` retorna resposta enriquecida com `bookedCount`, `availableSlots` e campos do template via JOIN único (`findByOrganizationIdWithMeta`) *(21 Abr, limit 29 Abr, public routes + ownership validation 30 Abr, meta fields 04 Mai)*. **Novo endpoint `GET /trip-instances/driver/me`** — listagem self-service para drivers com filtro de status, escopo por org (anti cross-tenant leak), driver `INACTIVE`/`SUSPENDED` retorna página vazia *(18 Mai)*.
 - ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), `paymentMethod` retornado em todas as respostas (resolvido via JOIN com tabela Payment), 9 use cases, 85 testes unitários *(25 Abr; paymentMethod 04 Mai)*.
-- ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*.
-- ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*.
+- ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*. **Endpoint público `GET /public/plans`** — lista planos `isActive=true` sem autenticação (tela de onboarding) *(18 Mai)*.
+- ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*. **Authz fina para DRIVER em confirm/fail** — `@Roles(ADMIN, DRIVER)` + `PaymentNotAssignedToDriverError` (`_FORBIDDEN`/403); driver só pode processar payments de TripInstances atribuídas a ele e enquanto `driverStatus=ACTIVE`; navegação Payment→Enrollment→TripInstance.driverId em query única *(18 Mai)*.
 - ✅ **Subscriptions Module**: 4 use cases, assinatura única por org (ACTIVE), duração via `plan.durationDays`, `SubscriptionEntity` com `cancel()`, `expire()`, `isExpired`, `PAST_DUE` status, `resolveActiveSubscription` helper (lazy expiry sem cron), 4 novos domain errors de limit, `PlanLimitService` exportado, ADMIN-only via `TenantFilterGuard` *(26 Abr + 29 Abr)*.
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker. Seed inclui 4 planos (FREE/BASIC/PRO/PREMIUM) e 2 roles (ADMIN/DRIVER).
@@ -2120,11 +2375,14 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de maio d
 - ✅ **Correções de concorrência no Trip Module**: `TransitionTripInstanceStatusUseCase` protegido contra lost update; `CreateTripInstanceUseCase` protegido contra race condition com `DeactivateTripTemplate` via re-leitura do template dentro da transação *(28 Abr)*.
 - ✅ **Mitigação de defeitos críticos (Fase 3.7)**: Payment simulation (PENDING→COMPLETED/FAILED), Subscription lazy expiration (PAST_DUE on-demand), Plan Limits Enforcement (`PlanLimitService` + contagem nos repositórios), Auto-FREE subscription no registro *(29 Abr)*.
 - ✅ **Melhorias de API (04 Mai 2026)**: `TripInstanceWithMeta` na listagem admin (bookedCount, availableSlots, campos do template via JOIN único); `paymentMethod` exposto em todas as respostas de Booking (JOIN com Payment); SRP nos mappers (`TripInstanceMapper.toDomainWithMeta`, `BookingMapper.toDomainFromRow`).
-- ✅ **Testes Unitários**: 46 suites, 364 testes passando com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
+- ✅ **Shared — Mock de Email (18 Mai 2026)**: Interface `EmailService` no `SharedModule` (`@Global`); implementação `ConsoleEmailService` que loga via `Logger` + push em `InMemoryEmailLog` (FIFO bounded 50); endpoint `GET /dev/emails/latest` (`@Dev()` + `DevGuard`) para inspeção em dev. Migração para SMTP/Resend em prod é um único swap em `SharedModule.providers`. Padrão Strategy + DI sem mudança no FE.
+- ✅ **Segurança Multi-tenant — Fix Cross-tenant (18 Mai 2026)**: `Driver.userId @unique` significa que um user pode ter membership como DRIVER em N orgs com **o mesmo `driverId`**. `findByDriverIdWithMeta` originalmente filtrava só por `driverId`, o que vazaria viagens entre orgs no `GET /trip-instances/driver/me`. Corrigido com escopo obrigatório por `organizationId` propagado do `TenantContext` + casos defensivos para sessões sem org (dev/B2C) → página vazia em vez de query no banco.
+- ✅ **Mitigação de Bloqueadores FE (18 Mai 2026)**: 4 fases sequenciais (B1+B2+B3+B4+B6+B7+B10) — driver self-listing escopado por org, driver payment authz fina via use case, forgot/reset password com mock de email + tokens hasheados sha256, telephone+emailVerifiedAt em TokenResponseDto, public plans endpoint, Swagger note para querystring intencional. 6 itens fechados sem código (B5/B8/B9/B11/B12 + design de B10).
+- ✅ **Testes Unitários**: **52 suites, 417 testes passando** com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → auto-FREE → criação de recursos (com limite por plano) → booking → pagamento simulado. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
+**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai** + **Mitigação FE (B1–B10) entregue 18 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → email de verificação (mock) → auto-FREE → criação de recursos (com limite por plano) → booking → driver lista trips próprias → pagamento simulado (admin ou driver dono). Fluxo de recuperação de senha completo com auto-login pós-reset e revogação de refresh tokens. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
 
 ---
 
@@ -2138,7 +2396,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (338 testes, 43 suites)
+- `npm run test`: Executa testes unitários (**417 testes, 52 suites** — após mitigação FE 18 Mai)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
@@ -2146,6 +2404,11 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 DATABASE_URL="postgresql://docker:docker07@postgres:5432/movy?schema=public"
 PORT=5700
 JWT_SECRET="your_jwt_secret_here"
+
+# Opcional — comma-separated. Lista de emails que recebem isDev=true no JWT.
+# Usuários dev bypassam RolesGuard e podem acessar rotas @Dev() como
+# /dev/emails/latest (inspeção do mock de email — útil pro FE em dev).
+# DEV_EMAILS=rauan@example.com,outro@example.com
 
 # Opcional — quando true, ScheduleModule.forRoot() não é registrado, mantendo
 # os jobs (auto-cancel, geração recorrente) dormentes em dev local.
