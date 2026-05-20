@@ -2314,8 +2314,9 @@ Migrar para SMTP real **não muda o FE**. Só o BE: troca `useClass: ConsoleEmai
 | Pós-revisão (cross-tenant + driver status) | ✅ | 404 (+20 — incluindo casos INACTIVE/SUSPENDED em B1+B2) | ✅ |
 | Fase 3 | ✅ | 398 (+14) | ✅ |
 | Fase 4 | ✅ | **417 (+13)** / **52 suites** | ✅ |
+| Phase 5 (19 Mai — CNH plural + driver self-update + driver trip status) | ✅ | **450 (+33)** / **54 suites** | ✅ |
 
-> Após a Fase 4: **417 testes, 52 suites, 0 erros, 0 warnings de lint.**
+> Após a Phase 5: **450 testes, 54 suites, 0 erros, 0 warnings de lint.**
 
 ---
 
@@ -2331,6 +2332,216 @@ Migrar para SMTP real **não muda o FE**. Só o BE: troca `useClass: ConsoleEmai
 
 ---
 
+## 6.16 Implementações (19 Mai 2026)
+
+### Phase 5 — Driver self-service + CNH plural (follow-up de pontos do FE)
+
+Após a mitigação das Fases 1–4, o frontend reportou três novos pontos (numerados #3–#5 nessa nova rodada):
+
+1. **Driver não consegue editar a própria CNH** — `PUT /drivers/:id` era ADMIN-only, então a tela `/profile/driver` em modo edit retornava `403` para o próprio motorista. A validade da CNH muda no tempo e o motorista precisa atualizá-la sem depender do admin.
+2. **Driver não consegue transicionar status do trip** — `PATCH /trip-instances/:id/status` era ADMIN-only, travando o app do motorista, que precisa marcar `IN_PROGRESS` no embarque e `FINISHED` na chegada.
+3. **Saída de membership por iniciativa do usuário** — baixa prioridade no MVP; movido para "Trabalhos Futuros" do TCC.
+
+Durante o planejamento apareceu uma falha foundational: o modelo armazenava `cnhCategory: string` (categoria única), mas no Brasil o motorista pode ter **múltiplas categorias** simultaneamente (ex.: `A` + `B`). Os pontos #3 e #4 reusam o mesmo padrão de autorização do B2 (confirm-payment), mas a mudança de shape do CNH é breaking e tem que vir antes, para o DTO de self-update já nascer no formato final.
+
+#### Decisões
+
+- **Renomear `cnhCategory: string` → `cnhCategories: string[]`** — breaking change deliberadamente exposto ao FE, deixando a semântica nova explícita. Servidor normaliza (trim, upper-case, dedup, sort).
+- **`PATCH /drivers/me`** libera apenas `cnhExpiresAt` + `cnhCategories`. Campos identity-grade (`cnh` número, `driverStatus`) seguem admin-only.
+- **Ramo DRIVER em `PATCH /trip-instances/:id/status`**: whitelist somente `IN_PROGRESS` e `FINISHED`; exige ownership + perfil `ACTIVE`. Espelha o padrão do B2 — `@Roles(ADMIN, DRIVER)` no controller, checks finos dentro do use case.
+- **Self-removal de membership**: fora do escopo do TCC, listado em "Trabalhos Futuros".
+
+#### Fase 5A — Foundational: Value Object `cnhCategories` (coleção)
+
+**Schema (`prisma/schema.prisma`)**
+
+```prisma
+model Driver {
+  // ...
+  cnh            String   @unique @db.VarChar(20)
+  cnhCategories  String[]            // era: cnhCategory String @db.VarChar(5)
+  cnhExpiresAt   DateTime
+  // ...
+}
+```
+
+**Migration `20260519200431_change_driver_cnh_category_to_array`** — escrita manualmente para ser prod-safe (DB de dev estava vazio após o reset da Fase 4; esse SQL preserva dados em qualquer migração futura de produção):
+
+```sql
+ALTER TABLE "driver" ADD COLUMN "cnhCategories" TEXT[] NOT NULL DEFAULT '{}';
+UPDATE "driver" SET "cnhCategories" = ARRAY["cnhCategory"];
+ALTER TABLE "driver" DROP COLUMN "cnhCategory";
+ALTER TABLE "driver" ALTER COLUMN "cnhCategories" DROP DEFAULT;
+```
+
+**Value Object — refatorado para coleção** (`cnh-categories.value-object.ts`, substitui o antigo `cnh-category.value-object.ts`):
+
+```typescript
+export type CnhCategoryType = 'A' | 'B' | 'C' | 'D' | 'E';
+
+export class CnhCategories {
+  static create(values: readonly string[]): CnhCategories {
+    if (!Array.isArray(values) || values.length === 0) {
+      throw new InvalidCnhCategoriesError(values, 'at least one category required');
+    }
+    const normalised = values.map((raw) => {
+      const trimmed = raw.trim().toUpperCase();
+      if (!VALID_CATEGORIES.includes(trimmed as CnhCategoryType)) {
+        throw new InvalidCnhCategoriesError(values, `unknown category: ${raw}`);
+      }
+      return trimmed as CnhCategoryType;
+    });
+    const unique = Array.from(new Set(normalised)).sort();
+    return new CnhCategories(unique);
+  }
+  has(category: CnhCategoryType): boolean { /* ... */ }
+  equals(other: CnhCategories): boolean { /* compara arrays ordenados */ }
+}
+```
+
+`create()` aplica os invariantes uma vez na entrada; `restore()` pula validação para dados confiáveis vindos do banco. `has()` é exposto para que regras de negócio futuras (ex.: "só driver com `D` pode dirigir veículo X") sejam expressas de forma declarativa, sem ler o array de novo.
+
+**Novo domain error**: `InvalidCnhCategoriesError` (code `INVALID_CNH_CATEGORIES_BAD_REQUEST` → HTTP 400). Substitui o antigo `InvalidCnhCategoryError` singular.
+
+**Arquivos tocados na onda de rename**:
+
+| Camada | Arquivo | Mudança |
+|---|---|---|
+| Schema | `prisma/schema.prisma` | `cnhCategory String` → `cnhCategories String[]` |
+| Domínio | `driver.entity.ts` | Prop, getter, assinatura plural de `updateCnh` |
+| Domínio | `value-objects/index.ts` | Re-export do novo VO |
+| Infra | `driver.mapper.ts` | Leitura/escrita de `string[]` |
+| DTOs | `create-driver.dto.ts`, `update-driver.dto.ts`, `driver-response.dto.ts`, `driver-lookup-response.dto.ts` | `@IsArray()` + `@ArrayMinSize(1)` + `@ArrayMaxSize(5)` + `@IsIn([...], { each: true })` |
+| Use cases | `create-driver.use-case.ts`, `update-driver.use-case.ts`, `lookup-driver.use-case.ts` | Chamadas plurais / regra all-or-nothing atualizada |
+| Presentation | `driver.presenter.ts` | Spread de `cnhCategories.values` |
+| Tests | `driver.factory.ts`, `create-driver.dto.factory.ts`, `create-driver.use-case.spec.ts` | Default `['B']` em arrays; asserts em `cnhCategories.values` |
+| Novos tests | `cnh-categories.value-object.spec.ts` | 14 casos — happy paths, erros, dedup, case-insensitive, sort, `has`, `equals`, `isValid`, `toString` |
+
+#### Fase 5B — `PATCH /drivers/me`
+
+**Dois setters granulares na entity** (suportam update parcial sem forçar a regra all-or-nothing que o update admin carrega):
+
+```typescript
+setCnhExpiresAt(expiresAt: Date): void { /* ... */ }
+setCnhCategories(categories: CnhCategories): void { /* ... */ }
+```
+
+**`UpdateOwnDriverDto`** — ambos campos opcionais, sem `cnh` / `status` / `driverStatus`:
+
+```typescript
+@IsOptional() @IsDateString() cnhExpiresAt?: string;
+@IsOptional() @IsArray() @ArrayMinSize(1) @ArrayMaxSize(5)
+@IsIn(['A','B','C','D','E'], { each: true })
+cnhCategories?: string[];
+```
+
+**`UpdateOwnDriverUseCase`** — resolve o driver via `findByUserId`, exige `driverStatus === ACTIVE`, aplica o update parcial e retorna a entity atualizada. Payload vazio faz short-circuit para no-op retornando o estado atual.
+
+**Novos erros** em `driver.errors.ts`:
+
+- `DriverProfileNotFoundError` (`DRIVER_PROFILE_NOT_FOUND` → 404) — usuário autenticado ainda não tem perfil de driver.
+- `DriverInactiveError` (`DRIVER_INACTIVE_FORBIDDEN` → 403) — driver está `INACTIVE` ou `SUSPENDED` e não pode se auto-atualizar.
+
+**Controller** (`driver.controller.ts`): novo `Patch('me')` posicionado **antes** de `Patch(':id')` para evitar shadowing de rota. Sem `RolesGuard` — qualquer usuário autenticado com perfil de driver pode chamar; quem controla é o use case. JSDoc atualizado.
+
+**Module wiring** (`driver.module.ts`): `UpdateOwnDriverUseCase` registrado em providers e exports.
+
+**Spec** (`update-own-driver.use-case.spec.ts`): 7 casos — updates de campo único (`cnhExpiresAt` only, `cnhCategories` only, ambos), payload vazio no-op (confirma que `repository.update` não é chamado), perfil ausente → 404, `SUSPENDED` → 403, `INACTIVE` → 403, falha de persistência → 500.
+
+#### Fase 5C — `PATCH /trip-instances/:id/status` liberado para DRIVER
+
+**Use case** (`transition-trip-instance-status.use-case.ts`) — `actorContext` opcional e aditivo:
+
+```typescript
+async execute(
+  id: string,
+  input: TransitionTripInstanceStatusDto,
+  organizationId: string,
+  actorContext?: { userId: string; role?: 'ADMIN' | 'DRIVER' | null },
+): Promise<TripInstance>
+```
+
+Quando `actorContext?.role === RoleName.DRIVER`:
+
+1. Confere se o target está em `[IN_PROGRESS, FINISHED]` → senão lança `DriverTripStatusTransitionForbiddenError`. (Mais barato que um round-trip no DB; roda primeiro.)
+2. Resolve o driver via `driverRepository.findByUserId(actorContext.userId)`.
+3. Rejeita com `TripNotAssignedToDriverError` se: não tem perfil de driver, driver não está `ACTIVE`, **ou** `instance.driverId !== driver.id`. Três subcausas colapsadas em um único erro para não vazar estado do driver.
+
+Chamadas ADMIN (ou sem `actorContext` — compatibilidade com chamadores internos/cron) pulam o ramo do driver completamente. A validação da state machine em `TripInstance.transitionTo` continua rodando nos dois caminhos.
+
+**Dois novos erros** em `trip-instance.errors.ts`:
+
+- `TripNotAssignedToDriverError` (`TRIP_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN` → 403).
+- `DriverTripStatusTransitionForbiddenError` (`DRIVER_TRIP_STATUS_TRANSITION_FORBIDDEN` → 403).
+
+**Controller** (`trip-instance.controller.ts`): `@Roles(RoleName.ADMIN, RoleName.DRIVER)` na rota. `TenantFilterGuard` mantido (funciona como gate "tem que ser org member", rejeitando usuários B2C). `actorContext` montado a partir do `TenantContext` e propagado.
+
+**Spec** (`transition-trip-instance-status.use-case.spec.ts`) — assinatura do construtor atualizada (agora recebe `DriverRepository`); 7 casos novos adicionados sem quebrar os 13 existentes:
+
+| Caso | Esperado |
+|---|---|
+| Driver assinado e ACTIVE → `IN_PROGRESS` | ✅ 200 |
+| Driver assinado e ACTIVE → `FINISHED` | ✅ 200 |
+| Driver mira `CANCELED` | ❌ `DriverTripStatusTransitionForbiddenError`; `driverRepository.findByUserId` nem é chamado (whitelist roda primeiro) |
+| Outro driver tenta transicionar | ❌ `TripNotAssignedToDriverError`; sem `repository.update` |
+| Driver assinado mas `SUSPENDED` | ❌ `TripNotAssignedToDriverError` (mesmo erro — não vaza estado) |
+| Driver sem perfil | ❌ `TripNotAssignedToDriverError` |
+| Ator ADMIN (ou contexto omitido) pula checks de driver | ✅ 200; `driverRepository.findByUserId` não é chamado |
+
+#### Sumário do contrato com o FE
+
+| Endpoint | Antes | Depois |
+|---|---|---|
+| `POST /drivers` body | `cnhCategory: string` (único) | `cnhCategories: string[]` (1..5) |
+| `PUT /drivers/:id` body | `cnhCategory?: string` | `cnhCategories?: string[]`; regra all-or-nothing da CNH continua valendo |
+| `GET /drivers/lookup` response | `cnhCategory: string` | `cnhCategories: string[]` |
+| `DriverResponse` schema | `cnhCategory: "B"` | `cnhCategories: ["A", "B"]` |
+| `PATCH /drivers/me` | (não existia) | Novo — update parcial self-service de `cnhExpiresAt` e/ou `cnhCategories` |
+| `PATCH /trip-instances/:id/status` | `🛡️ ADMIN` apenas | `🛡️ ADMIN \| 🚗 DRIVER` (driver limitado às próprias trips + `IN_PROGRESS` / `FINISHED`) |
+
+A mudança coordenada no `types.ts` do FE para o shape do campo é inevitável; renomear no fio (não só o tipo) foi escolhido para que a semântica plural fique inequívoca no code review e nos traces do Postman.
+
+#### Considerações de segurança consolidadas
+
+| Risco | Mitigação |
+|---|---|
+| Auto-elevação do driver via `PATCH /drivers/me` | Whitelist no DTO bloqueia `cnh` e `status`. Use case não tem branch que toque nenhum deles. |
+| Imitação de outro driver em `PATCH /trip-instances/:id/status` | Use case resolve o driver pelo `userId` vinculado ao JWT, nunca do body. Ownership comparado contra `instance.driverId` armazenado. |
+| Bypass da state machine pelo driver | Whitelist (`IN_PROGRESS` / `FINISHED`) roda antes do lookup no DB. Mesmo se o driver estivesse atribuído, ele não consegue `CANCEL` nem reverter status. |
+| Vazamento de status do driver via mensagens distintas | As três subcausas (sem perfil, inativo, não é o assigned) colapsam em `TRIP_NOT_ASSIGNED_TO_DRIVER_FORBIDDEN`. |
+| Regras de negócio multi-categoria no futuro | `CnhCategories.has(category)` exposto para que gates futuros (tipo de veículo → categoria requerida) sejam expressos sem re-derivar o array. |
+
+#### Sumário de validação
+
+| Check | Resultado |
+|---|---|
+| `npx tsc --noEmit` | ✅ 0 erros |
+| `npm run lint` | ✅ 0 erros |
+| `npx jest --config test/jest-unit.json` | ✅ **450 testes / 54 suites** (era 417 / 52 após Fase 4) |
+
+**Delta de testes** (+33 testes, +2 suites):
+- VO `CnhCategories` — 14 casos (suite nova).
+- `UpdateOwnDriverUseCase` — 7 casos (suite nova).
+- `TransitionTripInstanceStatusUseCase` — 7 casos novos plugados na suite existente (sem quebrar os caminhos legados de admin).
+- Spec existente de `CreateDriverUseCase` — 5 casos atualizados para o shape de array (sem mudança no total).
+
+#### Nota operacional (migration pendente)
+
+O arquivo de migration está pronto em `prisma/migrations/20260519200431_change_driver_cnh_category_to_array/migration.sql` mas **ainda não foi aplicado** — Docker estava parado no momento da edição. Aplicar com:
+
+```bash
+docker-compose up postgres -d
+npx prisma migrate deploy
+```
+
+O SQL preserva linhas com categoria única existentes mapeando cada uma para um array de 1 elemento (`ARRAY["cnhCategory"]`), então é prod-safe.
+
+#### Fora do escopo (Trabalhos Futuros)
+
+- **Self-removal de membership** — permitir que um usuário saia de uma org sem intervenção do admin. Baixa prioridade no MVP, já que admins removem hoje; FE confirmou que o fluxo ADMIN-driven atual atende para a entrega do TCC.
+
+---
+
 ## 7. Próximos Passos
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
@@ -2342,20 +2553,22 @@ Migrar para SMTP real **não muda o FE**. Só o BE: troca `useClass: ConsoleEmai
 7. ~~**Fase 3 (Monetização) — Plans, Payment, Subscriptions**~~ ✅ **CONCLUÍDO (26 Abr)** — Plans (5 use cases, DevGuard, PlanName enum), Payment (read-only API, criação via Bookings), Subscriptions (4 use cases, 30 dias, ADMIN-only).
 8. ~~**Mitigação de Defeitos Críticos (Fase 3.7):** Payment simulation, Subscription lazy expiration, Plan limits enforcement, Auto-FREE subscription.~~ ✅ **CONCLUÍDO (29 Abr)** — 4 defeitos críticos corrigidos; sistema demonstrável ponta a ponta.
 9. ~~**Mitigação de Bloqueadores do FE (B1–B10):**~~ ✅ **CONCLUÍDO (18 Mai)** — 4 fases sequenciais cobrindo: driver self-listing (B1), driver payment authz (B2), forgot/reset password + email verification + mock infra (B3+B6), telephone+emailVerifiedAt em TokenResponseDto (B4), endpoint público de planos (B7), nota de Swagger para querystring intencional (B10). 6 itens com código + 6 itens fechados via documentação. 36 testes novos, 52 suites totais, 417 testes passando.
-10. **Integração SMTP real:** substituir `ConsoleEmailService` por adapter de produção (Resend/SES/SMTP) — uma linha em `SharedModule.providers`, FE não muda.
-11. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
-12. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows, plan limit paths).
+10. ~~**Phase 5 — Driver self-service + CNH plural:**~~ ✅ **CONCLUÍDO (19 Mai)** — `cnhCategory: string` migrado para `cnhCategories: string[]` (Value Object de coleção com dedup/sort/case-insensitive); `PATCH /drivers/me` para update self-service de `cnhExpiresAt` / `cnhCategories`; `PATCH /trip-instances/:id/status` liberado para DRIVER com whitelist (`IN_PROGRESS` / `FINISHED`) + ownership + check de perfil `ACTIVE`. 33 testes novos, 54 suites totais, **450 testes passando**. Self-removal de membership movido para Trabalhos Futuros.
+11. **Integração SMTP real:** substituir `ConsoleEmailService` por adapter de produção (Resend/SES/SMTP) — uma linha em `SharedModule.providers`, FE não muda.
+12. **CI/CD:** GitHub Actions para build + lint + testes automatizados.
+13. **Testes Vehicle + Driver:** Implementar specs para os use cases de Vehicle e Driver (IDOR flows, plan limit paths).
+14. **Self-removal de membership:** permitir que um usuário saia de uma organização sem intervenção do admin (adiado da Phase 5 — baixa prioridade no MVP).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 18 de maio de 2026, as **Fases 1, 2, 3, 3.7 e a Mitigação de Bloqueadores FE (B1–B10)** estão 100% completas com 13 módulos implementados e o sistema demonstrável ponta a ponta:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 19 de maio de 2026, as **Fases 1, 2, 3, 3.7, a Mitigação de Bloqueadores FE (B1–B10) e a Phase 5 (driver self-service + CNH plural)** estão 100% completas com 13 módulos implementados e o sistema demonstrável ponta a ponta:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*. Auto-subscrição FREE ao criar organização *(29 Abr)*. **Recuperação de senha (forgot/reset) e verificação de email** com tokens hasheados (sha256, TTL 1h/24h), constant-response em forgot (anti-enumeration), revogação total de refresh tokens em reset (anti account-takeover), erros unificados (`InvalidOrExpired...`), auto-login pós-reset, fire-and-forget no register *(18 Mai)*. `TokenResponseDto.user` ampliado com `telephone` e `emailVerifiedAt` *(18 Mai)*.
 - ✅ **Organization Module**: CRUD completo com suporte a multi-tenancy, soft delete, decoupling total do Membership module e `GET /organizations/me` para ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*.
+- ✅ **Driver Module**: CRUD completo com value objects para CNH, error handling robusto, IDOR corrigido com `DriverAccessForbiddenError` + `belongsToOrganization()`, plan limit enforcement via `PlanLimitService` *(redesenhado 15 Abr, IDOR fix 17 Abr, limit 29 Abr)*. **`cnhCategory` migrado para Value Object de coleção `cnhCategories: string[]`** (motorista pode ter múltiplas categorias — A+B etc.) com dedup, ordenação alfabética e normalização case-insensitive; novo `PATCH /drivers/me` para update self-service parcial de `cnhExpiresAt` e/ou `cnhCategories` (exige driver `ACTIVE`; número da CNH e status seguem admin-only); novos erros `DriverProfileNotFoundError` (404) e `DriverInactiveError` (403) *(19 Mai)*.
 - ✅ **Vehicle Module**: CRUD completo com `Plate` value object, 8 domain errors, 5 use cases, proteção IDOR via `organizationId`, soft delete seguro com `VehicleInactiveError`, plan limit enforcement via `PlanLimitService` *(17 Abr, limit 29 Abr)*.
 - ✅ **Membership Module**: CRUD de associações com chave composta, soft delete, paginação, isolamento de tenant, validação de prerequisito Driver, e novo endpoint `GET /me/role/:organizationId` acessível por ADMIN e DRIVER *(21 Abr)*.
-- ✅ **Trip Module**: TripTemplate + TripInstance completos — 14 endpoints REST (12 autenticados + 2 públicos sem auth), 14 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK e ownership antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService`, endpoints públicos `GET /public/trip-instances` e `GET /public/trip-instances/org/:slug` via `PublicTripQueryService`, `GET /trip-instances/organization/{organizationId}` retorna resposta enriquecida com `bookedCount`, `availableSlots` e campos do template via JOIN único (`findByOrganizationIdWithMeta`) *(21 Abr, limit 29 Abr, public routes + ownership validation 30 Abr, meta fields 04 Mai)*. **Novo endpoint `GET /trip-instances/driver/me`** — listagem self-service para drivers com filtro de status, escopo por org (anti cross-tenant leak), driver `INACTIVE`/`SUSPENDED` retorna página vazia *(18 Mai)*.
+- ✅ **Trip Module**: TripTemplate + TripInstance completos — 14 endpoints REST (12 autenticados + 2 públicos sem auth), 14 use cases, status machine SCHEDULED→IN_PROGRESS→COMPLETED/CANCELLED, assign driver/vehicle com validação de FK e ownership antes de persistir, plan limit enforcement para `maxMonthlyTrips` via `PlanLimitService`, endpoints públicos `GET /public/trip-instances` e `GET /public/trip-instances/org/:slug` via `PublicTripQueryService`, `GET /trip-instances/organization/{organizationId}` retorna resposta enriquecida com `bookedCount`, `availableSlots` e campos do template via JOIN único (`findByOrganizationIdWithMeta`) *(21 Abr, limit 29 Abr, public routes + ownership validation 30 Abr, meta fields 04 Mai)*. **Novo endpoint `GET /trip-instances/driver/me`** — listagem self-service para drivers com filtro de status, escopo por org (anti cross-tenant leak), driver `INACTIVE`/`SUSPENDED` retorna página vazia *(18 Mai)*. **`PATCH /trip-instances/:id/status` liberado para DRIVER** com whitelist (`IN_PROGRESS` / `FINISHED`), ownership check via `instance.driverId !== driver.id` + perfil `ACTIVE` obrigatório; ramo ADMIN inalterado; três subcausas (sem perfil / inativo / não é o assigned) colapsam em `TripNotAssignedToDriverError` (403) para não vazar estado; alvo fora do whitelist retorna `DriverTripStatusTransitionForbiddenError` (403) *(19 Mai)*.
 - ✅ **Bookings Module**: Inscrições em viagens B2C, controle de acesso `hasOrgAccess || isOwner`, preço server-side, controle de capacidade (`countActiveByTripInstance`), confirmação de presença exclusiva para org members, filtro de status, verificação de disponibilidade (`GetBookingAvailabilityUseCase`), detalhe enriquecido (`FindBookingDetailsUseCase`), `paymentMethod` retornado em todas as respostas (resolvido via JOIN com tabela Payment), 9 use cases, 85 testes unitários *(25 Abr; paymentMethod 04 Mai)*.
 - ✅ **Plans Module**: 5 use cases (Create, Update, Deactivate, FindById, FindAll), `PlanName` enum (FREE/BASIC/PRO/PREMIUM), `Money` VO, writes protegidos por `DevGuard` + `@Dev()`, `PlanRepository` exportado para `SubscriptionsModule` *(26 Abr)*. Seed com 4 planos (FREE/BASIC/PRO/PREMIUM) *(29 Abr)*. **Endpoint público `GET /public/plans`** — lista planos `isActive=true` sem autenticação (tela de onboarding) *(18 Mai)*.
 - ✅ **Payment Module**: 4 use cases (2 leitura + 2 simulação), `PaymentEntity` com `confirm()` e `fail()`, `PaymentAlreadyProcessedError`, `update()` no repositório, 4 endpoints REST (GET×2 + PATCH×2 — confirm/fail simulados) *(26 Abr + 29 Abr)*. **Authz fina para DRIVER em confirm/fail** — `@Roles(ADMIN, DRIVER)` + `PaymentNotAssignedToDriverError` (`_FORBIDDEN`/403); driver só pode processar payments de TripInstances atribuídas a ele e enquanto `driverStatus=ACTIVE`; navegação Payment→Enrollment→TripInstance.driverId em query única *(18 Mai)*.
@@ -2363,7 +2576,7 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 18 de maio d
 - ✅ Sistema completo de **Role Management** com tipos ADMIN e DRIVER.
 - ✅ **Database Seeding** automático na inicialização do Docker. Seed inclui 4 planos (FREE/BASIC/PRO/PREMIUM) e 2 roles (ADMIN/DRIVER).
 - ✅ **Shared Module** padronizado para orquestração de componentes globais.
-- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategory, Plate, Money).
+- ✅ **Value Objects** com validações de domínio (Cnpj, Email, Telephone, Address, OrganizationName, Slug, Cnh, CnhCategories, Plate, Money).
 - ✅ **Validation Errors** para tratamento de erros específicos do domínio.
 - ✅ **Global Exception Handling** com AllExceptionsFilter refatorado (mapeamento por padrão de código) *(atualizado 13 Abr)*.
 - ✅ **RBAC Guards**: @Roles, RolesGuard, TenantFilterGuard, DevGuard implementados e aplicados.
@@ -2378,11 +2591,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 18 de maio d
 - ✅ **Shared — Mock de Email (18 Mai 2026)**: Interface `EmailService` no `SharedModule` (`@Global`); implementação `ConsoleEmailService` que loga via `Logger` + push em `InMemoryEmailLog` (FIFO bounded 50); endpoint `GET /dev/emails/latest` (`@Dev()` + `DevGuard`) para inspeção em dev. Migração para SMTP/Resend em prod é um único swap em `SharedModule.providers`. Padrão Strategy + DI sem mudança no FE.
 - ✅ **Segurança Multi-tenant — Fix Cross-tenant (18 Mai 2026)**: `Driver.userId @unique` significa que um user pode ter membership como DRIVER em N orgs com **o mesmo `driverId`**. `findByDriverIdWithMeta` originalmente filtrava só por `driverId`, o que vazaria viagens entre orgs no `GET /trip-instances/driver/me`. Corrigido com escopo obrigatório por `organizationId` propagado do `TenantContext` + casos defensivos para sessões sem org (dev/B2C) → página vazia em vez de query no banco.
 - ✅ **Mitigação de Bloqueadores FE (18 Mai 2026)**: 4 fases sequenciais (B1+B2+B3+B4+B6+B7+B10) — driver self-listing escopado por org, driver payment authz fina via use case, forgot/reset password com mock de email + tokens hasheados sha256, telephone+emailVerifiedAt em TokenResponseDto, public plans endpoint, Swagger note para querystring intencional. 6 itens fechados sem código (B5/B8/B9/B11/B12 + design de B10).
-- ✅ **Testes Unitários**: **52 suites, 417 testes passando** com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
+- ✅ **Testes Unitários**: **54 suites, 450 testes passando** com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai** + **Mitigação FE (B1–B10) entregue 18 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → email de verificação (mock) → auto-FREE → criação de recursos (com limite por plano) → booking → driver lista trips próprias → pagamento simulado (admin ou driver dono). Fluxo de recuperação de senha completo com auto-login pós-reset e revogação de refresh tokens. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
+**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai** + **Mitigação FE (B1–B10) entregue 18 Mai** + **Phase 5 (driver self-service + CNH plural) entregue 19 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → email de verificação (mock) → auto-FREE → criação de recursos (com limite por plano) → booking → driver lista trips próprias → pagamento simulado (admin ou driver dono). Fluxo de recuperação de senha completo com auto-login pós-reset e revogação de refresh tokens. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
 
 ---
 
@@ -2396,7 +2609,7 @@ A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Ar
 - `npx prisma migrate dev`: Aplica novas migrações ao banco de dados.
 - `npx prisma studio`: Interface visual para gerenciamento de dados.
 - `npm run build`: Compila o projeto com TypeScript (✅ sem erros)
-- `npm run test`: Executa testes unitários (**417 testes, 52 suites** — após mitigação FE 18 Mai)
+- `npm run test`: Executa testes unitários (**450 testes, 54 suites** — após Phase 5 em 19 Mai)
 - `npm run test:cov`: Testes com relatório de cobertura
 
 ### 9.2 Variáveis de Ambiente Necessárias
