@@ -12,6 +12,11 @@ interface PaymentState {
   status: PaymentStatus;
   readonly createdAt: Date;
   updatedAt: Date;
+  // Read-side snapshot of the related TripInstance. Populated by the mapper
+  // only when the Prisma query includes `enrollment.tripInstance`; absent
+  // otherwise. Never mutated and never persisted from the entity.
+  readonly tripInstanceId?: string;
+  readonly tripDepartureTime?: Date;
 }
 
 /**
@@ -100,6 +105,12 @@ export class PaymentEntity {
   }
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+  get tripInstanceId(): string | undefined {
+    return this.props.tripInstanceId;
+  }
+  get tripDepartureTime(): Date | undefined {
+    return this.props.tripDepartureTime;
   }
 
   /** Marks the payment as completed. Use-case must guard against double-processing. */

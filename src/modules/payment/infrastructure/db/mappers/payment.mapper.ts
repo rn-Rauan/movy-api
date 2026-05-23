@@ -4,6 +4,14 @@ import { PaymentEntity } from 'src/modules/payment/domain/entities/payment.entit
 import { PaymentStatus } from 'src/modules/payment/domain/interfaces/enums/payment-status.enum';
 import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 
+/** Optional relation shape produced when the Prisma query includes `enrollment.tripInstance`. */
+type PrismaPaymentWithTrip = PrismaPayment & {
+  enrollment?: {
+    tripInstanceId: string;
+    tripInstance?: { departureTime: Date } | null;
+  } | null;
+};
+
 /**
  * Bidirectional mapper between the Prisma `Payment` model and the {@link PaymentEntity} domain object.
  *
@@ -17,10 +25,14 @@ export class PaymentMapper {
    * Casts `amount` from `Prisma.Decimal` to `number` via `Number()` and
    * reconstructs the {@link Money} Value Object from that value.
    *
+   * When the Prisma query includes `enrollment.tripInstance`, the resulting
+   * entity also carries `tripInstanceId` and `tripDepartureTime` snapshots
+   * (used by the presenter to expose trip context in the HTTP response).
+   *
    * @param raw - Raw `Payment` record returned by the Prisma client
    * @returns A fully hydrated {@link PaymentEntity} instance
    */
-  static toDomain(raw: PrismaPayment): PaymentEntity {
+  static toDomain(raw: PrismaPaymentWithTrip): PaymentEntity {
     return PaymentEntity.restore({
       id: raw.id,
       organizationId: raw.organizationId,
@@ -30,6 +42,8 @@ export class PaymentMapper {
       status: raw.status as PaymentStatus,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+      tripInstanceId: raw.enrollment?.tripInstanceId,
+      tripDepartureTime: raw.enrollment?.tripInstance?.departureTime,
     });
   }
 

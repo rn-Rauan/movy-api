@@ -1305,13 +1305,17 @@ Same as BookingResponse plus:
   "id": "uuid",
   "organizationId": "uuid",
   "enrollmentId": "uuid",
+  "tripInstanceId": "uuid",
+  "tripDepartureTime": "2026-06-15T11:00:00.000Z",
   "method": "PIX",
   "amount": 12.50,
-  "status": "PENDING",
+  "status": "PENDING | COMPLETED | FAILED",
   "createdAt": "...",
   "updatedAt": "..."
 }
 ```
+
+> `tripInstanceId` and `tripDepartureTime` are read-time snapshots derived from the payment's `enrollment → tripInstance` relation. Use `tripDepartureTime` (not `createdAt`) to bucket revenue by trip date — that's the dimension that matches the accounting view. Both fields are absent only when the payment has no enrollment (today every payment is bound to one, but the contract leaves room for future orphans like SaaS subscription charges).
 
 ### TripSchedulingConfigResponse
 ```json

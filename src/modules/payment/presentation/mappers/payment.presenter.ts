@@ -24,6 +24,8 @@ export class PaymentPresenter {
       status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      tripInstanceId: entity.tripInstanceId,
+      tripDepartureTime: entity.tripDepartureTime,
     };
   }
 

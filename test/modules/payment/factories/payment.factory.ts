@@ -10,6 +10,8 @@ type PaymentOverrides = Partial<{
   method: MethodPayment;
   amount: number;
   status: PaymentStatus;
+  tripInstanceId: string;
+  tripDepartureTime: Date;
 }>;
 
 export function makePayment(overrides: PaymentOverrides = {}): PaymentEntity {
@@ -22,5 +24,7 @@ export function makePayment(overrides: PaymentOverrides = {}): PaymentEntity {
     status: overrides.status ?? PaymentStatus.PENDING,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
+    tripInstanceId: overrides.tripInstanceId,
+    tripDepartureTime: overrides.tripDepartureTime,
   });
 }

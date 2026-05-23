@@ -10,6 +10,21 @@ import { PaymentStatus } from 'src/modules/payment/domain/interfaces/enums/payme
 import { PaymentMapper } from '../mappers/payment.mapper';
 
 /**
+ * Prisma include used by every read/update/save path that returns an entity to
+ * the presentation layer. Brings `enrollment.tripInstanceId` and
+ * `tripInstance.departureTime` so the presenter can serialise them in the
+ * HTTP response (the frontend buckets revenue by trip date, not by payment date).
+ */
+const PAYMENT_TRIP_INCLUDE = {
+  enrollment: {
+    select: {
+      tripInstanceId: true,
+      tripInstance: { select: { departureTime: true } },
+    },
+  },
+} as const;
+
+/**
  * Prisma-backed implementation of {@link PaymentRepository}.
  *
  * All I/O operations are performed via the Prisma Client targeting PostgreSQL.
@@ -31,7 +46,10 @@ export class PrismaPaymentRepository implements PaymentRepository {
    */
   async save(payment: PaymentEntity): Promise<PaymentEntity | null> {
     const data = PaymentMapper.toPersistence(payment);
-    const result = await this.db.payment.create({ data });
+    const result = await this.db.payment.create({
+      data,
+      include: PAYMENT_TRIP_INCLUDE,
+    });
     return result ? PaymentMapper.toDomain(result) : null;
   }
 
@@ -42,7 +60,10 @@ export class PrismaPaymentRepository implements PaymentRepository {
    * @returns The matching {@link PaymentEntity}, or `null` if not found
    */
   async findById(id: string): Promise<PaymentEntity | null> {
-    const result = await this.db.payment.findUnique({ where: { id } });
+    const result = await this.db.payment.findUnique({
+      where: { id },
+      include: PAYMENT_TRIP_INCLUDE,
+    });
     return result ? PaymentMapper.toDomain(result) : null;
   }
 
@@ -57,6 +78,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
   ): Promise<PaymentEntity | null> {
     const result = await this.db.payment.findUnique({
       where: { enrollmentId },
+      include: PAYMENT_TRIP_INCLUDE,
     });
     return result ? PaymentMapper.toDomain(result) : null;
   }
@@ -81,6 +103,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
+        include: PAYMENT_TRIP_INCLUDE,
       }),
       this.db.payment.count({ where: { organizationId } }),
     ]);
@@ -104,6 +127,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
     const result = await this.db.payment.update({
       where: { id: payment.id },
       data: { status: payment.status, updatedAt: payment.updatedAt },
+      include: PAYMENT_TRIP_INCLUDE,
     });
     return result ? PaymentMapper.toDomain(result) : null;
   }
