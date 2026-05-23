@@ -1,7 +1,7 @@
 import { TripTemplate as PrismaTripTemplate } from 'generated/prisma/client';
 import { TripTemplate } from 'src/modules/trip/domain/entities';
 import { DayOfWeek, Shift } from 'src/modules/trip/domain/interfaces';
-import { Money, type Status } from 'src/shared';
+import { Money } from 'src/shared';
 
 /**
  * Bidirectional mapper between the Prisma `TripTemplate` model and the {@link TripTemplate} domain object.
@@ -43,7 +43,7 @@ export class TripTemplateMapper {
       autoCancelEnabled: raw.autoCancelEnabled,
       minRevenue: raw.minRevenue ? Money.restore(Number(raw.minRevenue)) : null,
       autoCancelOffset: raw.autoCancelOffset,
-      status: raw.status as Status,
+      status: raw.status,
       shift: raw.shift as Shift,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,

@@ -6,6 +6,7 @@ import {
 } from 'src/shared/domain/interfaces';
 import { PaymentEntity } from 'src/modules/payment/domain/entities/payment.entity';
 import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
+import { PaymentStatus } from 'src/modules/payment/domain/interfaces/enums/payment-status.enum';
 import { PaymentMapper } from '../mappers/payment.mapper';
 
 /**
@@ -123,5 +124,23 @@ export class PrismaPaymentRepository implements PaymentRepository {
       },
     });
     return row?.enrollment?.tripInstance?.driverId ?? null;
+  }
+
+  /**
+   * Finds every non-FAILED payment under a given trip instance via a nested
+   * filter on `enrollment.tripInstanceId`. Used when cancelling a trip
+   * cascades both PENDING and COMPLETED charges to FAILED — already-FAILED
+   * rows are excluded so the cascade stays idempotent.
+   */
+  async findNonFailedByTripInstanceId(
+    tripInstanceId: string,
+  ): Promise<PaymentEntity[]> {
+    const rows = await this.db.payment.findMany({
+      where: {
+        status: { not: PaymentStatus.FAILED },
+        enrollment: { tripInstanceId },
+      },
+    });
+    return rows.map((row) => PaymentMapper.toDomain(row));
   }
 }

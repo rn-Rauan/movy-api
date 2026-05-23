@@ -172,6 +172,6 @@ export class SubscriptionController {
     return {
       ...result,
       data: SubscriptionPresenter.toHTTPList(result.data),
-    } as PaginatedDto<SubscriptionResponseDto>;
+    };
   }
 }

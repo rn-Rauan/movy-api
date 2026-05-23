@@ -7,12 +7,10 @@ import { UpdateTripSchedulingConfigDto } from '../dtos/update-trip-scheduling-co
 /**
  * Applies a partial update to an organisation's {@link TripSchedulingConfig}.
  *
- * Each provided field is validated by the entity before persistence; cron
- * expressions are parsed via `cron-parser` to reject malformed inputs.
+ * Each provided field is validated by the entity before persistence.
  *
  * @throws {@link TripSchedulingConfigNotFoundError} when no row exists for the org.
  * @throws {@link InvalidSchedulingDaysAheadError} when `daysAhead` is out of bounds.
- * @throws {@link InvalidSchedulingCronError} when a cron expression cannot be parsed.
  */
 @Injectable()
 export class UpdateTripSchedulingConfigUseCase {
@@ -29,13 +27,6 @@ export class UpdateTripSchedulingConfigUseCase {
 
     if (input.daysAhead !== undefined) {
       config.updateDaysAhead(input.daysAhead);
-    }
-
-    if (
-      input.generationCron !== undefined ||
-      input.autoCancelCron !== undefined
-    ) {
-      config.updateCrons(input.generationCron, input.autoCancelCron);
     }
 
     if (input.enabled !== undefined) {

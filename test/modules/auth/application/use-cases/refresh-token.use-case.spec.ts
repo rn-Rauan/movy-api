@@ -126,7 +126,7 @@ describe('RefreshTokenUseCase', () => {
         2,
         expect.objectContaining({
           ...enrichedPayload,
-          jti: expect.any(String) as unknown as string,
+          jti: expect.any(String) as string,
         }),
         { expiresIn: '7d' },
       );

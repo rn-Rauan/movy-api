@@ -32,7 +32,7 @@ export class GenerateRecurringTripInstancesCron {
     private readonly useCase: GenerateRecurringTripInstancesUseCase,
   ) {}
 
-  @Cron('0 2 * * *', {
+  @Cron('* 2 * * *', {
     name: 'generate-recurring-trip-instances',
     timeZone: 'UTC',
   })

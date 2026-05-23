@@ -3,7 +3,6 @@ import { Booking } from 'src/modules/bookings/domain/entities';
 import { EnrollmentType } from 'src/modules/bookings/domain/interfaces';
 import { MethodPayment } from 'src/modules/payment/domain/interfaces/enums/method-payment.enum';
 import { Money } from 'src/shared';
-import type { Status } from 'src/shared/domain/types';
 
 export type PrismaEnrollmentWithPayment = PrismaEnrollment & {
   payment: { method: string } | null;
@@ -36,7 +35,7 @@ export class BookingMapper {
       userId: raw.userId,
       tripInstanceId: raw.tripInstanceId,
       enrollmentDate: raw.enrollmentDate,
-      status: raw.status as Status,
+      status: raw.status,
       presenceConfirmed: raw.presenceConfirmed,
       enrollmentType: raw.enrollmentType as EnrollmentType,
       recordedPrice: Money.restore(Number(raw.recordedPrice)),

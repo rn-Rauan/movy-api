@@ -70,4 +70,18 @@ export abstract class PaymentRepository {
    *   or its TripInstance has no driver assigned.
    */
   abstract findDriverIdByPaymentId(paymentId: string): Promise<string | null>;
+
+  /**
+   * Returns every payment whose enrollment belongs to the given trip instance
+   * and whose status is not already `FAILED`. Used to cascade `FAILED` on trip
+   * cancellation — including previously `COMPLETED` charges, which a cancelled
+   * trip retroactively invalidates.
+   *
+   * @param tripInstanceId - The trip instance UUID
+   * @returns Array of {@link PaymentEntity} in PENDING or COMPLETED status;
+   *   empty when none exist (or all are already FAILED)
+   */
+  abstract findNonFailedByTripInstanceId(
+    tripInstanceId: string,
+  ): Promise<PaymentEntity[]>;
 }

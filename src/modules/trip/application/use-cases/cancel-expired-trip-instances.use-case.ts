@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OrganizationRepository } from 'src/modules/organization/domain/interfaces/organization.repository';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
+import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { TripInstanceRepository, TripStatus } from '../../domain/interfaces';
 
 /** Result aggregate returned by {@link CancelExpiredTripInstancesUseCase.execute}. */
@@ -29,6 +31,8 @@ export class CancelExpiredTripInstancesUseCase {
   constructor(
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly organizationRepository: OrganizationRepository,
+    private readonly paymentRepository: PaymentRepository,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   async execute(): Promise<CancelExpiredTripInstancesResult> {
@@ -45,8 +49,22 @@ export class CancelExpiredTripInstancesUseCase {
 
       for (const instance of expired) {
         try {
-          instance.transitionTo(TripStatus.CANCELED);
-          await this.tripInstanceRepository.update(instance);
+          // One transaction per instance — the trip flip and its payment
+          // cascade succeed or roll back together, but one stuck row still
+          // does not abort the sweep for the rest of the org.
+          await this.unitOfWork.execute(async () => {
+            instance.transitionTo(TripStatus.CANCELED);
+            await this.tripInstanceRepository.update(instance);
+
+            const payments =
+              await this.paymentRepository.findNonFailedByTripInstanceId(
+                instance.id,
+              );
+            for (const payment of payments) {
+              payment.fail();
+              await this.paymentRepository.update(payment);
+            }
+          });
           canceled++;
         } catch (err) {
           failed++;

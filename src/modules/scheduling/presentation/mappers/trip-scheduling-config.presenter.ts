@@ -10,8 +10,6 @@ export class TripSchedulingConfigPresenter {
       id: entity.id,
       organizationId: entity.organizationId,
       daysAhead: entity.daysAhead,
-      generationCron: entity.generationCron,
-      autoCancelCron: entity.autoCancelCron,
       enabled: entity.enabled,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

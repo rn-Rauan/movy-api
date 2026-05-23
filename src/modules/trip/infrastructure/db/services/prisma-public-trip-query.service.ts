@@ -57,17 +57,6 @@ export class PrismaPublicTripQueryService implements PublicTripQueryService {
    * @returns A {@link PaginatedResponse} of {@link PublicTripInstanceData} items
    */
   async findById(id: string): Promise<PublicTripInstanceData | null> {
-    type PublicTripRow = PrismaTripInstance & {
-      tripTemplate: {
-        departurePoint: string;
-        destination: string;
-        priceOneWay: Prisma.Decimal | null;
-        priceReturn: Prisma.Decimal | null;
-        priceRoundTrip: Prisma.Decimal | null;
-        isRecurring: boolean;
-      };
-    };
-
     const bookableStatuses: TripStatus[] = [
       TripStatus.SCHEDULED,
       TripStatus.CONFIRMED,
@@ -91,7 +80,7 @@ export class PrismaPublicTripQueryService implements PublicTripQueryService {
 
     if (!raw) return null;
 
-    const row = raw as PublicTripRow;
+    const row = raw;
     const { tripTemplate, ...instanceRow } = row;
     return {
       instance: TripInstanceMapper.toDomain(instanceRow),

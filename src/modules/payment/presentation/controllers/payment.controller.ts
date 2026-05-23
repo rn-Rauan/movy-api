@@ -63,7 +63,7 @@ export class PaymentController {
    */
   @Get(':id')
   @UseGuards(TenantFilterGuard, RolesGuard)
-  @Roles(RoleName.ADMIN)
+  @Roles(RoleName.DRIVER, RoleName.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Get payment by id' })
   @ApiParam({ name: 'organizationId' })
   @ApiParam({ name: 'id' })
@@ -141,8 +141,8 @@ export class PaymentController {
    */
   @Get()
   @UseGuards(TenantFilterGuard, RolesGuard)
-  @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] List payments for organization' })
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
+  @ApiOperation({ summary: '[ADMIN | DRIVER] List payments for organization' })
   @ApiParam({ name: 'organizationId' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -159,6 +159,6 @@ export class PaymentController {
     return {
       ...result,
       data: PaymentPresenter.toHTTPList(result.data),
-    } as PaginatedDto<PaymentResponseDto>;
+    };
   }
 }

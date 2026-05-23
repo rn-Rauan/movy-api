@@ -618,12 +618,12 @@ Partially update the scheduling configuration. Any field omitted is left unchang
 | Field | Type | Notes |
 |---|---|---|
 | `daysAhead` | integer (1..90) | How many days ahead the generator creates instances each run |
-| `generationCron` | string (cron expression, UTC) | Default `"0 2 * * *"` |
-| `autoCancelCron` | string (cron expression, UTC) | Default `"*/15 * * * *"` |
 | `enabled` | boolean | Master switch for both jobs on this org |
 
+> Cron cadence is fixed globally — `generate-recurring-trip-instances` always fires at `0 2 * * *` UTC and `auto-cancel-trip-instances` every 15 minutes UTC. Per-org cron overrides were dropped: NestJS `@Cron()` resolves at module load, so honouring per-row expressions would require a dynamic `SchedulerRegistry` setup that is out of scope. Only `daysAhead` and `enabled` are tunable per organisation.
+
 **Response `200`** → [TripSchedulingConfigResponse](#tripschedulingconfigresponse)
-**`400`** → Invalid `daysAhead` or cron expression
+**`400`** → Invalid `daysAhead`
 **`404`** → Config not found for the organization
 
 ---
@@ -1319,13 +1319,13 @@ Same as BookingResponse plus:
   "id": "uuid",
   "organizationId": "uuid",
   "daysAhead": 14,
-  "generationCron": "0 2 * * *",
-  "autoCancelCron": "*/15 * * * *",
   "enabled": true,
   "createdAt": "...",
   "updatedAt": "..."
 }
 ```
+
+> `generationCron` and `autoCancelCron` were removed on 22 May 2026. The cron expressions are now fixed globally (`0 2 * * *` UTC for generation, every 15 minutes UTC for auto-cancel) and no longer surface on the API.
 
 ### GenerateInstancesResponse
 ```json

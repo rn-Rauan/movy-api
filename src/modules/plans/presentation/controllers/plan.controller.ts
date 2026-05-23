@@ -131,7 +131,7 @@ export class PlanController {
     return {
       ...result,
       data: PlanPresenter.toHTTPList(result.data),
-    } as PaginatedDto<PlanResponseDto>;
+    };
   }
 
   /**

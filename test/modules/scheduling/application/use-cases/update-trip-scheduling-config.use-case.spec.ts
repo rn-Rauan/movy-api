@@ -1,7 +1,6 @@
 import { UpdateTripSchedulingConfigUseCase } from 'src/modules/scheduling/application/use-cases/update-trip-scheduling-config.use-case';
 import { TripSchedulingConfigRepository } from 'src/modules/scheduling/domain/interfaces/trip-scheduling-config.repository';
 import {
-  InvalidSchedulingCronError,
   InvalidSchedulingDaysAheadError,
   TripSchedulingConfigNotFoundError,
 } from 'src/modules/scheduling/domain/entities/errors/trip-scheduling-config.errors';
@@ -40,22 +39,18 @@ describe('UpdateTripSchedulingConfigUseCase', () => {
   });
 
   describe('happy path', () => {
-    it('should update daysAhead, generationCron, autoCancelCron and enabled', async () => {
+    it('should update daysAhead and enabled', async () => {
       // Arrange
       setupHappyPath(mocks);
 
       // Act
       const result = await sut.execute(ORG_ID, {
         daysAhead: 30,
-        generationCron: '0 4 * * *',
-        autoCancelCron: '*/10 * * * *',
         enabled: false,
       });
 
       // Assert
       expect(result.daysAhead).toBe(30);
-      expect(result.generationCron).toBe('0 4 * * *');
-      expect(result.autoCancelCron).toBe('*/10 * * * *');
       expect(result.enabled).toBe(false);
       expect(mocks.repository.update).toHaveBeenCalledTimes(1);
     });
@@ -63,14 +58,14 @@ describe('UpdateTripSchedulingConfigUseCase', () => {
     it('should ignore undefined fields without mutating others', async () => {
       // Arrange
       const { config } = setupHappyPath(mocks);
-      const originalCron = config.generationCron;
+      const originalEnabled = config.enabled;
 
       // Act
       await sut.execute(ORG_ID, { daysAhead: 7 });
 
       // Assert
       expect(config.daysAhead).toBe(7);
-      expect(config.generationCron).toBe(originalCron);
+      expect(config.enabled).toBe(originalEnabled);
     });
   });
 
@@ -96,17 +91,6 @@ describe('UpdateTripSchedulingConfigUseCase', () => {
       await expect(sut.execute(ORG_ID, { daysAhead: 0 })).rejects.toThrow(
         InvalidSchedulingDaysAheadError,
       );
-      expect(mocks.repository.update).not.toHaveBeenCalled();
-    });
-
-    it('should propagate InvalidSchedulingCronError when cron is malformed', async () => {
-      // Arrange
-      setupHappyPath(mocks);
-
-      // Act & Assert
-      await expect(
-        sut.execute(ORG_ID, { generationCron: 'invalid-cron' }),
-      ).rejects.toThrow(InvalidSchedulingCronError);
       expect(mocks.repository.update).not.toHaveBeenCalled();
     });
   });

@@ -395,7 +395,7 @@ export class GenerateRecurringTripInstancesUseCase {
       typeof err === 'object' &&
       err !== null &&
       'code' in err &&
-      (err as { code: unknown }).code === PRISMA_UNIQUE_VIOLATION
+      err.code === PRISMA_UNIQUE_VIOLATION
     );
   }
 

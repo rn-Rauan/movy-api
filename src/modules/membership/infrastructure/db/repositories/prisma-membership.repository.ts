@@ -236,7 +236,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
       userId: membership.userId,
       organizationId: membership.organizationId,
       role: {
-        name: membership.role.name as 'ADMIN' | 'DRIVER',
+        name: membership.role.name,
       },
     };
   }
@@ -263,7 +263,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
       userId: m.userId,
       organizationId: m.organizationId,
       role: {
-        name: m.role.name as 'ADMIN' | 'DRIVER',
+        name: m.role.name,
       },
     }));
   }

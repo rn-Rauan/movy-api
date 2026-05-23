@@ -39,7 +39,7 @@ export class User {
 
     this.props = {
       ...props,
-      status: props.status ?? ('ACTIVE' as Status),
+      status: props.status ?? 'ACTIVE',
       createdAt: props.createdAt ?? now,
       updatedAt: props.updatedAt ?? now,
       emailVerifiedAt: props.emailVerifiedAt ?? null,

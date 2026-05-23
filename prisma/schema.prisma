@@ -401,8 +401,6 @@ model TripSchedulingConfig {
   id              String       @id @default(uuid())
   organizationId  String       @unique
   daysAhead       Int          @default(14)
-  generationCron  String       @default("0 2 * * *")
-  autoCancelCron  String       @default("*/15 * * * *")
   enabled         Boolean      @default(true)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt

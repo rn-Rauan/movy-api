@@ -11,28 +11,56 @@ import {
 } from 'src/modules/trip/domain/entities/errors/trip-instance.errors';
 import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
 import { DriverStatus } from 'src/modules/driver/domain/interfaces/enums/driver-status.enum';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
+import { PaymentStatus } from 'src/modules/payment/domain/interfaces/enums/payment-status.enum';
 import { RoleName } from 'src/shared/domain/types';
 import { makeTripInstance } from '../../factories/trip-instance.factory';
 import { makeDriver } from '../../../driver/factories/driver.factory';
+import { makePayment } from '../../../payment/factories/payment.factory';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 
 // ── Mocks ───────────────────────────────────────────────
 
 function makeMocks() {
   const tripInstanceRepository = {
-    findById: jest.fn(),
-    update: jest.fn(),
-  } as any as jest.Mocked<TripInstanceRepository>;
+    findById: jest.fn<
+      ReturnType<TripInstanceRepository['findById']>,
+      [string]
+    >(),
+    update: jest.fn<
+      ReturnType<TripInstanceRepository['update']>,
+      [Parameters<TripInstanceRepository['update']>[0]]
+    >(),
+  } as unknown as jest.Mocked<TripInstanceRepository>;
 
   const driverRepository = {
     findByUserId: jest.fn(),
-  } as any as jest.Mocked<DriverRepository>;
+  } as unknown as jest.Mocked<DriverRepository>;
+
+  const paymentRepository = {
+    findNonFailedByTripInstanceId: jest.fn().mockResolvedValue([]),
+    update: jest
+      .fn<
+        ReturnType<PaymentRepository['update']>,
+        [Parameters<PaymentRepository['update']>[0]]
+      >()
+      .mockImplementation(
+        async (payment: Parameters<PaymentRepository['update']>[0]) => payment,
+      ),
+  } as unknown as jest.Mocked<PaymentRepository>;
 
   const unitOfWork = {
-    execute: jest.fn().mockImplementation((fn: () => Promise<unknown>) => fn()),
-  } as any as jest.Mocked<UnitOfWork>;
+    execute: jest
+      .fn<Promise<unknown>, [() => Promise<unknown>]>()
+      .mockImplementation((fn: () => Promise<unknown>) => fn()),
+  } as unknown as jest.Mocked<UnitOfWork>;
 
-  return { tripInstanceRepository, driverRepository, unitOfWork };
+  return {
+    tripInstanceRepository,
+    driverRepository,
+    paymentRepository,
+    unitOfWork,
+  };
 }
 
 function setupHappyPath(
@@ -71,6 +99,7 @@ describe('TransitionTripInstanceStatusUseCase', () => {
     sut = new TransitionTripInstanceStatusUseCase(
       mocks.tripInstanceRepository,
       mocks.driverRepository,
+      mocks.paymentRepository,
       mocks.unitOfWork,
     );
   });
@@ -270,6 +299,71 @@ describe('TransitionTripInstanceStatusUseCase', () => {
       ).rejects.toThrow(TripInstanceRequiredFieldError);
 
       expect(mocks.tripInstanceRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Payment cascade on cancellation ───────────────────
+
+  describe('cascade — CANCELED fails every non-failed payment', () => {
+    it('flips PENDING and COMPLETED payments to FAILED', async () => {
+      setupHappyPath(mocks, { tripStatus: TripStatus.SCHEDULED });
+      const pending = makePayment({
+        id: 'p-pending',
+        status: PaymentStatus.PENDING,
+      });
+      const completed = makePayment({
+        id: 'p-completed',
+        status: PaymentStatus.COMPLETED,
+      });
+      mocks.paymentRepository.findNonFailedByTripInstanceId.mockResolvedValue([
+        pending,
+        completed,
+      ]);
+
+      await sut.execute(
+        INSTANCE_ID,
+        { newStatus: TripStatus.CANCELED },
+        ORG_ID,
+      );
+
+      expect(
+        mocks.paymentRepository.findNonFailedByTripInstanceId,
+      ).toHaveBeenCalledWith(INSTANCE_ID);
+      expect(mocks.paymentRepository.update).toHaveBeenCalledTimes(2);
+      const saved = mocks.paymentRepository.update.mock.calls.map(
+        (c) => c[0].status,
+      );
+      expect(saved).toEqual([PaymentStatus.FAILED, PaymentStatus.FAILED]);
+    });
+
+    it('is a no-op when the repository returns no rows (all already FAILED)', async () => {
+      setupHappyPath(mocks, { tripStatus: TripStatus.SCHEDULED });
+      mocks.paymentRepository.findNonFailedByTripInstanceId.mockResolvedValue(
+        [],
+      );
+
+      await sut.execute(
+        INSTANCE_ID,
+        { newStatus: TripStatus.CANCELED },
+        ORG_ID,
+      );
+
+      expect(mocks.paymentRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('does NOT touch payments on non-CANCELED transitions', async () => {
+      setupHappyPath(mocks, { tripStatus: TripStatus.SCHEDULED });
+
+      await sut.execute(
+        INSTANCE_ID,
+        { newStatus: TripStatus.CONFIRMED },
+        ORG_ID,
+      );
+
+      expect(
+        mocks.paymentRepository.findNonFailedByTripInstanceId,
+      ).not.toHaveBeenCalled();
+      expect(mocks.paymentRepository.update).not.toHaveBeenCalled();
     });
   });
 

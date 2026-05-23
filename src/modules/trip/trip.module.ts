@@ -6,6 +6,7 @@ import { VehicleModule } from 'src/modules/vehicle/vehicle.module';
 import { OrganizationModule } from 'src/modules/organization/organization.module';
 import { SubscriptionsModule } from 'src/modules/subscriptions/subscriptions.module';
 import { SchedulingModule } from 'src/modules/scheduling/scheduling.module';
+import { PaymentModule } from 'src/modules/payment/payment.module';
 import {
   CreateTripTemplateUseCase,
   UpdateTripTemplateUseCase,
@@ -74,6 +75,7 @@ import { PublicTripInstanceController } from './presentation/controllers/public-
     OrganizationModule,
     SubscriptionsModule,
     SchedulingModule,
+    PaymentModule,
   ],
   controllers: [
     TripTemplateController,

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DriverRepository } from 'src/modules/driver/domain/interfaces/driver.repository';
 import { DriverStatus } from 'src/modules/driver/domain/interfaces/enums/driver-status.enum';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { RoleName } from 'src/shared/domain/types';
 import { TripInstance } from '../../domain/entities';
@@ -47,6 +48,7 @@ export class TransitionTripInstanceStatusUseCase {
   constructor(
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly driverRepository: DriverRepository,
+    private readonly paymentRepository: PaymentRepository,
     private readonly unitOfWork: UnitOfWork,
   ) {}
 
@@ -107,7 +109,27 @@ export class TransitionTripInstanceStatusUseCase {
         throw new TripInstanceNotFoundError(id);
       }
 
+      if (input.newStatus === TripStatus.CANCELED) {
+        await this.failPaymentsForCancelledTrip(id);
+      }
+
       return updated;
     });
+  }
+
+  // Cancelling a trip retroactively invalidates every charge tied to its
+  // enrollments — including ones already COMPLETED. The repository filter
+  // skips already-FAILED rows, keeping the cascade idempotent.
+  private async failPaymentsForCancelledTrip(
+    tripInstanceId: string,
+  ): Promise<void> {
+    const payments =
+      await this.paymentRepository.findNonFailedByTripInstanceId(
+        tripInstanceId,
+      );
+    for (const payment of payments) {
+      payment.fail();
+      await this.paymentRepository.update(payment);
+    }
   }
 }

@@ -4,8 +4,12 @@ import {
   TripStatus,
 } from 'src/modules/trip/domain/interfaces';
 import { OrganizationRepository } from 'src/modules/organization/domain/interfaces/organization.repository';
+import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
+import { PaymentStatus } from 'src/modules/payment/domain/interfaces/enums/payment-status.enum';
+import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { makeOrganization } from '../../../organization/factories/organization.factory';
 import { makeTripInstance } from '../../factories/trip-instance.factory';
+import { makePayment } from '../../../payment/factories/payment.factory';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -13,13 +17,36 @@ function makeMocks() {
   const tripInstanceRepository = {
     findExpiredOpenInstances: jest.fn(),
     update: jest.fn(),
-  } as any as jest.Mocked<TripInstanceRepository>;
+  } as unknown as jest.Mocked<TripInstanceRepository>;
 
   const organizationRepository = {
     findAllActiveUnpaginated: jest.fn(),
-  } as any as jest.Mocked<OrganizationRepository>;
+  } as unknown as jest.Mocked<OrganizationRepository>;
 
-  return { tripInstanceRepository, organizationRepository };
+  const paymentRepository = {
+    findNonFailedByTripInstanceId: jest.fn().mockResolvedValue([]),
+    update: jest
+      .fn<
+        ReturnType<PaymentRepository['update']>,
+        [Parameters<PaymentRepository['update']>[0]]
+      >()
+      .mockImplementation(
+        async (payment: Parameters<PaymentRepository['update']>[0]) => payment,
+      ),
+  } as unknown as jest.Mocked<PaymentRepository>;
+
+  const unitOfWork = {
+    execute: jest
+      .fn<Promise<unknown>, [() => Promise<unknown>]>()
+      .mockImplementation((fn: () => Promise<unknown>) => fn()),
+  } as unknown as jest.Mocked<UnitOfWork>;
+
+  return {
+    tripInstanceRepository,
+    organizationRepository,
+    paymentRepository,
+    unitOfWork,
+  };
 }
 
 // Helper: build an instance in a cancellable state with autoCancelAt already past.
@@ -42,6 +69,8 @@ describe('CancelExpiredTripInstancesUseCase', () => {
     sut = new CancelExpiredTripInstancesUseCase(
       mocks.tripInstanceRepository,
       mocks.organizationRepository,
+      mocks.paymentRepository,
+      mocks.unitOfWork,
     );
   });
 
@@ -139,6 +168,58 @@ describe('CancelExpiredTripInstancesUseCase', () => {
 
       // Assert
       expect(result).toEqual({ canceled: 3, failed: 0 });
+    });
+  });
+
+  describe('cascade — non-FAILED payments fail with the trip', () => {
+    it('flips PENDING and COMPLETED payments of each cancelled instance to FAILED', async () => {
+      const org = makeOrganization({ id: 'org-1' });
+      const inst = makeExpiredInstance(org.id);
+      mocks.organizationRepository.findAllActiveUnpaginated.mockResolvedValue([
+        org,
+      ]);
+      mocks.tripInstanceRepository.findExpiredOpenInstances.mockResolvedValue([
+        inst,
+      ]);
+      mocks.tripInstanceRepository.update.mockImplementation(
+        async (entity) => entity,
+      );
+      mocks.paymentRepository.findNonFailedByTripInstanceId.mockResolvedValue([
+        makePayment({ id: 'p-1', status: PaymentStatus.PENDING }),
+        makePayment({ id: 'p-2', status: PaymentStatus.COMPLETED }),
+      ]);
+
+      const result = await sut.execute();
+
+      expect(result).toEqual({ canceled: 1, failed: 0 });
+      expect(
+        mocks.paymentRepository.findNonFailedByTripInstanceId,
+      ).toHaveBeenCalledWith(inst.id);
+      expect(mocks.paymentRepository.update).toHaveBeenCalledTimes(2);
+      for (const call of mocks.paymentRepository.update.mock.calls) {
+        expect(call[0].status).toBe(PaymentStatus.FAILED);
+      }
+    });
+
+    it('counts the instance as failed when the payment cascade throws', async () => {
+      const org = makeOrganization({ id: 'org-1' });
+      const inst = makeExpiredInstance(org.id);
+      mocks.organizationRepository.findAllActiveUnpaginated.mockResolvedValue([
+        org,
+      ]);
+      mocks.tripInstanceRepository.findExpiredOpenInstances.mockResolvedValue([
+        inst,
+      ]);
+      mocks.tripInstanceRepository.update.mockImplementation(
+        async (entity) => entity,
+      );
+      mocks.paymentRepository.findNonFailedByTripInstanceId.mockRejectedValue(
+        new Error('boom'),
+      );
+
+      const result = await sut.execute();
+
+      expect(result).toEqual({ canceled: 0, failed: 1 });
     });
   });
 

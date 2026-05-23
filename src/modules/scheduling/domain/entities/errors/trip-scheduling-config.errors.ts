@@ -22,19 +22,6 @@ export class InvalidSchedulingDaysAheadError extends TripSchedulingConfigValidat
 }
 
 /**
- * Thrown when a cron expression cannot be parsed by `cron-parser`.
- *
- * @remarks Maps to HTTP `400 Bad Request`.
- */
-export class InvalidSchedulingCronError extends TripSchedulingConfigValidationError {
-  code = 'INVALID_SCHEDULING_CRON';
-
-  constructor(field: string, expression: string) {
-    super(`Invalid cron expression for "${field}": "${expression}".`);
-  }
-}
-
-/**
  * Thrown when the requested organisation has no scheduling config row.
  *
  * @remarks Maps to HTTP `404 Not Found`.

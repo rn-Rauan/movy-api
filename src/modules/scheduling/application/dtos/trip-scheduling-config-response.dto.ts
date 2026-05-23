@@ -11,18 +11,6 @@ export class TripSchedulingConfigResponseDto {
   @ApiProperty({ example: 14, description: 'Days ahead the generator scans' })
   daysAhead: number;
 
-  @ApiProperty({
-    example: '0 2 * * *',
-    description: 'Cron expression for the generation job',
-  })
-  generationCron: string;
-
-  @ApiProperty({
-    example: '*/15 * * * *',
-    description: 'Cron expression for the auto-cancel job',
-  })
-  autoCancelCron: string;
-
   @ApiProperty({ example: true })
   enabled: boolean;
 

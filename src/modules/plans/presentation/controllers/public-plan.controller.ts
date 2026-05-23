@@ -38,6 +38,6 @@ export class PublicPlanController {
     return {
       ...result,
       data: PlanPresenter.toHTTPList(result.data),
-    } as PaginatedDto<PlanResponseDto>;
+    };
   }
 }
