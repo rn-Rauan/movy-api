@@ -1,8 +1,23 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { FindOrganizationBySlugUseCase } from '../../application/use-cases/find-organization-by-slug.use-case';
+import { FindAllActiveOrganizationsUseCase } from '../../application/use-cases';
 import { OrganizationPresenter } from '../mappers/organization.mapper';
 import { OrganizationResponseDto } from '../../application/dtos';
+import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 
 /**
  * HTTP controller for public, unauthenticated organisation lookups.
@@ -17,6 +32,7 @@ import { OrganizationResponseDto } from '../../application/dtos';
  * existed.
  *
  * Endpoints:
+ * - `GET /public/organizations` — paginated list of active organisations
  * - `GET /public/organizations/:slug` — resolve an active organisation by slug
  *
  * Base path: `/public/organizations`
@@ -26,8 +42,46 @@ import { OrganizationResponseDto } from '../../application/dtos';
 export class PublicOrganizationController {
   constructor(
     private readonly findOrganizationBySlugUseCase: FindOrganizationBySlugUseCase,
+    private readonly findAllActiveOrganizationsUseCase: FindAllActiveOrganizationsUseCase,
     private readonly organizationPresenter: OrganizationPresenter,
   ) {}
+
+  /**
+   * Returns a paginated list of active organisations.
+   *
+   * @remarks
+   * Public mirror of `GET /organizations/active` (which requires a JWT because
+   * its controller is guarded at the class level). No authentication required.
+   */
+  @Get()
+  @ApiOperation({
+    summary: 'List active organisations (no auth required)',
+    description:
+      'Public, paginated list of ACTIVE organisations. Mirrors ' +
+      'GET /organizations/active but without authentication.',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of active organisations.',
+    type: PaginatedDto<OrganizationResponseDto>,
+  })
+  async findAllActive(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<PaginatedDto<OrganizationResponseDto>> {
+    const result = await this.findAllActiveOrganizationsUseCase.execute({
+      page,
+      limit,
+    });
+
+    const data = result.data.map((org) =>
+      this.organizationPresenter.toHTTP(org),
+    );
+
+    return new PaginatedDto(data, result.total, result.page, result.limit);
+  }
 
   /**
    * Resolves an active organisation by its URL slug.
