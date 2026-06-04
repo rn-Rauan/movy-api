@@ -3,7 +3,6 @@ import { PlanRepository } from 'src/modules/plans/domain/interfaces/plan.reposit
 import { PlanNotFoundError } from 'src/modules/plans/domain/errors/plan.errors';
 import { SubscriptionRepository } from '../../domain/interfaces/subscription.repository';
 import { resolveActiveSubscription } from '../utils/resolve-active-subscription';
-import { billingPeriodStart } from '../utils/billing-period';
 import {
   NoActiveSubscriptionError,
   VehicleLimitExceededError,
@@ -60,18 +59,28 @@ export class PlanLimitService {
   }
 
   /**
-   * Returns the start of the organisation's current billing-period window
-   * (`expiresAt − plan.durationDays`). Resource-usage counts should use this
-   * as the lower bound so quotas reset with the subscription cycle, not the
-   * calendar month.
+   * Returns the active subscription's term window `[start, end)` where
+   * `start = subscription.startDate` (the original enrolment instant) and
+   * `end = subscription.expiresAt`.
+   *
+   * Trip-usage counts use this window with the **creation time** so the quota
+   * covers every non-draft trip created since enrolment, and only resets when a
+   * fresh subscription term begins (a renewal/re-subscribe produces a new
+   * `startDate`). A mid-term plan change preserves `startDate`, so upgrading does
+   * not wipe the trip history accumulated in the current term.
    *
    * @throws NoActiveSubscriptionError when the org has no valid subscription
    * @throws PlanNotFoundError when the plan referenced by the subscription no longer exists
    */
-  async getCurrentPeriodStart(organizationId: string): Promise<Date> {
-    const { subscription, plan } =
+  async getCurrentPeriod(
+    organizationId: string,
+  ): Promise<{ start: Date; end: Date }> {
+    const { subscription } =
       await this.getActiveSubscriptionAndPlan(organizationId);
-    return billingPeriodStart(subscription.expiresAt, plan.durationDays);
+    return {
+      start: subscription.startDate,
+      end: subscription.expiresAt,
+    };
   }
 
   /**

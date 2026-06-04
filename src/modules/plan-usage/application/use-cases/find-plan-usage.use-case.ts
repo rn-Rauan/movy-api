@@ -3,7 +3,6 @@ import { PlanRepository } from 'src/modules/plans/domain/interfaces/plan.reposit
 import { PlanNotFoundError } from 'src/modules/plans/domain/errors/plan.errors';
 import { SubscriptionRepository } from 'src/modules/subscriptions/domain/interfaces/subscription.repository';
 import { resolveActiveSubscription } from 'src/modules/subscriptions/application/utils/resolve-active-subscription';
-import { billingPeriodStart } from 'src/modules/subscriptions/application/utils/billing-period';
 import { NoActiveSubscriptionError } from 'src/modules/subscriptions/domain/errors/subscription.errors';
 import { VehicleRepository } from 'src/modules/vehicle/domain/interfaces';
 import { DriverRepository } from 'src/modules/driver/domain/interfaces';
@@ -19,8 +18,8 @@ export interface PlanUsageOutput {
  * Reports the organisation's current resource consumption against its active plan.
  *
  * Resolves the active subscription (lazily expiring if overdue), loads the linked
- * plan, and counts active vehicles, active drivers, and trip instances created in
- * the current billing period (`expiresAt − plan.durationDays`).
+ * plan, and counts active vehicles, active drivers, and non-draft trip instances
+ * created during the current subscription term (`[startDate, expiresAt)`).
  *
  * @throws NoActiveSubscriptionError when the org has no valid subscription
  * @throws PlanNotFoundError when the plan referenced by the subscription is missing
@@ -45,19 +44,13 @@ export class FindPlanUsageUseCase {
     const plan = await this.planRepository.findById(subscription.planId);
     if (!plan) throw new PlanNotFoundError(subscription.planId);
 
-    const now = new Date();
-    const periodStart = billingPeriodStart(
-      subscription.expiresAt,
-      plan.durationDays,
-    );
-
     const [vehiclesUsed, driversUsed, tripsUsed] = await Promise.all([
       this.vehicleRepository.countActiveByOrganizationId(organizationId),
       this.driverRepository.countActiveByOrganizationId(organizationId),
       this.tripInstanceRepository.countByOrganizationInPeriod(
         organizationId,
-        periodStart,
-        now,
+        subscription.startDate,
+        subscription.expiresAt,
       ),
     ]);
 

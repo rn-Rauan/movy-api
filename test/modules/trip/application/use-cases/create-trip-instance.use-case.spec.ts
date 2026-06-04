@@ -45,7 +45,10 @@ function makeMocks() {
 
   const planLimitService = {
     assertMonthlyTripLimit: jest.fn(),
-    getCurrentPeriodStart: jest.fn(),
+    getCurrentPeriod: jest.fn().mockResolvedValue({
+      start: new Date(0),
+      end: new Date(8640000000000000),
+    }),
   } as any as jest.Mocked<PlanLimitService>;
 
   const driverRepository = {
@@ -79,7 +82,10 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   mocks.tripInstanceRepository.save.mockImplementation(
     async (entity) => entity,
   );
-  mocks.planLimitService.getCurrentPeriodStart.mockResolvedValue(new Date(0));
+  mocks.planLimitService.getCurrentPeriod.mockResolvedValue({
+    start: new Date(0),
+    end: new Date(8640000000000000),
+  });
   mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(undefined);
 
   return { template, instance };

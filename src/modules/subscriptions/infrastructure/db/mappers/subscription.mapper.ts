@@ -56,13 +56,14 @@ export class SubscriptionMapper {
     entity: SubscriptionEntity,
   ): Pick<
     PrismaSubscription,
-    'status' | 'updatedAt' | 'activeKey' | 'planId' | 'expiresAt'
+    'status' | 'updatedAt' | 'activeKey' | 'planId' | 'startDate' | 'expiresAt'
   > {
     return {
       status: entity.status,
       updatedAt: entity.updatedAt,
       activeKey: this.resolveActiveKey(entity),
       planId: entity.planId,
+      startDate: entity.startDate,
       expiresAt: entity.expiresAt,
     };
   }

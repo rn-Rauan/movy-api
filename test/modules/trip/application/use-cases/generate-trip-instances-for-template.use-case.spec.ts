@@ -41,7 +41,10 @@ function makeMocks() {
   } as any as jest.Mocked<GenerateRecurringTripInstancesUseCase>;
 
   const planLimitService = {
-    getCurrentPeriodStart: jest.fn().mockResolvedValue(new Date(0)),
+    getCurrentPeriod: jest.fn().mockResolvedValue({
+      start: new Date(0),
+      end: new Date(8640000000000000),
+    }),
   } as any as jest.Mocked<PlanLimitService>;
 
   return {

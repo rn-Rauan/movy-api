@@ -150,14 +150,19 @@ export abstract class TripInstanceRepository {
   ): Promise<PaginatedResponse<TripInstance>>;
 
   /**
-   * Counts trip instances created by an organisation within a date range.
-   * Used for `maxMonthlyTrips` enforcement — pass the current billing-period
-   * window (`expiresAt − plan.durationDays` … now).
+   * Counts the organisation's trip instances **created** within a date range
+   * `[start, end)`, excluding `DRAFT` instances. Used for the plan-usage display
+   * and `maxMonthlyTrips` enforcement — pass the active subscription term
+   * (`startDate` … `expiresAt`).
+   *
+   * Counts by creation time so the quota covers every non-draft trip booked in
+   * the term (SCHEDULED, CONFIRMED, IN_PROGRESS, FINISHED, CANCELED). Cancelling
+   * a trip does not return quota; only never-committed DRAFT instances are skipped.
    *
    * @param organizationId - UUID of the organisation
-   * @param start - Start of the window (inclusive)
-   * @param end - End of the window (inclusive)
-   * @returns Number of trip instances created in the window
+   * @param start - Start of the window, inclusive (`subscription.startDate`)
+   * @param end - End of the window, exclusive (`subscription.expiresAt`)
+   * @returns Number of non-draft trip instances created in the window
    */
   abstract countByOrganizationInPeriod(
     organizationId: string,

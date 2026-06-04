@@ -86,14 +86,13 @@ export class CreateTripInstanceUseCase {
       throw new TripTemplateInactiveError(input.tripTemplateId);
     }
 
-    const now = new Date();
-    const periodStart =
-      await this.planLimitService.getCurrentPeriodStart(organizationId);
+    const { start, end } =
+      await this.planLimitService.getCurrentPeriod(organizationId);
     const periodCount =
       await this.tripInstanceRepository.countByOrganizationInPeriod(
         organizationId,
-        periodStart,
-        now,
+        start,
+        end,
       );
     await this.planLimitService.assertMonthlyTripLimit(
       organizationId,

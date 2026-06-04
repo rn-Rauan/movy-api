@@ -6,7 +6,7 @@ interface SubscriptionState {
   readonly organizationId: string;
   planId: number;
   status: SubscriptionStatus;
-  readonly startDate: Date;
+  startDate: Date;
   expiresAt: Date;
   readonly createdAt: Date;
   updatedAt: Date;
@@ -89,10 +89,14 @@ export class SubscriptionEntity {
   }
 
   /**
-   * Replaces the subscribed plan, resetting `expiresAt` to `now + durationDays` of the new plan.
+   * Replaces the subscribed plan, starting a **fresh term**: `startDate` is reset to
+   * `now` and `expiresAt` to `now + durationDays` of the new plan.
    *
-   * Preserves `id`, `organizationId`, `startDate` and `createdAt` so the historical record
-   * of the subscription is kept intact. Only `planId`, `expiresAt` and `updatedAt` are mutated.
+   * Resetting `startDate` keeps every term exactly `durationDays` long and resets the
+   * per-term trip quota (the plan-usage window is `[startDate, expiresAt)`), so a
+   * plan change / renewal restarts the count. The original enrolment instant is still
+   * preserved in `createdAt`. Preserves `id` and `organizationId`; mutates `planId`,
+   * `startDate`, `expiresAt` and `updatedAt`.
    *
    * @remarks
    * This method does not validate the current status or the new plan — guard logic
@@ -108,6 +112,7 @@ export class SubscriptionEntity {
     expiresAt.setDate(expiresAt.getDate() + durationDays);
 
     this.props.planId = planId;
+    this.props.startDate = now;
     this.props.expiresAt = expiresAt;
     this.props.updatedAt = now;
   }

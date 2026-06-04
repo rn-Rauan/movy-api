@@ -36,22 +36,29 @@ describe('PlanLimitService', () => {
     );
   });
 
-  describe('getCurrentPeriodStart', () => {
-    it('should return expiresAt minus plan.durationDays', async () => {
-      const expiresAt = new Date(Date.UTC(2026, 5, 30, 12, 0, 0)); // future relative to 2026 tests
-      jest.useFakeTimers().setSystemTime(new Date(Date.UTC(2026, 5, 10)));
+  describe('getCurrentPeriod', () => {
+    it('should return start = subscription.startDate and end = expiresAt (term spans a mid-cycle upgrade)', async () => {
+      // startDate is the original enrolment; expiresAt was pushed forward by a
+      // later plan change — the term window must still start at enrolment.
+      const startDate = new Date(Date.UTC(2026, 4, 24, 16, 46, 0)); // 2026-05-24
+      const expiresAt = new Date(Date.UTC(2026, 6, 3, 16, 52, 0)); // 2026-07-03 (40d span)
 
       mocks.subscriptionRepository.findActiveByOrganizationId.mockResolvedValue(
-        makeSubscription({ organizationId: ORG_ID, planId: 1, expiresAt }),
+        makeSubscription({
+          organizationId: ORG_ID,
+          planId: 1,
+          startDate,
+          expiresAt,
+        }),
       );
       mocks.planRepository.findById.mockResolvedValue(
         makePlan({ id: 1, durationDays: 30 }),
       );
 
-      const start = await sut.getCurrentPeriodStart(ORG_ID);
+      const period = await sut.getCurrentPeriod(ORG_ID);
 
-      expect(start).toEqual(new Date(Date.UTC(2026, 4, 31, 12, 0, 0)));
-      jest.useRealTimers();
+      expect(period.start).toEqual(startDate);
+      expect(period.end).toEqual(expiresAt);
     });
 
     it('should throw NoActiveSubscriptionError when there is no active subscription', async () => {
@@ -59,7 +66,7 @@ describe('PlanLimitService', () => {
         null,
       );
 
-      await expect(sut.getCurrentPeriodStart(ORG_ID)).rejects.toBeInstanceOf(
+      await expect(sut.getCurrentPeriod(ORG_ID)).rejects.toBeInstanceOf(
         NoActiveSubscriptionError,
       );
     });
@@ -70,7 +77,7 @@ describe('PlanLimitService', () => {
       );
       mocks.planRepository.findById.mockResolvedValue(null);
 
-      await expect(sut.getCurrentPeriodStart(ORG_ID)).rejects.toBeInstanceOf(
+      await expect(sut.getCurrentPeriod(ORG_ID)).rejects.toBeInstanceOf(
         PlanNotFoundError,
       );
     });

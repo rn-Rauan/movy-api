@@ -107,13 +107,13 @@ export class GenerateTripInstancesForTemplateUseCase {
       daysAheadOverride,
     );
 
-    const periodStart =
-      await this.planLimitService.getCurrentPeriodStart(organizationId);
+    const { start: periodStart, end: periodEnd } =
+      await this.planLimitService.getCurrentPeriod(organizationId);
     const monthlyCount =
       await this.tripInstanceRepository.countByOrganizationInPeriod(
         organizationId,
         periodStart,
-        now,
+        periodEnd,
       );
 
     const result = await this.generateRecurringUseCase.processTemplate(

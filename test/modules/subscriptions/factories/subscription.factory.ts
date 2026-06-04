@@ -6,6 +6,7 @@ type SubscriptionOverrides = Partial<{
   organizationId: string;
   planId: number;
   status: SubscriptionStatus;
+  startDate: Date;
   expiresAt: Date;
 }>;
 
@@ -13,7 +14,8 @@ export function makeSubscription(
   overrides: SubscriptionOverrides = {},
 ): SubscriptionEntity {
   const now = new Date();
-  const expiresAt = new Date(now);
+  const startDate = overrides.startDate ?? now;
+  const expiresAt = new Date(startDate);
   expiresAt.setDate(expiresAt.getDate() + 30);
 
   return SubscriptionEntity.restore({
@@ -21,9 +23,9 @@ export function makeSubscription(
     organizationId: overrides.organizationId ?? 'org-id-stub',
     planId: overrides.planId ?? 1,
     status: overrides.status ?? SubscriptionStatus.ACTIVE,
-    startDate: now,
+    startDate,
     expiresAt: overrides.expiresAt ?? expiresAt,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: startDate,
+    updatedAt: startDate,
   });
 }

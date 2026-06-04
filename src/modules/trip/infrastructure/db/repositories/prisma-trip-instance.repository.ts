@@ -318,14 +318,19 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Counts trip instances created by an organisation within the current
-   * billing-period window. Used to enforce `maxMonthlyTrips` from the
-   * organisation's active plan.
+   * Counts the organisation's trip instances **created** within the current
+   * subscription term `[start, end)`, excluding `DRAFT` instances. Used both for
+   * the plan-usage display and to enforce `maxMonthlyTrips` from the active plan.
+   *
+   * Every trip that reached a real lifecycle state (SCHEDULED, CONFIRMED,
+   * IN_PROGRESS, FINISHED, CANCELED) counts toward the quota — a trip is not
+   * "given back" by cancelling it. Only DRAFT instances, which were never
+   * committed, are excluded.
    *
    * @param organizationId - UUID of the organisation
-   * @param start - Window start (inclusive)
-   * @param end - Window end (inclusive)
-   * @returns Number of trip instances created in the window
+   * @param start - Term start, inclusive (`subscription.startDate`)
+   * @param end - Term end, exclusive (`subscription.expiresAt`)
+   * @returns Number of non-draft trip instances created in the term
    */
   async countByOrganizationInPeriod(
     organizationId: string,
@@ -335,7 +340,8 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     return this.db.tripInstance.count({
       where: {
         organizationId,
-        createdAt: { gte: start, lte: end },
+        createdAt: { gte: start, lt: end },
+        tripStatus: { not: 'DRAFT' },
       },
     });
   }
