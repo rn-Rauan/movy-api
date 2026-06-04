@@ -3,6 +3,7 @@ import { PlanRepository } from 'src/modules/plans/domain/interfaces/plan.reposit
 import { PlanNotFoundError } from 'src/modules/plans/domain/errors/plan.errors';
 import { SubscriptionRepository } from '../../domain/interfaces/subscription.repository';
 import { resolveActiveSubscription } from '../utils/resolve-active-subscription';
+import { billingPeriodStart } from '../utils/billing-period';
 import {
   NoActiveSubscriptionError,
   VehicleLimitExceededError,
@@ -27,13 +28,13 @@ export class PlanLimitService {
   ) {}
 
   /**
-   * Resolves the active subscription and returns the linked plan.
+   * Resolves the active subscription and its linked plan in one pass.
    * Lazily expires overdue subscriptions.
    *
    * @throws NoActiveSubscriptionError when the org has no valid subscription
    * @throws PlanNotFoundError when the plan referenced by the subscription no longer exists
    */
-  private async getActivePlan(organizationId: string) {
+  private async getActiveSubscriptionAndPlan(organizationId: string) {
     const subscription = await resolveActiveSubscription(
       organizationId,
       this.subscriptionRepository,
@@ -43,7 +44,34 @@ export class PlanLimitService {
     const plan = await this.planRepository.findById(subscription.planId);
     if (!plan) throw new PlanNotFoundError(subscription.planId);
 
+    return { subscription, plan };
+  }
+
+  /**
+   * Resolves the active subscription and returns the linked plan.
+   * Lazily expires overdue subscriptions.
+   *
+   * @throws NoActiveSubscriptionError when the org has no valid subscription
+   * @throws PlanNotFoundError when the plan referenced by the subscription no longer exists
+   */
+  private async getActivePlan(organizationId: string) {
+    const { plan } = await this.getActiveSubscriptionAndPlan(organizationId);
     return plan;
+  }
+
+  /**
+   * Returns the start of the organisation's current billing-period window
+   * (`expiresAt − plan.durationDays`). Resource-usage counts should use this
+   * as the lower bound so quotas reset with the subscription cycle, not the
+   * calendar month.
+   *
+   * @throws NoActiveSubscriptionError when the org has no valid subscription
+   * @throws PlanNotFoundError when the plan referenced by the subscription no longer exists
+   */
+  async getCurrentPeriodStart(organizationId: string): Promise<Date> {
+    const { subscription, plan } =
+      await this.getActiveSubscriptionAndPlan(organizationId);
+    return billingPeriodStart(subscription.expiresAt, plan.durationDays);
   }
 
   /**
@@ -81,11 +109,11 @@ export class PlanLimitService {
   }
 
   /**
-   * Asserts that scheduling one more trip this calendar month will not exceed
-   * `plan.maxMonthlyTrips`.
+   * Asserts that scheduling one more trip in the current billing period will
+   * not exceed `plan.maxMonthlyTrips`.
    *
    * @param organizationId - The requesting organisation's UUID
-   * @param currentCount - Number of trip instances already created this calendar month
+   * @param currentCount - Number of trip instances already created in the current billing period
    * @throws MonthlyTripLimitExceededError when `currentCount >= plan.maxMonthlyTrips`
    */
   async assertMonthlyTripLimit(

@@ -19,6 +19,7 @@ import {
 } from 'src/modules/trip/domain/interfaces';
 import { makeTripSchedulingConfig } from '../../../scheduling/factories/trip-scheduling-config.factory';
 import { makeTripTemplate } from '../../factories/trip-template.factory';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 
 // ── Mocks ───────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ function makeMocks() {
   } as any as jest.Mocked<TripTemplateRepository>;
 
   const tripInstanceRepository = {
-    countByOrganizationAndMonth: jest.fn(),
+    countByOrganizationInPeriod: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
   const schedulingConfigRepository = {
@@ -39,11 +40,16 @@ function makeMocks() {
     processTemplate: jest.fn(),
   } as any as jest.Mocked<GenerateRecurringTripInstancesUseCase>;
 
+  const planLimitService = {
+    getCurrentPeriodStart: jest.fn().mockResolvedValue(new Date(0)),
+  } as any as jest.Mocked<PlanLimitService>;
+
   return {
     tripTemplateRepository,
     tripInstanceRepository,
     schedulingConfigRepository,
     generateRecurringUseCase,
+    planLimitService,
   };
 }
 
@@ -76,6 +82,7 @@ describe('GenerateTripInstancesForTemplateUseCase', () => {
       mocks.tripInstanceRepository,
       mocks.schedulingConfigRepository,
       mocks.generateRecurringUseCase,
+      mocks.planLimitService,
     );
   });
 
@@ -93,7 +100,7 @@ describe('GenerateTripInstancesForTemplateUseCase', () => {
       mocks.schedulingConfigRepository.findByOrganizationId.mockResolvedValue(
         makeTripSchedulingConfig({ organizationId: ORG_ID, daysAhead: 7 }),
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         3,
       );
       mocks.generateRecurringUseCase.processTemplate.mockResolvedValue(
@@ -111,7 +118,7 @@ describe('GenerateTripInstancesForTemplateUseCase', () => {
       expect(templateArg).toBe(template);
       expect(orgArg).toBe(ORG_ID);
       expect(daysAheadArg).toBe(7); // from org scheduling config
-      expect(monthlyCountArg).toBe(3); // baseline from countByOrganizationAndMonth
+      expect(monthlyCountArg).toBe(3); // baseline from countByOrganizationInPeriod
     });
 
     it('should honour daysAheadOverride over the org scheduling config', async () => {
@@ -126,7 +133,7 @@ describe('GenerateTripInstancesForTemplateUseCase', () => {
       mocks.schedulingConfigRepository.findByOrganizationId.mockResolvedValue(
         makeTripSchedulingConfig({ organizationId: ORG_ID, daysAhead: 7 }),
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.generateRecurringUseCase.processTemplate.mockResolvedValue(
@@ -156,7 +163,7 @@ describe('GenerateTripInstancesForTemplateUseCase', () => {
       mocks.schedulingConfigRepository.findByOrganizationId.mockResolvedValue(
         null,
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.generateRecurringUseCase.processTemplate.mockResolvedValue(
@@ -265,7 +272,7 @@ describe('GenerateTripInstancesForTemplateUseCase', () => {
         frequency: [DayOfWeek.MONDAY],
       });
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
 

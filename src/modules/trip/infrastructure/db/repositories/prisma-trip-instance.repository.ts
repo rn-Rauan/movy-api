@@ -318,15 +318,16 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
   }
 
   /**
-   * Counts trip instances created by an organisation within a date window.
-   * Used to enforce `maxMonthlyTrips` from the organisation's active plan.
+   * Counts trip instances created by an organisation within the current
+   * billing-period window. Used to enforce `maxMonthlyTrips` from the
+   * organisation's active plan.
    *
    * @param organizationId - UUID of the organisation
    * @param start - Window start (inclusive)
    * @param end - Window end (inclusive)
    * @returns Number of trip instances created in the window
    */
-  async countByOrganizationAndMonth(
+  async countByOrganizationInPeriod(
     organizationId: string,
     start: Date,
     end: Date,

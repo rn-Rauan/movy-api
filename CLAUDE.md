@@ -36,7 +36,7 @@ npm run db:seed                         # Seed roles (ADMIN, DRIVER) via tsx
 npx prisma studio                       # GUI for the database
 ```
 
-> **Note:** `npm test` uses the root Jest config which has no `moduleNameMapper` for `src/` aliases — always use `jest-unit.json` for unit tests.
+> **Note:** Prefer `jest-unit.json` for unit tests. Its `testRegex` is scoped to `test/` (the root config in `package.json` matches `*.spec.ts` anywhere) and it stays separate from the e2e config. Both configs share the same `src/`/`generated/`/`test/` `moduleNameMapper`.
 
 ## Architecture
 
@@ -59,6 +59,15 @@ src/modules/<module>/
     ├── controllers/
     └── mappers/        # Domain entity → HTTP response (toHTTP)
 ```
+
+### Module Map (`src/modules/`)
+
+Feature modules grouped by concern (each follows the structure above):
+
+- **Identity & access:** `auth` (login/refresh/register/verify/reset), `user`, `membership` (user ↔ org join, soft-deleted via `removedAt`), `organization`
+- **Fleet:** `driver`, `vehicle`
+- **Trips:** `trip` (templates → instances, plus the two cron jobs), `scheduling` (per-org `TripSchedulingConfig` that drives instance generation — see `docs/GUIA_TRIP_SCHEDULING.md`), `bookings` (passenger reservations against trip instances)
+- **Billing:** `plans`, `subscriptions` (owns `PlanLimitService` + lazy expiration), `payment` (simulated confirm/fail), `plan-usage`
 
 ### Shared Module (`src/shared/`)
 
@@ -190,3 +199,5 @@ The `docs/` folder contains deeper references that aren't duplicated here. Notab
 - `docs/ROADMAP.md`, `docs/PROGRESS.md` — phase tracking
 
 Consult these before large changes to the corresponding subsystem rather than reverse-engineering from code.
+
+`.github/MOVY_BRAIN.md` is the project's full knowledge base (referenced by the Copilot instructions). `.github/copilot-instructions.md` itself is mostly a joke persona — its only substantive content (stack + conventions) is already captured above.

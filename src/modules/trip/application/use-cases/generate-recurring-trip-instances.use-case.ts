@@ -151,13 +151,12 @@ export class GenerateRecurringTripInstancesUseCase {
       return { created: 0, skipped: 0, failed: 0 };
     }
 
-    const startOfMonth = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-    );
+    const periodStart =
+      await this.planLimitService.getCurrentPeriodStart(organizationId);
     let monthlyCount =
-      await this.tripInstanceRepository.countByOrganizationAndMonth(
+      await this.tripInstanceRepository.countByOrganizationInPeriod(
         organizationId,
-        startOfMonth,
+        periodStart,
         now,
       );
 

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TripSchedulingConfigRepository } from 'src/modules/scheduling/domain/interfaces';
+import { PlanLimitService } from 'src/modules/subscriptions/application/services/plan-limit.service';
 import {
   InvalidTripTemplateMissingCapacityError,
   InvalidTripTemplateMissingScheduleError,
@@ -48,6 +49,7 @@ export class GenerateTripInstancesForTemplateUseCase {
     private readonly tripInstanceRepository: TripInstanceRepository,
     private readonly schedulingConfigRepository: TripSchedulingConfigRepository,
     private readonly generateRecurringUseCase: GenerateRecurringTripInstancesUseCase,
+    private readonly planLimitService: PlanLimitService,
   ) {}
 
   /**
@@ -105,13 +107,12 @@ export class GenerateTripInstancesForTemplateUseCase {
       daysAheadOverride,
     );
 
-    const startOfMonth = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-    );
+    const periodStart =
+      await this.planLimitService.getCurrentPeriodStart(organizationId);
     const monthlyCount =
-      await this.tripInstanceRepository.countByOrganizationAndMonth(
+      await this.tripInstanceRepository.countByOrganizationInPeriod(
         organizationId,
-        startOfMonth,
+        periodStart,
         now,
       );
 

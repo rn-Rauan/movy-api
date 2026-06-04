@@ -32,7 +32,7 @@ import { makeVehicle } from '../../../vehicle/factories/vehicle.factory';
 function makeMocks() {
   const tripInstanceRepository = {
     save: jest.fn(),
-    countByOrganizationAndMonth: jest.fn(),
+    countByOrganizationInPeriod: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
   const tripTemplateRepository = {
@@ -45,6 +45,7 @@ function makeMocks() {
 
   const planLimitService = {
     assertMonthlyTripLimit: jest.fn(),
+    getCurrentPeriodStart: jest.fn(),
   } as any as jest.Mocked<PlanLimitService>;
 
   const driverRepository = {
@@ -74,10 +75,11 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   });
 
   mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-  mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(0);
+  mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(0);
   mocks.tripInstanceRepository.save.mockImplementation(
     async (entity) => entity,
   );
+  mocks.planLimitService.getCurrentPeriodStart.mockResolvedValue(new Date(0));
   mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(undefined);
 
   return { template, instance };
@@ -189,7 +191,7 @@ describe('CreateTripInstanceUseCase', () => {
         isPublic: true,
       });
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
@@ -213,7 +215,7 @@ describe('CreateTripInstanceUseCase', () => {
         isPublic: false,
       });
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
@@ -320,7 +322,7 @@ describe('CreateTripInstanceUseCase', () => {
         arrivalTimeOfDay: '08:15',
       });
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
@@ -351,7 +353,7 @@ describe('CreateTripInstanceUseCase', () => {
         arrivalTimeOfDay: '00:15',
       });
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.save.mockImplementation(async (e) => e);
@@ -440,7 +442,7 @@ describe('CreateTripInstanceUseCase', () => {
         arrivalTimeOfDay: null,
       });
       mocks.tripTemplateRepository.findById.mockResolvedValue(template);
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.planLimitService.assertMonthlyTripLimit.mockResolvedValue(

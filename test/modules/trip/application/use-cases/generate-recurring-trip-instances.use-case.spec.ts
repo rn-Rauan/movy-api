@@ -29,7 +29,7 @@ function makeMocks() {
 
   const tripInstanceRepository = {
     existsForTemplateOnDay: jest.fn(),
-    countByOrganizationAndMonth: jest.fn(),
+    countByOrganizationInPeriod: jest.fn(),
     save: jest.fn(),
   } as any as jest.Mocked<TripInstanceRepository>;
 
@@ -39,6 +39,7 @@ function makeMocks() {
 
   const planLimitService = {
     assertMonthlyTripLimit: jest.fn(),
+    getCurrentPeriodStart: jest.fn().mockResolvedValue(new Date(0)),
   } as any as jest.Mocked<PlanLimitService>;
 
   return {
@@ -135,7 +136,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
 
       expect(result).toEqual({ created: 0, skipped: 0, failed: 0 });
       expect(
-        mocks.tripInstanceRepository.countByOrganizationAndMonth,
+        mocks.tripInstanceRepository.countByOrganizationInPeriod,
       ).not.toHaveBeenCalled();
     });
   });
@@ -159,7 +160,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -202,7 +203,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -240,7 +241,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -278,7 +279,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay
@@ -310,7 +311,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       // The only day in the window already has an instance → plan-limit check must NOT fire.
@@ -346,7 +347,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -396,7 +397,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [goodTemplate],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -436,7 +437,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -475,7 +476,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(
@@ -523,7 +524,7 @@ describe('GenerateRecurringTripInstancesUseCase', () => {
       mocks.tripTemplateRepository.findActiveRecurringByOrganizationId.mockResolvedValue(
         [template],
       );
-      mocks.tripInstanceRepository.countByOrganizationAndMonth.mockResolvedValue(
+      mocks.tripInstanceRepository.countByOrganizationInPeriod.mockResolvedValue(
         0,
       );
       mocks.tripInstanceRepository.existsForTemplateOnDay.mockResolvedValue(

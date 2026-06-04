@@ -151,15 +151,15 @@ export abstract class TripInstanceRepository {
 
   /**
    * Counts trip instances created by an organisation within a date range.
-   * Used for `maxMonthlyTrips` enforcement — pass the first and last instant
-   * of the current calendar month.
+   * Used for `maxMonthlyTrips` enforcement — pass the current billing-period
+   * window (`expiresAt − plan.durationDays` … now).
    *
    * @param organizationId - UUID of the organisation
    * @param start - Start of the window (inclusive)
    * @param end - End of the window (inclusive)
    * @returns Number of trip instances created in the window
    */
-  abstract countByOrganizationAndMonth(
+  abstract countByOrganizationInPeriod(
     organizationId: string,
     start: Date,
     end: Date,
