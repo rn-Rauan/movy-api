@@ -1779,6 +1779,8 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 
 ### Trip Scheduling — Fase 2: Módulo `TripSchedulingConfig`
 
+> ⚠️ **Atualizado em 22 Mai 2026:** as colunas `generationCron` e `autoCancelCron` foram **removidas** desta config — os horários dos crons passaram a ser fixos no decorator `@Cron`. A descrição abaixo reflete o estado original (16 Mai); apenas `daysAhead` e `enabled` permanecem configuráveis. Ver §6.17.
+
 **Contexto.** Cada organização agora tem uma linha de configuração que controla o cron de geração e auto-cancel: `daysAhead` (1..90), `generationCron`, `autoCancelCron`, `enabled`. Sem isso, os crons da Fase 3-4 teriam que usar defaults globais hard-coded — bom o suficiente pro MVP, mas inflexível na produção.
 
 **Estrutura do novo módulo `src/modules/scheduling/`:**
@@ -2542,6 +2544,60 @@ O SQL preserva linhas com categoria única existentes mapeando cada uma para um 
 
 ---
 
+## 6.17 Implementações (22 Mai – 04 Jun 2026)
+
+Cinco entregas posteriores à Phase 5, consolidadas aqui em ordem cronológica.
+
+### Scheduling Config — Remoção das colunas de cron (22 Mai 2026)
+
+**Contexto.** A Fase 2 (§6.14) introduziu `generationCron` e `autoCancelCron` como colunas configuráveis por organização. Na prática, todos os tenants usavam os mesmos defaults (`0 2 * * *` e `*/15 * * * *`) e expor a cron expression por org só agregava superfície de validação (`cron-parser`, erro 400) sem valor real no MVP — pior, permitiria um admin desalinhar a config do banco do horário real em que o `@Cron` dispara (que é fixo no decorator).
+
+**Mudança.** As duas colunas foram **removidas** do model `TripSchedulingConfig`. A tabela hoje guarda apenas `daysAhead` (1..90) e `enabled`. Consequências propagadas por todas as camadas:
+- **Schema/Migration:** `migration.sql` dropa `generationCron` e `autoCancelCron` de `trip_scheduling_config`.
+- **Entity:** removidos `validateCron` e `updateCrons()`; restam `validateDaysAhead`, `updateDaysAhead`, `setEnabled`.
+- **Errors:** `InvalidSchedulingCronError` removido (só sobram `InvalidSchedulingDaysAheadError` 400 e `TripSchedulingConfigNotFoundError` 404).
+- **DTO/Presenter:** `UpdateTripSchedulingConfigDto` e `TripSchedulingConfigResponseDto` perderam os campos de cron.
+- **Crons:** os horários permanecem fixos no decorator — `@Cron('*/15 * * * *')` (auto-cancel) e `@Cron('0 2 * * *')` (geração). `daysAhead` e `enabled` continuam sendo lidos da config por org.
+
+> **Correção retroativa:** as descrições da Fase 2 (§6.14) que listam `generationCron`/`autoCancelCron` como colunas, o `PATCH` que validava cron via `cron-parser`, e a dependência de `cron-parser` para esse fim estão **obsoletas** a partir desta data.
+
+### Cascade de falha de pagamento no cancelamento de viagem (22 Mai 2026)
+
+Quando uma `TripInstance` é cancelada — seja pelo cron de auto-cancel (`CancelExpiredTripInstancesUseCase`) ou por transição manual (`TransitionTripInstanceStatusUseCase`) — os pagamentos `PENDING` das inscrições daquela viagem passam a ser marcados como `FAILED`, evitando cobranças órfãs de viagens que não aconteceram.
+- Novo método no `PaymentRepository`: `findNonFailedByTripInstanceId(tripInstanceId)` — retorna todos os pagamentos da instância cujo status ainda não é `FAILED` (vazio quando não há ou todos já falharam).
+- A cascata roda dentro da mesma operação de cancelamento; o use-case marca cada pagamento via `payment.fail()` + `update`.
+
+### Payment response enriquecido — `tripInstanceId` + `tripDepartureTime` (23 Mai 2026)
+
+O `PaymentResponseDto` ganhou dois campos opcionais derivados em tempo de leitura da relação payment → enrollment → trip instance:
+- `tripInstanceId?: string` — UUID da `TripInstance` por trás do booking (ausente apenas quando o pagamento não tem enrollment).
+- `tripDepartureTime?: Date` — snapshot do horário de partida da viagem no momento da consulta.
+
+Motivação (FE): permite ao frontend agregar receita **por data da viagem** em vez de por data do pagamento. Propagado por entity, mapper (`PaymentMapper`), `PrismaPaymentRepository` (com o include da relação) e `PaymentPresenter`. Factory de teste e `payment.presenter.spec.ts` atualizados.
+
+### Endpoint público paginado de organizações ativas (02 Jun 2026)
+
+Novo `GET /public/organizations` no `PublicOrganizationController` — espelho **público (sem JWT)** de `GET /organizations/active`, paginado (`page`/`limit`). Retorna apenas organizações `ACTIVE`, encapsuladas em `PaginatedDto<OrganizationResponseDto>`. Junto ao já existente `GET /public/organizations/:slug`, alimenta páginas públicas da plataforma (ex.: diretório de organizações + landing por slug).
+
+### Limite de viagens por período de assinatura, não mês-calendário (03–04 Jun 2026)
+
+**Contexto.** O `assertMonthlyTripLimit` contava `TripInstance` criadas no **mês civil** (1º ao último dia do mês). Isso desalinhava a cota do ciclo de cobrança: uma org que assina no dia 20 via a cota "resetar" no dia 1º, ganhando mês cheio antes da renovação.
+
+**Mudança.** A contagem passou a usar a **janela da assinatura ativa** `[subscription.startDate, subscription.expiresAt)`, com base no **momento de criação** da viagem:
+- Novo `PlanLimitService.getCurrentPeriod(organizationId)` → `{ start: subscription.startDate, end: subscription.expiresAt }`. A janela só "reseta" quando um novo termo de assinatura começa (renovação/re-subscribe gera novo `startDate`); troca de plano no meio do termo **preserva** `startDate`, então um upgrade não zera o histórico do período corrente.
+- Novo método de repositório `TripInstanceRepository.countByOrganizationInPeriod(orgId, start, end)` (conta viagens não-draft no intervalo).
+- Consumidores atualizados para resolver a janela antes de contar: `CreateTripInstanceUseCase`, `GenerateRecurringTripInstancesUseCase`, `GenerateTripInstancesForTemplateUseCase` e `FindPlanUsageUseCase` (o painel de uso agora reporta "viagens neste período de assinatura").
+- Um util temporário `application/utils/billing-period.ts` foi introduzido (03 Jun) e depois **refatorado para dentro da `SubscriptionEntity`/mapper** (04 Jun), eliminando o helper avulso.
+
+> **Nota terminológica:** o nome `assertMonthlyTripLimit` e o campo `plan.maxMonthlyTrips` foram mantidos por compatibilidade, mas a semântica agora é "por período de assinatura". Trechos deste documento que falam em "limite mensal" no sentido de mês-calendário devem ser lidos sob esta semântica revisada.
+
+### Validação consolidada (04 Jun 2026)
+
+- `npx jest --config test/jest-unit.json`: ✅ **57 suites, 458 testes** passando.
+- `npx tsc --noEmit`: ✅ 0 erros.
+
+---
+
 ## 7. Próximos Passos
 
 1. ~~**Testes Unitários:** Implementar testes para os 3 use-cases críticos (LoginUseCase, CreateMembershipUseCase, RegisterOrganizationWithAdminUseCase).~~ ✅ **CONCLUÍDO (16 Abr)** — 5 suites, 27 testes passando (Login, RegisterOrg, SetupOrg, CreateMembership, CreateDriver).
@@ -2560,7 +2616,7 @@ O SQL preserva linhas com categoria única existentes mapeando cada uma para um 
 14. **Self-removal de membership:** permitir que um usuário saia de uma organização sem intervenção do admin (adiado da Phase 5 — baixa prioridade no MVP).
 
 ## 8. Conclusão Parcial
-O projeto Movy API demonstra uma base sólida e bem estruturada. Em 19 de maio de 2026, as **Fases 1, 2, 3, 3.7, a Mitigação de Bloqueadores FE (B1–B10) e a Phase 5 (driver self-service + CNH plural)** estão 100% completas com 13 módulos implementados e o sistema demonstrável ponta a ponta:
+O projeto Movy API demonstra uma base sólida e bem estruturada. Em 04 de junho de 2026, as **Fases 1, 2, 3, 3.7, a Mitigação de Bloqueadores FE (B1–B10), a Phase 5 (driver self-service + CNH plural) e os refinamentos pós-Phase 5 (cron config simplificada, cascade de pagamento, payment enriquecido, orgs públicas paginadas, limite de viagens por período de assinatura — §6.17)** estão 100% completas com 13 módulos implementados e o sistema demonstrável ponta a ponta:
 
 - ✅ **User Module**: CRUD completo com autenticação JWT integrada.
 - ✅ **Auth Module**: Sistema completo de autenticação com login, registro, refresh tokens JWT, endpoint de registro de organização com admin e endpoint de setup de organização para usuário existente *(atualizado 14 Abr)*. Auto-subscrição FREE ao criar organização *(29 Abr)*. **Recuperação de senha (forgot/reset) e verificação de email** com tokens hasheados (sha256, TTL 1h/24h), constant-response em forgot (anti-enumeration), revogação total de refresh tokens em reset (anti account-takeover), erros unificados (`InvalidOrExpired...`), auto-login pós-reset, fire-and-forget no register *(18 Mai)*. `TokenResponseDto.user` ampliado com `telephone` e `emailVerifiedAt` *(18 Mai)*.
@@ -2591,11 +2647,11 @@ O projeto Movy API demonstra uma base sólida e bem estruturada. Em 19 de maio d
 - ✅ **Shared — Mock de Email (18 Mai 2026)**: Interface `EmailService` no `SharedModule` (`@Global`); implementação `ConsoleEmailService` que loga via `Logger` + push em `InMemoryEmailLog` (FIFO bounded 50); endpoint `GET /dev/emails/latest` (`@Dev()` + `DevGuard`) para inspeção em dev. Migração para SMTP/Resend em prod é um único swap em `SharedModule.providers`. Padrão Strategy + DI sem mudança no FE.
 - ✅ **Segurança Multi-tenant — Fix Cross-tenant (18 Mai 2026)**: `Driver.userId @unique` significa que um user pode ter membership como DRIVER em N orgs com **o mesmo `driverId`**. `findByDriverIdWithMeta` originalmente filtrava só por `driverId`, o que vazaria viagens entre orgs no `GET /trip-instances/driver/me`. Corrigido com escopo obrigatório por `organizationId` propagado do `TenantContext` + casos defensivos para sessões sem org (dev/B2C) → página vazia em vez de query no banco.
 - ✅ **Mitigação de Bloqueadores FE (18 Mai 2026)**: 4 fases sequenciais (B1+B2+B3+B4+B6+B7+B10) — driver self-listing escopado por org, driver payment authz fina via use case, forgot/reset password com mock de email + tokens hasheados sha256, telephone+emailVerifiedAt em TokenResponseDto, public plans endpoint, Swagger note para querystring intencional. 6 itens fechados sem código (B5/B8/B9/B11/B12 + design de B10).
-- ✅ **Testes Unitários**: **54 suites, 450 testes passando** com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
+- ✅ **Testes Unitários**: **57 suites, 458 testes passando** *(04 Jun)* com padrão AAA, factories por módulo e injeção manual *(Trip module 21 Abr; Bookings 85 testes 25 Abr; Plans/Subscriptions 27 Abr; Guards 28 Abr; PlanLimitService mocks 29 Abr; TripInstanceWithMeta + paymentMethod 04 Mai; Trip Scheduling Fase 1 — schedule derivation + missing schedule + time-of-day validation 16 Mai; Trip Scheduling Fase 2 — entity validateDaysAhead/cron + UpdateTripSchedulingConfigUseCase happy/error paths 16 Mai; Trip Scheduling Fase 3 — CancelExpiredTripInstancesUseCase happy/error/resilience paths + AutoCancelTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 — GenerateRecurringTripInstancesUseCase happy/idempotency/plan-limit/resilience paths + GenerateRecurringTripInstancesCron delegate/overlap-skip/error-recovery paths 16 Mai; Trip Scheduling Fase 4 Review — past-departure skip + idempotency-before-plan-limit + cross-org isolation + P2002 race graceful handling 17 Mai; Trip Scheduling Fase 5 — GenerateTripInstancesForTemplateUseCase happy paths + ownership + recurring gate + legacy gates + daysAhead range validation 17 Mai)*.
 
 A escolha de tecnologias modernas aliada a uma arquitetura robusta (DDD/Clean Architecture) garante que o sistema possa escalar horizontalmente e suportar a complexidade de um ambiente SaaS multi-tenant.
 
-**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai** + **Mitigação FE (B1–B10) entregue 18 Mai** + **Phase 5 (driver self-service + CNH plural) entregue 19 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → email de verificação (mock) → auto-FREE → criação de recursos (com limite por plano) → booking → driver lista trips próprias → pagamento simulado (admin ou driver dono). Fluxo de recuperação de senha completo com auto-login pós-reset e revogação de refresh tokens. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
+**Progresso atual:** **Fases 1, 2, 3, 3.7 — 100% COMPLETAS** (✅) + **Trip Scheduling (Fases 1-5) entregue 17 Mai** + **Mitigação FE (B1–B10) entregue 18 Mai** + **Phase 5 (driver self-service + CNH plural) entregue 19 Mai**. 13 módulos implementados — User, Auth, Organization, Driver, Vehicle, Membership, RBAC, Trip, Bookings, Plans, Payment, Subscriptions, Shared. Sistema demonstrável ponta a ponta: registro de org → email de verificação (mock) → auto-FREE → criação de recursos (com limite por plano) → booking → driver lista trips próprias → pagamento simulado (admin ou driver dono). Fluxo de recuperação de senha completo com auto-login pós-reset e revogação de refresh tokens. **04 Mai 2026:** melhorias de resposta da API (bookedCount/availableSlots/campos de template na listagem de instâncias; paymentMethod em todas as respostas de booking; SRP nos mappers). **16-17 Mai 2026:** Trip Scheduling completo — Fase 1 (hora-do-dia armazenada no TripTemplate; TripInstance derivada via `departureDate` + `template.{departure,arrival}TimeOfDay`), Fase 2 (módulo `TripSchedulingConfig` per-org com `daysAhead`/`generationCron`/`autoCancelCron`/`enabled`; auto-criação no signup de org), Fase 3 (cron `*/15 * * * *` de auto-cancel — varre orgs ativas, transiciona instâncias com `autoCancelAt` vencido para CANCELED via state machine; resiliente a falhas por linha; `ScheduleModule` registrado condicionalmente via `DISABLE_CRON`), Fase 4 (cron `0 2 * * *` de geração recorrente — novo `defaultCapacity` no TripTemplate; janela rolante `daysAhead` por org; idempotência por (template, dia) via `existsForTemplateOnDay`; plan limit por instância com counter local; defesa em profundidade contra race multi-replica com DB unique `@@unique([tripTemplateId, departureTime])` + P2002 graceful handling) e Fase 5 (endpoint admin manual `POST /trip-templates/:id/generate-instances` — extrai `processTemplate` como ponto compartilhado entre cron sweep e manual; `daysAhead` resolution override→config→default; validações HTTP 400/403/404 explícitas vs degradação silenciosa do cron). **22 Mai – 04 Jun 2026 (§6.17):** simplificação da `TripSchedulingConfig` (colunas de cron removidas — horários fixos no `@Cron`); cascade de `FAILED` em pagamentos `PENDING` ao cancelar viagem; `tripInstanceId`+`tripDepartureTime` no `PaymentResponseDto`; endpoint público paginado `GET /public/organizations`; e migração do limite de viagens de mês-calendário para a janela do período de assinatura (`PlanLimitService.getCurrentPeriod` + `countByOrganizationInPeriod`). Próximo: Fase 4 (Qualidade & Deploy — Swagger, Docker prod, testes E2E, docs TCC).
 
 ---
 
