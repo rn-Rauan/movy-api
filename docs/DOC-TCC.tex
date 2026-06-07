@@ -109,7 +109,7 @@ Coorientador(a): \CoOrientador
 
 \textbf{Sumário Executivo}
 
-A Movy API é uma plataforma backend escalável para gerenciamento de transporte universitário intermunicipal, desenvolvida como um Sistema SaaS moderno com suporte a multi-tenancy. O projeto implementa uma arquitetura robusta baseada em Clean Architecture e Domain-Driven Design, utilizando NestJS, TypeScript, Prisma ORM e PostgreSQL. O sistema está 100\% concluído (13 módulos implementados), abrangendo autenticação JWT, gerenciamento de usuários, organizações, roles (RBAC), memberships, motoristas, veículos, viagens (templates e instâncias), inscrições de passageiros, planos de assinatura, assinaturas e pagamentos, com infraestrutura de testes unitários composta por 280 testes em 37 suites.
+A Movy API é uma plataforma backend escalável para gerenciamento de transporte universitário intermunicipal, desenvolvida como um Sistema SaaS moderno com suporte a multi-tenancy. O projeto implementa uma arquitetura robusta baseada em Clean Architecture e Domain-Driven Design, utilizando NestJS, TypeScript, Prisma ORM e PostgreSQL. O sistema está 100\% concluído (13 módulos implementados), abrangendo autenticação JWT, gerenciamento de usuários, organizações, roles (RBAC), memberships, motoristas, veículos, viagens (templates e instâncias), automação de agendamento (geração recorrente e auto-cancelamento via \textit{cron}), inscrições de passageiros, planos de assinatura, assinaturas, pagamentos e consumo de plano, com infraestrutura de testes unitários composta por 458 testes em 57 suites.
 
 \vspace{0.5cm}
 
@@ -122,13 +122,13 @@ A Movy API é uma plataforma backend escalável para gerenciamento de transporte
 \item Soft-delete em todas as entidades críticas
 \item Docker Compose ready com auto-seed de dados e migrations automáticas
 \item Swagger integrado com documentação automática de endpoints
-\item Migrações versionadas (14+ migrações executadas)
+\item Migrações versionadas (28 migrações executadas)
 \item Rate limiting global (60 req/min via \texttt{@nestjs/throttler})
 \item Proteção contra IDOR (OWASP A01) em todos os recursos por ID
 \item Transações atômicas via UnitOfWork + DbContext (AsyncLocalStorage)
 \item Controle de limites de plano via \texttt{PlanLimitService} (veículos, motoristas, viagens/mês)
 \item Expiração lazy de assinaturas (sem cron job)
-\item Testes unitários: 280 testes, 37 suites, padrão AAA com injeção manual
+\item Testes unitários: 458 testes, 57 suites, padrão AAA com injeção manual
 \item CI/CD configurado via GitHub Actions
 \end{itemize}
 
@@ -229,6 +229,8 @@ Docker & Latest & Conteinerização e orquestração de ambientes \\
 Jest & 30+ & Framework de testes unitários e de integração \\
 ESLint & 9+ & Análise estática de código TypeScript \\
 Swagger & 11.2+ & Documentação interativa de endpoints REST \\
+@nestjs/schedule & 6.1+ & Agendamento de \textit{jobs} (cron) de viagens \\
+@nestjs/throttler & 6.5+ & \textit{Rate limiting} global (60 req/min) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -337,6 +339,19 @@ Os requisitos do sistema foram definidos a partir da observação do funcionamen
 \end{figure}
 
 \subsection{Diagrama de Classes}
+
+O modelo de domínio foi modelado segundo os princípios do \textit{Domain-Driven Design} (DDD): cada entidade é um agregado com métodos de fábrica estáticos (\texttt{create()}, que valida invariantes, e \texttt{restore()}, que reidrata a partir da persistência sem revalidar), e os atributos de regra de negócio são encapsulados em \textit{Value Objects} imutáveis (por exemplo, \texttt{Email}, \texttt{Cnpj}, \texttt{Cnh}, \texttt{Plate}, \texttt{Money}). Para preservar a legibilidade em formato impresso, o diagrama é apresentado em um \textbf{mapa panorâmico} (Figura~\ref{fig:classes-geral}), que exibe apenas as entidades e suas associações, seguido de figuras de detalhe organizadas por \textit{bounded context} (identidade e acesso, frota, viagens, reservas e pagamentos, e \textit{billing}), nas quais constam atributos, métodos e \textit{Value Objects}. O detalhamento completo encontra-se no arquivo-fonte \texttt{docs/DIAGRAMA\_CLASSES.md}, do qual as figuras são exportadas.
+
+\begin{figure}[H]
+\centering
+% TODO: exportar de docs/DIAGRAMA_CLASSES.md (Fig. 1) e salvar em imagens/
+% \includegraphics[width=\textwidth]{imagens/diagrama_classes_geral.png}
+\fbox{\parbox[c][4cm][c]{0.9\textwidth}{\centering\textit{[Mapa geral de entidades --- exportar da Fig.~1 de \texttt{docs/DIAGRAMA\_CLASSES.md}]}}}
+\caption{Mapa geral de entidades do modelo de domínio (Movy API).}
+\label{fig:classes-geral}
+\end{figure}
+
+As entidades agrupam-se em cinco contextos: \textbf{(i) Identidade e Acesso} --- \texttt{User}, \texttt{Organization}, \texttt{Membership} (tabela-pivô que materializa o N:N entre usuário e organização, carregando o \texttt{Role} e servindo de base ao RBAC) e os \textit{tokens} de redefinição de senha e verificação de e-mail; \textbf{(ii) Frota} --- \texttt{Driver} (entidade global, vinculada a organizações via \texttt{Membership}) e \texttt{Vehicle}; \textbf{(iii) Viagens} --- \texttt{TripTemplate} (modelo recorrente) que gera \texttt{TripInstance} (execução datada, com máquina de estados) e \texttt{TripSchedulingConfig}; \textbf{(iv) Reservas e Pagamentos} --- \texttt{Booking} (inscrição) e \texttt{Payment} (1:1 com a inscrição); e \textbf{(v) Billing} --- \texttt{Plan} e \texttt{Subscription}, com cota de uso aplicada pelo \texttt{PlanLimitService}.
 
 \subsection{Arquitetura do Sistema}
 
@@ -545,7 +560,8 @@ Extensão da entidade User para motoristas. Motoristas são entidades globais, v
 \begin{itemize}
     \item \textbf{userId} -- PK e FK: Usuário
     \item \textbf{cnh} -- Número da CNH (único)
-    \item \textbf{cnhCategory} -- Categoria da CNH (ex: D, E)
+    \item \textbf{cnhCategories} -- Categorias da CNH (coleção; um motorista pode ter A+B etc.)
+    \item \textbf{cnhExpiresAt} -- Data de validade da CNH
     \item \textbf{status} -- Status (ACTIVE, INACTIVE, SUSPENDED)
     \item \textbf{createdAt, updatedAt} -- Timestamps
 \end{itemize}
@@ -569,12 +585,14 @@ Define template para viagens recorrentes (rotas com horários e frequência).
     \item \textbf{id} -- Identificador único (UUID)
     \item \textbf{departurePoint} -- Local de partida
     \item \textbf{destination} -- Destino
-    \item \textbf{routeType} -- Tipo de trajeto (ONE\_WAY, RETURN, ROUND\_TRIP)
+    \item \textbf{departureTimeOfDay, arrivalTimeOfDay} -- Hora do dia (HH:mm, UTC) de partida/chegada
     \item \textbf{priceOneWay, priceReturn, priceRoundTrip} -- Preços por tipo de trajeto
     \item \textbf{isRecurring} -- Se é recorrente
     \item \textbf{frequency} -- Array de dias da semana (DayOfWeek enum)
     \item \textbf{shift} -- Turno (MORNING, AFTERNOON, EVENING)
     \item \textbf{stops} -- Array de paradas
+    \item \textbf{defaultCapacity} -- Capacidade padrão propagada às instâncias geradas
+    \item \textbf{autoCancelEnabled, minRevenue, autoCancelOffset} -- Configuração de auto-cancelamento
     \item \textbf{status} -- Status (ACTIVE, INACTIVE)
     \item \textbf{organizationId} -- FK: Organização
     \item \textbf{isPublic} -- Se está disponível para inscrição
@@ -622,7 +640,17 @@ Registra transações de pagamento associadas a inscrições (relação 1:1 com 
     \item \textbf{method} -- Método de pagamento (MONEY, PIX, CREDIT\_CARD, DEBIT\_CARD)
     \item \textbf{amount} -- Valor (Decimal 10.2)
     \item \textbf{status} -- Status (PENDING, COMPLETED, FAILED)
-    \item \textbf{bookingId} -- FK: Inscrição (unique, 1:1)
+    \item \textbf{enrollmentId} -- FK: Inscrição (\textit{unique}, 1:1 com Booking)
+    \item \textbf{createdAt, updatedAt} -- Timestamps
+\end{itemize}
+
+\paragraph{\textbf{TripSchedulingConfig (Configuração de Agendamento)}}\mbox{}\\
+Configuração por organização (1:0..1) que controla os \textit{jobs} de geração recorrente e auto-cancelamento de viagens.
+\begin{itemize}
+    \item \textbf{id} -- Identificador único (UUID)
+    \item \textbf{organizationId} -- FK: Organização (único)
+    \item \textbf{daysAhead} -- Janela de geração antecipada de instâncias (1--90, padrão 14)
+    \item \textbf{enabled} -- Se os \textit{jobs} estão ativos para a organização
     \item \textbf{createdAt, updatedAt} -- Timestamps
 \end{itemize}
 
@@ -637,7 +665,7 @@ Registra todas as ações críticas realizadas no sistema para conformidade e ra
 \end{itemize}
 
 \subsection{Interfaces}
-Inserir prints das telas ou protótipos.
+As interfaces de usuário (telas e protótipos da aplicação cliente) são apresentadas na Seção~\ref{sec:frontend}, dedicada ao \textit{frontend}.
 
 % ------------------------------
 \section{Implementação e Resultados Alcançados}
@@ -645,6 +673,35 @@ Inserir prints das telas ou protótipos.
 O desenvolvimento do projeto atingiu 100\% do escopo de módulos previsto (13 módulos completos), com implementação robusta de todos os componentes fundamentais para operação do sistema em produção. Todos os módulos seguem rigorosamente os padrões de Clean Architecture e são estruturados com casos de uso, value objects, repositórios e tratamento de erros específicos de domínio.
 
 \subsection{Módulos Implementados (13 Módulos --- 100\% Completo)}
+
+A API expõe 93 endpoints REST distribuídos pelos módulos de domínio, totalizando 93 casos de uso. A Tabela~\ref{tab:endpoints} consolida a contagem por módulo; nas subseções seguintes, cada módulo é descrito com seus casos de uso e endpoints representativos (a especificação completa das rotas está disponível via Swagger em \texttt{/api}).
+
+\begin{table}[H]
+\centering
+\caption{Endpoints REST e casos de uso por módulo}
+\label{tab:endpoints}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Módulo} & \textbf{Endpoints} & \textbf{Use Cases} \\
+\midrule
+Auth & 9 & 10 \\
+User & 8 & 6 \\
+Organization & 9 & 8 \\
+Membership & 8 & 8 \\
+Driver & 9 & 9 \\
+Vehicle & 5 & 5 \\
+Trip & 17 & 19 \\
+Bookings & 10 & 10 \\
+Plans & 6 & 6 \\
+Subscriptions & 5 & 5 \\
+Payment & 4 & 4 \\
+Scheduling & 2 & 2 \\
+Plan-Usage & 1 & 1 \\
+\midrule
+\textbf{Total} & \textbf{93} & \textbf{93} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsubsection{Role Management}
 
@@ -694,24 +751,9 @@ O desenvolvimento do projeto atingiu 100\% do escopo de módulos previsto (13 m�
 \item SetupOrganizationForExistingUserUseCase: Cria organização para usuário já autenticado, gera membership ADMIN e re-emite JWT com o novo \texttt{organizationId} no payload.
 \end{enumerate}
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do User Module}, label={cod:user_endpoints}]
-# Autenticacao
-POST   /auth/login                   # Login com email e senha
-POST   /auth/register                # Registro de novo usuario
-POST   /auth/refresh                 # Refresh de token expirado
-POST   /auth/register-organization   # Cria usuario + org + membership ADMIN
-POST   /auth/setup-organization      # Cria org para usuario ja autenticado
+\textbf{Endpoints}: 9 rotas de autenticação --- \texttt{POST /auth/\{login, register, refresh, logout, register-organization, setup-organization, forgot-password, reset-password, verify-email\}} --- e o CRUD de usuários (\texttt{POST/GET/PUT/DELETE /users}, com \texttt{GET} paginado e \textit{soft-delete} no \texttt{DELETE}).
 
-# CRUD de Usuarios
-POST   /users                        # Criar novo usuario
-GET    /users                        # Listar users (paginado)
-GET    /users/:id                    # Detalhes de um usuario
-PUT    /users/:id                    # Atualizar dados
-DELETE /users/:id                    # Soft-delete
-\end{lstlisting}
-
-\textbf{Segurança}: Bcrypt (salt rounds: 10) para hash de senhas; JWT com secrets distintos para access (1h) e refresh tokens (7d). O payload do JWT é enriquecido no login com todos os dados necessários, eliminando consultas ao banco em cada requisição.
+\textbf{Segurança}: Bcrypt (salt rounds: 10) para hash de senhas; JWT com secrets distintos para access (1h) e refresh tokens (7d). O payload do JWT é enriquecido no login com todos os dados necessários, eliminando consultas ao banco em cada requisição. O módulo implementa ainda \textbf{recuperação de senha} e \textbf{verificação de e-mail} por tokens de uso único armazenados apenas como hash SHA-256 (TTL de 1h e 24h), com resposta constante na solicitação (anti-enumeration) e revogação de \textit{refresh tokens} via \texttt{jti} no \textit{logout} e na redefinição de senha.
 
 \subsubsection{Organization Module (CRUD)}
 
@@ -728,16 +770,7 @@ DELETE /users/:id                    # Soft-delete
 \item FindOrganizationByUserUseCase: Retorna orgs associadas ao \texttt{userId} do token JWT.
 \end{enumerate}
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Organization Module}, label={cod:org_endpoints}]
-POST   /organizations              # Criar organizacao (apenas @Dev())
-GET    /organizations              # Listar todas (paginado)
-GET    /organizations/me           # Orgs do usuario autenticado
-GET    /organizations/active       # Listar apenas ativas (paginado)
-GET    /organizations/:id          # Detalhes de uma org
-PUT    /organizations/:id          # Atualizar dados
-DELETE /organizations/:id          # Soft-delete (INACTIVE)
-\end{lstlisting}
+\textbf{Endpoints}: 9 rotas. Exemplos: \texttt{GET /organizations/me} (orgs do usuário autenticado), \texttt{GET /organizations/active} (apenas ativas, paginado), \texttt{PUT/DELETE /organizations/:id} (atualização e \textit{soft-delete}). Há ainda endpoints públicos sem autenticação --- \texttt{GET /public/organizations} (lista paginada) e \texttt{GET /public/organizations/:slug} --- para páginas institucionais.
 
 \textbf{Value Objects}: CNPJ (com dígitos verificadores), OrganizationName, Slug (URL-safe), Address.
 
@@ -758,16 +791,7 @@ DELETE /organizations/:id          # Soft-delete (INACTIVE)
 \item FindRoleByUserIdAndOrganizationIdUseCase: Retorna o role do usuário em uma organização.
 \end{enumerate}
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Membership Module}, label={cod:membership_endpoints}]
-POST   /memberships                                # Criar membership
-GET    /memberships/me/role/:organizationId        # Role do user autenticado na org
-GET    /memberships/user/:userId                   # Memberships de um user
-GET    /memberships/organization/:orgId            # Memberships de uma org
-GET    /memberships/:userId/:roleId/:orgId         # Busca especifica
-DELETE /memberships/:userId/:roleId/:orgId         # Soft-delete
-PATCH  /memberships/:userId/:roleId/:orgId/restore # Restaurar
-\end{lstlisting}
+\textbf{Endpoints}: 8 rotas operando sobre a chave composta. Exemplos: \texttt{POST /memberships} (org vem do JWT), \texttt{GET /memberships/me/role/:organizationId}, \texttt{DELETE} (\textit{soft-delete}) e \texttt{PATCH .../restore} sobre \texttt{/:userId/:roleId/:organizationId}.
 
 \textbf{Erros de Domínio}: \texttt{MembershipAlreadyExistsError} (HTTP 409), \texttt{MembershipNotFoundError} (HTTP 404), \texttt{DriverNotFoundForMembershipError} (HTTP 400).
 
@@ -782,30 +806,22 @@ PATCH  /memberships/:userId/:roleId/:orgId/restore # Restaurar
 \item Admin vincula à organização via \texttt{POST /memberships} com \texttt{roleId=DRIVER}.
 \end{enumerate}
 
-\textbf{Use Cases Implementados (7 total)}:
+\textbf{Use Cases Implementados (9 total)}:
 \begin{enumerate}
 \item CreateDriverUseCase: Criação self-service com check de duplicata (\texttt{DriverAlreadyExistsError} HTTP 409).
-\item UpdateDriverUseCase: Atualização com verificação de ownership.
+\item UpdateDriverUseCase: Atualização (fluxo admin) com verificação de ownership.
+\item UpdateOwnDriverUseCase: Atualização parcial self-service (\texttt{cnhExpiresAt}/\texttt{cnhCategories}) via \texttt{PATCH /drivers/me}.
 \item FindDriverByIdUseCase: Busca com proteção IDOR via \texttt{belongsToOrganization}.
 \item FindDriverByUserIdUseCase: Busca por usuário.
+\item FindDriverNameByIdUseCase: Retorna o nome do motorista (visível a passageiros).
 \item FindAllDriversByOrganizationUseCase: Paginação com JOIN via membership.
 \item RemoveDriverUseCase: Soft delete com validação de ownership.
 \item LookupDriverUseCase: Verificação cruzada email + CNH para administrador.
 \end{enumerate}
 
-\textbf{Value Objects}: \textbf{Cnh} (9--12 caracteres alfanuméricos), \textbf{CnhCategory} (enum A--E).
+\textbf{Value Objects}: \textbf{Cnh} (9--12 caracteres alfanuméricos) e \textbf{CnhCategories} --- coleção de categorias (A--E) com deduplicação, ordenação e normalização \textit{case-insensitive}, permitindo que um motorista possua múltiplas categorias (ex.: A+B).
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Driver Module}, label={cod:driver_endpoints}]
-POST   /drivers                          # Criar perfil (self-service)
-GET    /drivers/me                       # Perfil do driver autenticado
-GET    /drivers/lookup?email=&cnh=       # Busca por email + CNH (ADMIN only)
-GET    /drivers/organization/:orgId      # Listar drivers da org (paginado)
-GET    /drivers/:id                      # Buscar driver por ID
-GET    /drivers/:id/name                 # Nome do motorista por ID (qualquer usuario autenticado)
-PUT    /drivers/:id                      # Atualizar dados do driver
-DELETE /drivers/:id                      # Soft-delete
-\end{lstlisting}
+\textbf{Endpoints}: 9 rotas. Exemplos: \texttt{POST /drivers} (perfil \textit{self-service}), \texttt{GET /drivers/me}, \texttt{PATCH /drivers/me} (atualização parcial de \texttt{cnhExpiresAt}/\texttt{cnhCategories}), \texttt{GET /drivers/lookup?email=\&cnh=} (ADMIN), \texttt{GET /drivers/organization/:orgId} (paginado) e \texttt{GET /drivers/:id/name} (visível a qualquer usuário autenticado).
 
 \subsubsection{Vehicle Module}
 
@@ -822,14 +838,7 @@ DELETE /drivers/:id                      # Soft-delete
 
 \textbf{Value Objects}: \textbf{Plate} — valida placa brasileira nos formatos \texttt{ABC1234} (padrão) e \texttt{ABC1D23} (Mercosul).
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Vehicle Module}, label={cod:vehicle_endpoints}]
-POST   /vehicles/organization/:organizationId  # Registrar veiculo
-GET    /vehicles/organization/:organizationId  # Listar veiculos da org (paginado)
-GET    /vehicles/:id                           # Buscar veiculo por ID
-PUT    /vehicles/:id                           # Atualizar veiculo
-DELETE /vehicles/:id                           # Soft-delete (status INACTIVE)
-\end{lstlisting}
+\textbf{Endpoints}: 5 rotas. Exemplos: \texttt{POST/GET /vehicles/organization/:organizationId} (registro e listagem paginada) e \texttt{GET/PUT/DELETE /vehicles/:id} (consulta, atualização e \textit{soft-delete}, todas com proteção IDOR).
 
 \subsubsection{Trip Module}
 
@@ -855,24 +864,7 @@ DELETE /vehicles/:id                           # Soft-delete (status INACTIVE)
 \item AssignVehicleToTripInstanceUseCase: Atribuição/desatribuição de veículo com validação de existência.
 \end{enumerate}
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Trip Module}, label={cod:trip_endpoints}]
-# TripTemplate
-POST   /trip-templates                              # Criar template
-GET    /trip-templates/organization/:orgId          # Listar templates da org
-GET    /trip-templates/:id                          # Buscar template
-PUT    /trip-templates/:id                          # Atualizar template
-DELETE /trip-templates/:id                          # Desativar template
-
-# TripInstance
-POST   /trip-instances                              # Criar instancia
-GET    /trip-instances/organization/:orgId          # Listar instancias da org
-GET    /trip-instances/template/:templateId         # Instancias de um template
-GET    /trip-instances/:id                          # Buscar instancia
-PUT    /trip-instances/:id/status                   # Transitar status
-PUT    /trip-instances/:id/driver                   # Atribuir/desatribuir motorista
-PUT    /trip-instances/:id/vehicle                  # Atribuir/desatribuir veiculo
-\end{lstlisting}
+\textbf{Endpoints}: 17 rotas. \textit{TripTemplate}: CRUD em \texttt{/trip-templates} mais \texttt{POST /trip-templates/:id/generate-instances} (geração manual). \textit{TripInstance}: \texttt{POST /trip-instances}, listagens por org/template, \texttt{GET /trip-instances/driver/me} (viagens do motorista), \texttt{PATCH /trip-instances/:id/status} (máquina de estados) e \texttt{:id/driver}, \texttt{:id/vehicle} (atribuição). Há ainda rotas públicas \texttt{GET /public/trip-instances} e \texttt{.../org/:slug}.
 
 \textbf{Máquina de Estados}:
 
@@ -912,18 +904,7 @@ CANCELED & -- & -- & -- & -- & -- \\
 \item GetBookingAvailabilityUseCase: Verifica disponibilidade de vagas antes da inscrição.
 \end{enumerate}
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Bookings Module}, label={cod:booking_endpoints}]
-POST   /bookings                               # Inscrever (preco server-side)
-GET    /bookings/user?status=ACTIVE|INACTIVE   # Bookings do usuario autenticado
-GET    /bookings/availability/:tripInstanceId  # Verificar vagas disponiveis
-GET    /bookings/trip-instance/:id             # Passageiros (so org members)
-GET    /bookings/organization/:id              # Lista por org (paginado)
-GET    /bookings/:id                           # Detalhe basico
-GET    /bookings/:id/details                   # Detalhe enriquecido com dados da viagem
-PATCH  /bookings/:id/cancel                    # Cancelar inscricao
-PATCH  /bookings/:id/confirm-presence          # Confirmar presenca (org members)
-\end{lstlisting}
+\textbf{Endpoints}: 10 rotas. Exemplos: \texttt{POST /bookings} (preço \textit{server-side}), \texttt{GET /bookings/availability/:tripInstanceId} (vagas), \texttt{GET /bookings/:id/details} (detalhe enriquecido), \texttt{PATCH /bookings/:id/cancel} e \texttt{.../confirm-presence} (confirmação restrita a \textit{org members}).
 
 \textbf{Erros de Domínio}: \texttt{BookingNotFoundError} (404), \texttt{BookingAlreadyExistsError} (409), \texttt{TripInstanceFullError} (409), \texttt{TripInstanceNotBookableError} (400), \texttt{BookingCancellationNotAllowedError} (400), \texttt{BookingCancellationDeadlineError} (400), \texttt{BookingAlreadyInactiveError} (400), \texttt{BookingAccessForbiddenError} (403), entre outros.
 
@@ -933,14 +914,7 @@ PATCH  /bookings/:id/confirm-presence          # Confirmar presenca (org members
 
 \textbf{Use Cases (5 total)}: \texttt{CreatePlanUseCase}, \texttt{UpdatePlanUseCase}, \texttt{DeactivatePlanUseCase}, \texttt{FindPlanByIdUseCase}, \texttt{FindAllPlansUseCase}.
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Plans Module}, label={cod:plans_endpoints}]
-POST   /plans             # Criar plano (JWT + @Dev())
-PATCH  /plans/:id         # Atualizar plano (JWT + @Dev())
-PATCH  /plans/:id/deactivate  # Desativar plano (JWT + @Dev())
-GET    /plans             # Listar todos os planos (JWT)
-GET    /plans/:id         # Buscar plano por ID (JWT)
-\end{lstlisting}
+\textbf{Endpoints}: 6 rotas. Escritas restritas a \texttt{@Dev()} (\texttt{POST /plans}, \texttt{PATCH /plans/:id}, \texttt{.../deactivate}); leitura autenticada (\texttt{GET /plans}, \texttt{/plans/:id}) e endpoint público \texttt{GET /public/plans} para a tela de \textit{onboarding}.
 
 \subsubsection{Subscriptions Module}
 
@@ -958,27 +932,37 @@ GET    /plans/:id         # Buscar plano por ID (JWT)
 \item FindSubscriptionsByOrganizationUseCase: Histórico paginado.
 \end{enumerate}
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Subscriptions Module}, label={cod:subs_endpoints}]
-POST   /organizations/:orgId/subscriptions            # Inscrever em plano
-PATCH  /organizations/:orgId/subscriptions/:id/cancel # Cancelar assinatura
-GET    /organizations/:orgId/subscriptions/active     # Assinatura ativa
-GET    /organizations/:orgId/subscriptions            # Historico paginado
-\end{lstlisting}
+\textbf{Endpoints}: 5 rotas sob \texttt{/organizations/:orgId/subscriptions}. Exemplos: \texttt{POST} (assinar plano), \texttt{PATCH /:id/cancel}, \texttt{GET /active} (assinatura vigente, com \textit{lazy expiry}) e \texttt{GET} (histórico paginado).
 
 \subsubsection{Payment Module}
 
-\textbf{Descrição}: Registro e simulação de pagamentos associados a inscrições. A criação de pagamentos é responsabilidade do \texttt{CreateBookingUseCase} — cada inscrição gera automaticamente um registro de pagamento com status \texttt{PENDING}. Os endpoints de simulação permitem demonstrar o fluxo completo sem gateway externo (Status: Implementado).
+\textbf{Descrição}: Registro e simulação de pagamentos associados a inscrições. A criação de pagamentos é responsabilidade do \texttt{CreateBookingUseCase} — cada inscrição gera automaticamente um registro de pagamento com status \texttt{PENDING}. Os endpoints de simulação permitem demonstrar o fluxo completo sem gateway externo (Status: Implementado). Além do ADMIN, o motorista pode confirmar/falhar pagamentos de viagens atribuídas a ele (\texttt{PaymentNotAssignedToDriverError}, HTTP 403). A resposta inclui \texttt{tripInstanceId} e \texttt{tripDepartureTime} (\textit{snapshots} de leitura), permitindo ao cliente agregar receita por data da viagem.
 
 \textbf{Use Cases (4 total)}: \texttt{FindPaymentByIdUseCase}, \texttt{FindPaymentsByOrganizationUseCase}, \texttt{ConfirmPaymentUseCase} (\texttt{PENDING → COMPLETED}), \texttt{FailPaymentUseCase} (\texttt{PENDING → FAILED}).
 
-\textbf{Endpoints REST}:
-\begin{lstlisting}[caption={Endpoints do Payment Module}, label={cod:payment_endpoints}]
-GET    /organizations/:orgId/payments/:id         # Buscar pagamento por ID
-GET    /organizations/:orgId/payments             # Listar pagamentos (paginado)
-PATCH  /organizations/:orgId/payments/:id/confirm # Simular confirmacao
-PATCH  /organizations/:orgId/payments/:id/fail    # Simular falha
-\end{lstlisting}
+\textbf{Endpoints}: 4 rotas sob \texttt{/organizations/:orgId/payments}. \texttt{GET /:id} e \texttt{GET} (listagem paginada); \texttt{PATCH /:id/confirm} (\texttt{PENDING → COMPLETED}) e \texttt{.../fail} (\texttt{PENDING → FAILED}), simulando o ciclo sem gateway externo.
+
+\subsubsection{Scheduling Module}
+
+\textbf{Descrição}: Automação da geração e do encerramento de viagens recorrentes via \textit{jobs} agendados (\texttt{@nestjs/schedule}), parametrizados por organização através de \texttt{TripSchedulingConfig} (Status: Implementado).
+
+\textbf{Jobs (\textit{cron})}:
+\begin{enumerate}
+\item \textbf{Geração recorrente} (\texttt{0 2 * * *} UTC): para cada organização ativa, materializa uma janela rolante de \texttt{TripInstance} a partir dos \texttt{TripTemplate} recorrentes, respeitando \texttt{daysAhead} e a cota de viagens do plano. Idempotente por (template, dia).
+\item \textbf{Auto-cancelamento} (\texttt{*/15 * * * *} UTC): transiciona para \texttt{CANCELED} as instâncias cujo prazo (\texttt{autoCancelAt}) venceu sem atingir a receita mínima, propagando a falha aos pagamentos \texttt{PENDING} associados.
+\end{enumerate}
+
+\textbf{Use Cases (3 total)}: \texttt{FindTripSchedulingConfigUseCase}, \texttt{UpdateTripSchedulingConfigUseCase} e a geração manual \texttt{GenerateTripInstancesForTemplateUseCase} (mesmo núcleo do \textit{cron}, exposta via \texttt{POST /trip-templates/:id/generate-instances}).
+
+\textbf{Endpoints}: 2 rotas sob \texttt{/organizations/:organizationId/scheduling-config} (\texttt{GET} e \texttt{PATCH}, ADMIN). A cadência dos \textit{jobs} é fixa; a configuração por organização controla apenas a janela (\texttt{daysAhead}) e a ativação (\texttt{enabled}). O \texttt{ScheduleModule} é registrado condicionalmente (\texttt{DISABLE\_CRON}).
+
+\subsubsection{Plan-Usage Module}
+
+\textbf{Descrição}: Exposição consolidada do consumo de recursos da organização frente aos limites do plano vigente, para alimentar painéis administrativos (Status: Implementado).
+
+\textbf{Use Case (1 total)}: \texttt{FindPlanUsageUseCase} --- agrega contagem de veículos, motoristas e viagens (estas contadas dentro do \textbf{período de assinatura} corrente, \texttt{[startDate, expiresAt)}, e não por mês-calendário) e confronta com \texttt{maxVehicles}, \texttt{maxDrivers} e \texttt{maxMonthlyTrips}.
+
+\textbf{Endpoints}: 1 rota --- \texttt{GET /organizations/:id/plan-usage}.
 
 \subsection{Infraestrutura Transacional --- UnitOfWork + DbContext}
 
@@ -1066,7 +1050,7 @@ Prisma gerencia histórico completo de mudanças no esquema com migrations versi
 
 \subsection{Cobertura de Testes}
 
-\textbf{Status Atual}: 280 testes em 37 suites, cobrindo os use cases críticos de todos os módulos, guards de autorização e fluxos de negócio complexos.
+\textbf{Status Atual}: 458 testes em 57 suites, cobrindo os use cases críticos de todos os módulos, guards de autorização e fluxos de negócio complexos.
 
 \textbf{Padrão de Testes Adotado}:
 \begin{itemize}
@@ -1077,60 +1061,94 @@ Prisma gerencia histórico completo de mudanças no esquema com migrations versi
 \item \textbf{Factories}: Funções \texttt{make*()} por módulo com suporte a overrides parciais.
 \end{itemize}
 
-\textbf{Suites de Teste (37 suites, 280 testes)}:
+\textbf{Distribuição das suites por módulo (57 suites, 458 testes)}: a Tabela~\ref{tab:testes} resume a cobertura agregada por módulo; o detalhamento por use case está versionado no repositório (\texttt{test/modules/}).
 
 \begin{table}[H]
 \centering
-\caption{Cobertura de testes unitários por use case}
+\caption{Cobertura de testes unitários agregada por módulo}
 \label{tab:testes}
-\begin{tabular}{llr}
+\begin{tabular}{lrr}
 \toprule
-\textbf{Módulo} & \textbf{Use Case / Guard} & \textbf{Testes} \\
+\textbf{Módulo} & \textbf{Suites} & \textbf{Testes} \\
 \midrule
-Auth & LoginUseCase & 5 \\
-Auth & RegisterOrganizationWithAdminUseCase & 5 \\
-Auth & SetupOrganizationForExistingUserUseCase & 6 \\
-Membership & CreateMembershipUseCase & 7 \\
-Driver & CreateDriverUseCase & 4 \\
-Vehicle & CreateVehicleUseCase & 4 \\
-Vehicle & FindVehicleByIdUseCase & 3 \\
-User & CreateUserUseCase & 3 \\
-User & FindUserByIdUseCase & 3 \\
-Organization & CreateOrganizationUseCase & 4 \\
-Organization & FindOrganizationByIdUseCase & 6 \\
-Trip & CreateTripTemplateUseCase & 5 \\
-Trip & FindTripTemplateByIdUseCase & 4 \\
-Trip & UpdateTripTemplateUseCase & 8 \\
-Trip & DeactivateTripTemplateUseCase & 4 \\
-Trip & FindAllTripTemplatesByOrganizationUseCase & 4 \\
-Trip & CreateTripInstanceUseCase & 15 \\
-Trip & FindTripInstanceByIdUseCase & 5 \\
-Trip & FindAllTripInstancesByOrganizationUseCase & 4 \\
-Trip & FindTripInstancesByTemplateUseCase & 8 \\
-Trip & TransitionTripInstanceStatusUseCase & 15 \\
-Trip & AssignDriverToTripInstanceUseCase & 11 \\
-Trip & AssignVehicleToTripInstanceUseCase & 11 \\
-Bookings & CreateBookingUseCase & 18 \\
-Bookings & CancelBookingUseCase & 8 \\
-Bookings & ConfirmPresenceUseCase & 7 \\
-Bookings & FindBookingByIdUseCase & 5 \\
-Bookings & FindBookingsByOrganizationUseCase & 5 \\
-Bookings & FindBookingsByTripInstanceUseCase & 9 \\
-Bookings & FindBookingsByUserUseCase & 8 \\
-Bookings & FindBookingDetailsUseCase & 11 \\
-Bookings & GetBookingAvailabilityUseCase & 9 \\
-Plans & CreatePlanUseCase & 5 \\
-Subscriptions & SubscribeToPlanUseCase & 7 \\
-Shared & DevGuard & 8 \\
-Shared & RolesGuard & 9 \\
-Shared & TenantFilterGuard & 9 \\
+Trip & 18 & 183 \\
+Bookings & 9 & 88 \\
+Auth & 7 & 36 \\
+Driver & 4 & 33 \\
+Shared (Guards) & 3 & 26 \\
+Payment & 3 & 20 \\
+Subscriptions & 3 & 18 \\
+Scheduling & 2 & 15 \\
+Membership & 1 & 10 \\
+Organization & 2 & 10 \\
+Vehicle & 2 & 7 \\
+User & 2 & 6 \\
+Plans & 1 & 6 \\
 \midrule
-\textbf{Total} & & \textbf{280} \\
+\textbf{Total} & \textbf{57} & \textbf{458} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Factories Implementadas (20 total)}: \texttt{makeUser}, \texttt{makeOrganization}, \texttt{makeRole}, \texttt{makeJwtPayload}, \texttt{makeMembership}, \texttt{makeDriver}, \texttt{makeVehicle}, \texttt{makeTripTemplate}, \texttt{makeTripInstance}, \texttt{makeBooking}, \texttt{makePlan}, \texttt{makeSubscription}, \texttt{makeCreateTripTemplateDto}, \texttt{makeCreateTripInstanceDto}, \texttt{makeUpdateTripTemplateDto}, \texttt{makeRegisterOrgDto}, \texttt{makeSetupOrgDto}, \texttt{makeCreateDriverDto}, \texttt{makeCreateBookingDto}, \texttt{makeCreatePlanDto}.
+Os testes apoiam-se em \textit{factories} por módulo (funções \texttt{make*()} com suporte a \textit{overrides} parciais) que constroem entidades de domínio e DTOs de entrada --- por exemplo \texttt{makeUser}, \texttt{makeOrganization}, \texttt{makeDriver}, \texttt{makeTripTemplate}, \texttt{makeTripInstance}, \texttt{makeBooking}, \texttt{makeSubscription} ---, eliminando duplicação de \textit{setup} entre as suites.
+
+% =========================================================
+% SEÇÃO FRONTEND --- PLACEHOLDER ESTRUTURADO
+% TODO: preencher com o conteúdo da aplicação cliente.
+% Esta seção foi pré-estruturada para a integração da documentação
+% do frontend ao TCC. Remover este comentário após o preenchimento.
+% =========================================================
+\section{Aplicação Cliente (Frontend)}
+\label{sec:frontend}
+
+% TODO: parágrafo introdutório — propósito da aplicação cliente, público-alvo
+% (estudantes/passageiros, administradores, motoristas) e como ela consome a Movy API.
+
+\subsection{Tecnologias do Frontend}
+
+% TODO: descrever a stack do frontend (framework/biblioteca, linguagem, gerenciamento
+% de estado, estilização, build, etc.) e justificar as escolhas, no mesmo formato da
+% Seção "Tecnologias Implementadas" do backend.
+% Sugestão: replicar a tabela abaixo preenchendo as linhas.
+%
+% \begin{table}[H]
+% \centering
+% \caption{Tecnologias implementadas no frontend}
+% \label{tab:tecnologias_frontend}
+% \begin{tabular}{lll}
+% \toprule
+% \textbf{Tecnologia} & \textbf{Versão} & \textbf{Descrição} \\
+% \midrule
+% ... & ... & ... \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+\textit{[Conteúdo a ser inserido: stack tecnológica do frontend e justificativas.]}
+
+\subsection{Arquitetura e Organização}
+
+% TODO: organização de pastas/camadas, padrões adotados (ex.: componentização,
+% camadas de serviços para chamadas HTTP, gerência de autenticação/refresh token).
+
+\textit{[Conteúdo a ser inserido.]}
+
+\subsection{Telas e Funcionalidades}
+
+% TODO: descrever as principais telas e inserir prints/protótipos
+% (login, onboarding de organização, listagem de viagens, inscrição, painel admin, etc.).
+% Usar \begin{figure}[H] ... \includegraphics ... \end{figure} para cada captura.
+
+\textit{[Conteúdo a ser inserido: capturas de tela e descrição dos fluxos.]}
+
+\subsection{Integração com a API}
+
+% TODO: descrever como o frontend consome a Movy API — autenticação JWT (access/refresh),
+% tratamento de erros padronizados (mapeamento de códigos HTTP), consumo de endpoints
+% públicos (/public/organizations, /public/plans, /public/trip-instances) e fluxo
+% multi-tenant (seleção/contexto de organização).
+
+\textit{[Conteúdo a ser inserido.]}
 
 % ------------------------------
 \section{Considerações Finais}
@@ -1154,13 +1172,9 @@ As metas estabelecidas para o projeto foram alcançadas com sucesso, atingindo 1
 
 \item \textbf{Soft-delete}: Implementado em todas as entidades críticas, preservando histórico de dados e integridade referencial.
 
-\item \textbf{Paginação}: Suportada em todas as listagens com query parameters \texttt{page} e \texttt{limit}.
+\item \textbf{Segurança IDOR (OWASP A01) e Rate Limiting}: Endpoints com parâmetro \texttt{/:id} validam ownership via \texttt{organizationId} do JWT (Driver, Vehicle, Trip); proteção global de 60 req/min via \texttt{@nestjs/throttler}.
 
-\item \textbf{Segurança IDOR (OWASP A01)}: Endpoints com parâmetro \texttt{/:id} validam ownership via \texttt{organizationId} do JWT em Driver, Vehicle e Trip.
-
-\item \textbf{Rate Limiting}: Proteção global configurada via \texttt{@nestjs/throttler} (60 req/min).
-
-\item \textbf{Módulo de Viagens}: TripTemplate + TripInstance com máquina de estados completa, atribuição de motorista/veículo e validação de FK antes de persistir.
+\item \textbf{Módulo de Viagens e Automação}: TripTemplate + TripInstance com máquina de estados completa, atribuição de motorista/veículo com validação de FK, e \textit{jobs} de geração recorrente e auto-cancelamento por organização.
 
 \item \textbf{Módulo de Inscrições}: Bookings com controle de capacidade, preço calculado server-side, confirmação de presença e proteção contra race conditions via \texttt{UnitOfWork} com isolamento \texttt{Serializable}.
 
@@ -1170,13 +1184,11 @@ As metas estabelecidas para o projeto foram alcançadas com sucesso, atingindo 1
 
 \item \textbf{Transações Atômicas}: UnitOfWork + DbContext via AsyncLocalStorage garantem atomicidade em operações multi-repositório sem expor Prisma à camada de aplicação.
 
-\item \textbf{Testes Unitários}: 280 testes em 37 suites com padrão AAA, factories por módulo e injeção manual de dependências.
+\item \textbf{Testes Unitários}: 458 testes em 57 suites com padrão AAA, factories por módulo e injeção manual de dependências.
 
 \item \textbf{CI/CD}: GitHub Actions configurado para build, lint e testes automatizados a cada push.
 
-\item \textbf{Docker Ready}: docker-compose.yml configurado com auto-seed e migrations automáticas.
-
-\item \textbf{Tratamento de Erros Centralizado}: AllExceptionsFilter global com mapeamento de erros de domínio por padrão de código.
+\item \textbf{Tratamento de Erros Centralizado}: AllExceptionsFilter global com mapeamento de erros de domínio por padrão de código; \texttt{docker-compose} pronto com auto-seed e migrations automáticas.
 \end{enumerate}
 
 \subsubsection{Métricas do Projeto}
@@ -1190,11 +1202,11 @@ As metas estabelecidas para o projeto foram alcançadas com sucesso, atingindo 1
 \textbf{Métrica} & \textbf{Total} & \textbf{Completo} \\
 \midrule
 Módulos & 13 & 13 (100\%) \\
-Use Cases & 50+ & 50+ (100\%) \\
-Endpoints REST & 55+ & 55+ (100\%) \\
+Use Cases & 93 & 93 (100\%) \\
+Endpoints REST & 93 & 93 (100\%) \\
 Entidades de Domínio & 14 & 14 (100\%) \\
-Migrações Executadas & 14+ & 14+ (100\%) \\
-Cobertura de Testes (Use Cases críticos) & 37 suites & 280 testes \\
+Migrações Executadas & 28 & 28 (100\%) \\
+Cobertura de Testes (Use Cases críticos) & 57 suites & 458 testes \\
 CI/CD (GitHub Actions) & Configurado & \checkmark \\
 Rate Limiting & Configurado & 60 req/min \\
 \bottomrule
@@ -1208,7 +1220,7 @@ Rate Limiting & Configurado & 60 req/min \\
 
 \item \textbf{Notificações Pendentes}: Sistema de notificações por email/SMS ainda não foi implementado, afetando requisitos RF17 e RF18.
 
-\item \textbf{Cobertura de Testes Parcial}: Embora 280 testes cubram os use cases críticos e os guards principais, alguns use cases secundários ainda não possuem specs dedicadas. A meta de 80\% de cobertura completa está em andamento.
+\item \textbf{Cobertura de Testes Parcial}: Embora 458 testes cubram os use cases críticos e os guards principais, alguns use cases secundários ainda não possuem specs dedicadas. A meta de 80\% de cobertura completa está em andamento.
 
 \item \textbf{Caching}: Não há implementação de caching (Redis) para otimização de consultas frequentes.
 
@@ -1224,19 +1236,13 @@ Rate Limiting & Configurado & 60 req/min \\
 
 \item \textbf{Multi-tenancy Desde o Início}: Implementar multi-tenancy na arquitetura inicial foi crítico; retroajustar seria custoso.
 
-\item \textbf{Migrações Versionadas Salvam}: Histórico de migrações Prisma permitiu rastrear evolução do schema e facilitar rollbacks se necessário.
-
-\item \textbf{Soft-delete é Padrão}: Em sistemas que exigem auditoria, soft-delete deveria ser padrão, não exceção.
-
-\item \textbf{Documentação Automática Funciona}: Swagger mantém documentação em sincronismo com código, reduzindo documentação manual.
-
 \item \textbf{Segurança IDOR Requer Vigilância Ativa}: Endpoints com parâmetro \texttt{/:id} sem \texttt{:organizationId} na rota exigem validação explícita de ownership via \texttt{organizationId} do JWT ou método \texttt{belongsToOrganization()} no repositório.
 
 \item \textbf{Desacoplamento de Módulos Previne Ciclos}: O padrão Orchestrator (Auth → coordena User, Organization, Membership) eliminou dependências circulares e violações do SRP.
 
-\item \textbf{Testes AAA com Injeção Manual são Superiores}: Testes com dependências injetadas manualmente (sem framework) são mais rápidos, mais isolados e forçam o código a ser testável por design.
+\item \textbf{Testes AAA com Injeção Manual são Superiores}: Dependências injetadas manualmente (sem framework) tornam os testes mais rápidos e isolados, e forçam o código a ser testável por design.
 
-\item \textbf{UnitOfWork Abstrai Transações Corretamente}: Usar AsyncLocalStorage para propagar o cliente transacional evita expor Prisma à camada de aplicação e não exige alteração nas assinaturas dos repositórios.
+\item \textbf{UnitOfWork Abstrai Transações Corretamente}: Usar AsyncLocalStorage para propagar o cliente transacional evita expor Prisma à camada de aplicação sem alterar as assinaturas dos repositórios.
 \end{enumerate}
 
 \subsection{Recomendações para Continuação}
@@ -1269,7 +1275,7 @@ Rate Limiting & Configurado & 60 req/min \\
 
 A Movy API demonstra viabilidade técnica e arquitetural para funcionar como uma plataforma SaaS de gerenciamento de transporte universitário. Os princípios de Clean Architecture e DDD forneceram fundação sólida que antecipa crescimento futuro sem sacrificar manutenibilidade.
 
-Com 100\% dos módulos implementados — autenticação, usuários, organizações, roles, memberships, motoristas, veículos, viagens, inscrições de passageiros, planos, assinaturas e pagamentos — e um sistema robusto de RBAC, multi-tenancy, proteção IDOR e 280 testes unitários operacionais, o projeto entrega uma plataforma funcional ponta a ponta para o gerenciamento do transporte universitário intermunicipal.
+Com 100\% dos módulos implementados — autenticação, usuários, organizações, roles, memberships, motoristas, veículos, viagens, inscrições de passageiros, planos, assinaturas e pagamentos — e um sistema robusto de RBAC, multi-tenancy, proteção IDOR e 458 testes unitários operacionais, o projeto entrega uma plataforma funcional ponta a ponta para o gerenciamento do transporte universitário intermunicipal.
 
 O código segue padrões estabelecidos de engenharia de software, é facilmente integrável com aplicações front-end (web/mobile) via API REST e as decisões técnicas (NestJS, Prisma, PostgreSQL, Docker) garantem escalabilidade horizontal e suportam modelos de deployment modernos.
 
