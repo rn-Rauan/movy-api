@@ -460,6 +460,18 @@ model Payment {
   @@map("payment")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ROADMAP / DÍVIDA TÉCNICA DECLARADA — NÃO IMPLEMENTADO NESTA VERSÃO
+//
+// A trilha de auditoria foi MODELADA (esquema abaixo) mas ainda NÃO é escrita
+// por nenhum caso de uso. A persistência ficou fora do escopo desta entrega de
+// TCC de forma deliberada: exige um interceptor/decorator transversal em todas
+// as mutações e uma estratégia de retenção, trabalho que não agrega ao núcleo
+// de gestão de transporte avaliado neste trabalho.
+//
+// O modelo permanece no schema para documentar a intenção de design (o sistema
+// é "audit-ready") e servir de ponto de extensão futuro. Ver docs/ROADMAP.md.
+// ─────────────────────────────────────────────────────────────────────────────
 model AuditLog {
   id             String   @id @default(uuid())
   organizationId String
