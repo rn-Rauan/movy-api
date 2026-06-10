@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
@@ -6,6 +6,10 @@ import { HashProvider } from 'src/shared/providers/interfaces/hash.interface';
 import { JwtPayloadService } from '../services/jwt-payload.service';
 import { LoginDto, TokenResponseDto } from '../dtos';
 import { UserNotFoundError } from '../../../user/domain/entities/errors/user.errors';
+import {
+  InactiveAccountError,
+  InvalidCredentialsError,
+} from '../../domain/errors/auth.errors';
 import { RefreshTokenRepository } from 'src/modules/auth/domain/interfaces/refresh-token-repository.interface';
 
 /**
@@ -42,7 +46,8 @@ export class LoginUseCase {
    * @param loginDto - Login credentials (email, password)
    * @returns TokenResponseDto with access token, refresh token, and user info
    * @throws UserNotFoundError if user with given email does not exist
-   * @throws UnauthorizedException if user is inactive or password is invalid
+   * @throws InactiveAccountError if the user account is INACTIVE
+   * @throws InvalidCredentialsError if the password does not match
    */
   async execute(loginDto: LoginDto): Promise<TokenResponseDto> {
     this.logger.log(`[Login] Attempt for email: ${loginDto.email}`);
@@ -55,7 +60,7 @@ export class LoginUseCase {
 
     if (user.status === 'INACTIVE') {
       this.logger.warn(`[Login] User inactive: ${user.id}`);
-      throw new UnauthorizedException('User account is inactive');
+      throw new InactiveAccountError();
     }
 
     const isPasswordValid = await this.hashProvider.compare(
@@ -65,7 +70,7 @@ export class LoginUseCase {
 
     if (!isPasswordValid) {
       this.logger.warn(`[Login] Invalid password for: ${loginDto.email}`);
-      throw new UnauthorizedException('Invalid credentials');
+      throw new InvalidCredentialsError();
     }
 
     this.logger.debug(`[Login] Enriching JWT payload for userId: ${user.id}`);

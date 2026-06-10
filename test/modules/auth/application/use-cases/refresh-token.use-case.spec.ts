@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { InvalidRefreshTokenError } from 'src/modules/auth/domain/errors/auth.errors';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayloadService } from 'src/modules/auth/application/services/jwt-payload.service';
 import { RefreshTokenUseCase } from 'src/modules/auth/application/use-cases/refresh-token.use-case';
@@ -134,7 +134,7 @@ describe('RefreshTokenUseCase', () => {
   });
 
   describe('error cases', () => {
-    it('should throw UnauthorizedException when token signature is invalid', async () => {
+    it('should throw InvalidRefreshTokenError when token signature is invalid', async () => {
       // Arrange
       mocks.jwtService.verify.mockImplementation(() => {
         throw new Error('invalid signature');
@@ -142,12 +142,12 @@ describe('RefreshTokenUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute('bad-token')).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenError,
       );
       expect(mocks.userRepository.findById).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException when token is expired', async () => {
+    it('should throw InvalidRefreshTokenError when token is expired', async () => {
       // Arrange
       mocks.jwtService.verify.mockImplementation(() => {
         const err = new Error('jwt expired');
@@ -157,12 +157,12 @@ describe('RefreshTokenUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(REFRESH_TOKEN)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenError,
       );
       expect(mocks.userRepository.findById).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException when user is not found', async () => {
+    it('should throw InvalidRefreshTokenError when user is not found', async () => {
       // Arrange
       const user = makeUser();
       mocks.jwtService.verify.mockReturnValue(makeJwtPayload({ sub: user.id }));
@@ -170,12 +170,12 @@ describe('RefreshTokenUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(REFRESH_TOKEN)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenError,
       );
       expect(mocks.jwtPayloadService.enrichPayload).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException when user is INACTIVE', async () => {
+    it('should throw InvalidRefreshTokenError when user is INACTIVE', async () => {
       // Arrange
       const user = makeUser();
       user.setStatus('INACTIVE');
@@ -184,7 +184,7 @@ describe('RefreshTokenUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(REFRESH_TOKEN)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenError,
       );
       expect(mocks.jwtPayloadService.enrichPayload).not.toHaveBeenCalled();
     });

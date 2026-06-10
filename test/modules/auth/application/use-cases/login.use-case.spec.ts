@@ -1,4 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  InactiveAccountError,
+  InvalidCredentialsError,
+} from 'src/modules/auth/domain/errors/auth.errors';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayloadService } from 'src/modules/auth/application/services/jwt-payload.service';
 import { LoginUseCase } from 'src/modules/auth/application/use-cases';
@@ -123,20 +126,18 @@ describe('LoginUseCase', () => {
       expect(mocks.hashProvider.compare).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException when user is INACTIVE', async () => {
+    it('should throw InactiveAccountError when user is INACTIVE', async () => {
       // Arrange
       const inactiveUser = makeUser({ email: validInput.email });
       inactiveUser.setStatus('INACTIVE');
       mocks.userRepository.findByEmail.mockResolvedValue(inactiveUser);
 
       // Act & Assert
-      await expect(sut.execute(validInput)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(sut.execute(validInput)).rejects.toThrow(InactiveAccountError);
       expect(mocks.hashProvider.compare).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException when password is wrong', async () => {
+    it('should throw InvalidCredentialsError when password is wrong', async () => {
       // Arrange
       const user = makeUser({ email: validInput.email });
       mocks.userRepository.findByEmail.mockResolvedValue(user);
@@ -144,7 +145,7 @@ describe('LoginUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute(validInput)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidCredentialsError,
       );
       expect(mocks.jwtPayloadService.enrichPayload).not.toHaveBeenCalled();
     });

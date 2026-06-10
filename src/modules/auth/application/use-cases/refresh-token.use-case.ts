@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../../user/domain/interfaces/user.repository';
 import { JwtPayloadService } from '../services/jwt-payload.service';
 import { TokenResponseDto } from '../dtos';
+import { InvalidRefreshTokenError } from '../../domain/errors/auth.errors';
 import type { JwtPayload } from 'src/shared/infrastructure/types/jwt-payload.interface';
 import { RefreshTokenRepository } from 'src/modules/auth/domain/interfaces/refresh-token-repository.interface';
 
@@ -12,7 +13,7 @@ import { RefreshTokenRepository } from 'src/modules/auth/domain/interfaces/refre
  *
  * @remarks
  * Validation order:
- * 1. Verifies JWT signature and expiry — throws `UnauthorizedException` if invalid.
+ * 1. Verifies JWT signature and expiry — throws {@link InvalidRefreshTokenError} if invalid.
  * 2. If the token carries a `jti` claim, checks {@link RefreshTokenRepository}:
  *    absent JTI means the token was revoked (e.g. by {@link LogoutUseCase}) → 401.
  * 3. Confirms the user still exists and is `ACTIVE` in the database.
@@ -38,7 +39,7 @@ export class RefreshTokenUseCase {
    * Refreshes JWT tokens using a valid refresh token.
    * @param refreshToken - Current refresh token string
    * @returns TokenResponseDto with new access token, refresh token, and user info
-   * @throws UnauthorizedException if token is invalid, expired, or user is inactive
+   * @throws InvalidRefreshTokenError if token is invalid, expired, revoked, or user is inactive
    */
   async execute(refreshToken: string): Promise<TokenResponseDto> {
     this.logger.debug(`[Refresh Token] Attempting to refresh token`);
@@ -47,7 +48,7 @@ export class RefreshTokenUseCase {
     try {
       payload = this.jwtService.verify<JwtPayload>(refreshToken);
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new InvalidRefreshTokenError();
     }
 
     if (payload.jti) {
@@ -56,7 +57,7 @@ export class RefreshTokenUseCase {
         this.logger.warn(
           `[Refresh Token] JTI not found or already revoked: ${payload.jti}`,
         );
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new InvalidRefreshTokenError();
       }
     }
 
@@ -66,7 +67,7 @@ export class RefreshTokenUseCase {
       this.logger.warn(
         `[Refresh Token] Invalid user or inactive: ${payload.sub}`,
       );
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new InvalidRefreshTokenError();
     }
 
     this.logger.debug(
