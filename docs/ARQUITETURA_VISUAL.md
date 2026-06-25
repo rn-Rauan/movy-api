@@ -871,8 +871,6 @@ prisma/
 
 **Fim da Arquitetura Visual** (atualizado 17 Abr 2026)
 
-Para docs de módulo: veja `src/modules/<module>/README.md`
 Para documentação técnica: veja `DOCUMENTACAO_TECNICA.md`
 Para timeline: veja `ROADMAP.md`
-Para progresso: veja `PROGRESS.md`
 

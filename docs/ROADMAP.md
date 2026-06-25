@@ -1,8 +1,12 @@
 # 🗺️ Roadmap - Movy API (Solo Dev)
 
-> 4 fases claras até MVP. Cheque PROGRESS.md para detalhe de cada módulo.
+> ⚠️ **Documento histórico (evidência de processo).** Os registros datados abaixo refletem o
+> planejamento de cada momento. Métricas e estado atuais são canônicos em
+> [`docs/README.md`](./README.md) e no `DOC-TCC.tex` (**13 módulos · 458 testes / 57 suites**).
 
-**Última atualização:** 16 Mai 2026 
+> 4 fases claras até MVP.
+
+**Última atualização:** 16 Mai 2026 _(congelado — ver banner acima)_
 
 ---
 
@@ -391,5 +395,5 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 
 ---
 
-**Ver detalhes em:** [PROGRESS.md](./PROGRESS.md)
+**Métricas e estado atuais:** ver [`README.md`](./README.md) e o `DOC-TCC.tex`.
 

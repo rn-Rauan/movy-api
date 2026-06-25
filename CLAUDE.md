@@ -195,8 +195,9 @@ The `docs/` folder contains deeper references that aren't duplicated here. Notab
 - `docs/ARCHITECTURAL-DECISIONS.md`, `docs/ARCHITECTURE.md` — design rationale
 - `docs/DATA-MODEL.md` — schema and relationships
 - `docs/SECURITY.md` — guard composition, IDOR, multi-tenant isolation
+- `docs/ERROR-CATALOG.md` — domain error code → HTTP status reference
 - `docs/GUIA_TRIP_SCHEDULING.md` — trip template → instance generation flow
-- `docs/ROADMAP.md`, `docs/PROGRESS.md` — phase tracking
+- `docs/ROADMAP.md` — phase tracking (historical)
 
 Consult these before large changes to the corresponding subsystem rather than reverse-engineering from code.
 

@@ -31,11 +31,13 @@ A arquitetura foi construída com **Clean Architecture + DDD Lite** por módulo,
 |---|---|---|
 | NestJS | v11 | Framework principal |
 | TypeScript | 5.7 (`strict: true`) | Linguagem |
-| Prisma ORM | v7 | Acesso ao banco, migrações |
+| Prisma ORM | v7 (`@prisma/adapter-pg`) | Acesso ao banco, migrações |
 | PostgreSQL | 17 | Banco de dados relacional |
 | JWT + Passport | — | Autenticação com payload enriquecido |
-| Bcrypt | v6 | Hash de senhas |
-| @nestjs/throttler | v6 | Rate limiting global (60 req/min) |
+| Bcrypt | v6 | Hash de senhas (10 salt rounds) |
+| @nestjs/throttler | v6 | Rate limiting global (60 req/min/IP) |
+| @nestjs/schedule | v6 | Cron jobs (geração e auto-cancelamento de viagens) |
+| @nestjs/swagger | v11 | Especificação OpenAPI em `/api` |
 | Jest | v30 | Testes unitários |
 | Docker | — | Ambiente de desenvolvimento |
 
@@ -43,19 +45,25 @@ A arquitetura foi construída com **Clean Architecture + DDD Lite** por módulo,
 
 ## Módulos Implementados
 
-| Módulo | Status | Descrição |
+13 módulos de domínio, todos seguindo a estrutura Clean Architecture + DDD por módulo.
+
+| Módulo | Concern | Descrição |
 |---|---|---|
-| `auth` | ✅ | Login, registro, refresh token, setup de organização, JWT enriched payload |
-| `user` | ✅ | CRUD com soft delete e paginação |
-| `organization` | ✅ | CRUD multi-tenant com value objects e slug |
-| `membership` | ✅ | Associação usuário ↔ role ↔ organização, soft delete, isolamento de tenant |
-| `driver` | ✅ | Perfil self-service, CNH com value objects, lookup por email+CNH |
-| `rbac` | ✅ | Guards: `JwtAuthGuard`, `RolesGuard`, `TenantFilterGuard`, `DevGuard` |
-| `shared` | ✅ | Exception filter global, interceptors, value objects, domain errors |
-| `vehicle` | ⏳ | Gestão de frotas |
-| `trip` | ⏳ | Templates e instâncias de viagens recorrentes |
-| `booking` | ⏳ | Inscrições/reservas de passageiros |
-| `payment` | ⏳ | Integração de pagamentos |
+| `auth` | Identidade | Login, registro, refresh token, verificação de email, reset de senha, setup de organização (JWT enriched payload) |
+| `user` | Identidade | CRUD com soft delete (`status = INACTIVE`) e paginação |
+| `organization` | Identidade | CRUD multi-tenant com value objects e slug |
+| `membership` | Identidade | Associação usuário ↔ role ↔ organização, soft delete (`removedAt`), isolamento de tenant |
+| `driver` | Frota | Perfil self-service, CNH com value objects, limite por plano |
+| `vehicle` | Frota | Gestão de frota, placa única, limite por plano |
+| `trip` | Viagens | Templates → instâncias de viagens recorrentes + 2 cron jobs |
+| `scheduling` | Viagens | `TripSchedulingConfig` por organização que dirige a geração de instâncias |
+| `bookings` | Viagens | Reservas de passageiros contra instâncias de viagem (controle de vagas) |
+| `plans` | Billing | Catálogo de planos (FREE, etc.) com limites de recursos |
+| `subscriptions` | Billing | Assinaturas, `PlanLimitService`, expiração lazy on-read |
+| `payment` | Billing | Confirmação/falha de pagamentos (simulado) |
+| `plan-usage` | Billing | Consulta de uso de recursos vs. limites do plano |
+
+Infraestrutura transversal vive em [`src/shared/`](./src/shared) (`@Global`): guards (`JwtAuthGuard`, `RolesGuard`, `TenantFilterGuard`, `DevGuard`), exception filter global, value objects (`Email`, `Money`, `Telephone`), `PrismaService` e `BcryptHashProvider`.
 
 ---
 
@@ -85,11 +93,13 @@ src/modules/<module>/
 ```
 Request
   → JwtAuthGuard      (valida JWT, popula req.context com userId, organizationId, role, isDev)
-  → RolesGuard        (valida @Roles() contra req.context.role)
-  → TenantFilterGuard (valida isolamento multi-tenant)
+  → RolesGuard        (valida @Roles() contra req.context.role; isDev faz bypass)
+  → TenantFilterGuard (valida isolamento multi-tenant via :organizationId)
   → DevGuard          (valida @Dev() contra req.context.isDev)
   → Controller
 ```
+
+Detalhes de arquitetura, decisões de design e segurança estão em [`docs/`](./docs) (ver seção [Documentação](#documentação)).
 
 ---
 
@@ -121,12 +131,12 @@ docker-compose up
 ```
 
 Isso irá:
-- Subir o banco PostgreSQL 17
-- Construir e iniciar a API NestJS
+- Subir o banco PostgreSQL 17 (porta `5705`)
+- Construir e iniciar a API NestJS (porta `5700`)
 - Executar as migrations automaticamente (`prisma migrate deploy`)
-- Popular o banco com o seed inicial (roles `ADMIN` e `DRIVER`)
+- Popular o banco com o seed inicial (roles `ADMIN` e `DRIVER` + plano `FREE`)
 
-A API estará disponível em **`http://localhost:5700`**.  
+A API estará disponível em **`http://localhost:5700`**.
 Documentação Swagger em **`http://localhost:5700/api`**.
 
 ---
@@ -135,7 +145,7 @@ Documentação Swagger em **`http://localhost:5700/api`**.
 
 #### Pré-requisitos
 
-- Node.js v18+
+- Node.js v22 LTS
 - Docker (para PostgreSQL)
 
 #### Instalação
@@ -146,12 +156,18 @@ npm install
 
 #### Variáveis de ambiente
 
-```env
-DATABASE_URL="postgresql://docker:docker07@localhost:5705/movy?schema=public"
-PORT=3001
-JWT_SECRET="your_jwt_secret_here"
-DEV_EMAILS="dev@example.com"   # emails com acesso a endpoints @Dev()
-```
+Copie `.env.example` para `.env` e ajuste. As variáveis principais:
+
+| Variável | Obrigatória | Notas |
+|---|---|---|
+| `DATABASE_URL` | ✅ | String de conexão PostgreSQL |
+| `JWT_SECRET` | ✅ | Lança erro no boot se ausente |
+| `PORT` | ❌ | Padrão 3001 |
+| `JWT_EXPIRATION` | ❌ | Segundos; padrão 3600 (1h) |
+| `JWT_REFRESH_EXPIRATION` | ❌ | Segundos; padrão 604800 (7d) |
+| `ALLOWED_ORIGINS` | ❌ | Origens CORS permitidas (separadas por vírgula) |
+| `DEV_EMAILS` | ❌ | Emails que ignoram checagens de org/role (`@Dev()`) |
+| `DISABLE_CRON` | ❌ | `true` desliga os cron jobs (útil em dev/testes) |
 
 #### Banco de dados com Docker
 
@@ -186,13 +202,16 @@ npx jest --config test/jest-unit.json
 # Com watch
 npx jest --config test/jest-unit.json --watch
 
+# Um único arquivo de spec
+npx jest --config test/jest-unit.json <caminho>
+
 # E2E
 npm run test:e2e
 ```
 
-Cobertura atual: **5 suites, 27 testes unitários** nos use cases críticos (`LoginUseCase`, `RegisterOrganizationWithAdminUseCase`, `SetupOrganizationForExistingUserUseCase`, `CreateMembershipUseCase`, `CreateDriverUseCase`).
+Cobertura atual: **458 testes unitários em 57 suites**, cobrindo os casos de uso de todos os módulos.
 
-Padrão adotado: `makeMocks()` + `setupHappyPath()` + `sut` + AAA, com factories por módulo e injeção manual de dependências.
+Padrão adotado: `makeMocks()` + `setupHappyPath()` + `sut` + AAA, com factories por módulo e injeção manual de dependências (zero mocks de framework — sem `Test.createTestingModule`).
 
 ---
 
@@ -201,24 +220,26 @@ Padrão adotado: `makeMocks()` + `setupHappyPath()` + `sut` + AAA, com factories
 ```bash
 npm run build           # Compila TypeScript (0 erros com strict: true)
 npm run lint            # ESLint + Prettier fix
-npx prisma studio       # GUI do banco de dados
 npx tsc --noEmit        # Verificação de tipos sem compilar
+npx prisma studio       # GUI do banco de dados
 ```
 
 ---
 
 ## Documentação
 
-A pasta [`docs/`](./docs/) contém:
+A pasta [`docs/`](./docs) tem um índice que define a **fonte da verdade de cada assunto**:
 
-- [`DOCUMENTACAO_TECNICA.md`](./docs/DOCUMENTACAO_TECNICA.md) — Arquitetura, decisões técnicas e módulos implementados
-- [`ROADMAP.md`](./docs/ROADMAP.md) — Fases do projeto e progresso
-- [`PROGRESS.md`](./docs/PROGRESS.md) — Checklist detalhado por módulo
-- [`DATABASE.md`](./docs/DATABASE.md) — Schema e modelagem de dados
-- [`AUTHORIZATION_GUIDE_UPDATED.md`](./docs/AUTHORIZATION_GUIDE_UPDATED.md) — Guia de RBAC e guards
+- [`docs/README.md`](./docs/README.md) — **comece aqui**: índice da documentação
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — padrões arquiteturais (+ [`ARCHITECTURAL-DECISIONS.md`](./docs/ARCHITECTURAL-DECISIONS.md))
+- [`docs/DATA-MODEL.md`](./docs/DATA-MODEL.md) — esquema e relacionamentos (fonte definitiva: `prisma/schema.prisma`)
+- [`docs/SECURITY.md`](./docs/SECURITY.md) — IDOR, multi-tenant, composição de guards
+- [`docs/ERROR-CATALOG.md`](./docs/ERROR-CATALOG.md) — códigos de erro de domínio → status HTTP
+- [`docs/API_FRONTEND.md`](./docs/API_FRONTEND.md) — contrato da API consumido pelo cliente
+- [`docs/GUIA_TRIP_SCHEDULING.md`](./docs/GUIA_TRIP_SCHEDULING.md) — fluxo template → instância de viagem
 
 ---
 
 ## Licença
 
-Proprietário. Todos os direitos reservados.
+Proprietário (`UNLICENSED`). Todos os direitos reservados. Ver [`LICENSE`](./LICENSE).
