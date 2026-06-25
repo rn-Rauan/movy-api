@@ -2,7 +2,7 @@
 
 > ⚠️ **Documento histórico (evidência de processo).** Os registros datados abaixo refletem o
 > planejamento de cada momento. Métricas e estado atuais são canônicos em
-> [`docs/README.md`](./README.md) e no `DOC-TCC.tex` (**13 módulos · 458 testes / 57 suites**).
+> [`docs/README.md`](../README.md) e no `DOC-TCC.tex` (**13 módulos · 458 testes / 57 suites**).
 
 > 4 fases claras até MVP.
 
@@ -395,5 +395,5 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 
 ---
 
-**Métricas e estado atuais:** ver [`README.md`](./README.md) e o `DOC-TCC.tex`.
+**Métricas e estado atuais:** ver [`README.md`](../README.md) e o `DOC-TCC.tex`.
 

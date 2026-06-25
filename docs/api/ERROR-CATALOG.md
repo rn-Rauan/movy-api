@@ -1,8 +1,8 @@
 # Catálogo de Erros — Movy API
 
 > Referência consolidada dos **erros de domínio** (`DomainError`) e do status HTTP que cada
-> um produz. Fonte de verdade do mecanismo: [`AllExceptionsFilter`](../src/shared/presentation/exceptions/all-exceptions.filter.ts)
-> e a base [`DomainError`](../src/shared/domain/errors/domain.error.ts).
+> um produz. Fonte de verdade do mecanismo: [`AllExceptionsFilter`](../../src/shared/presentation/exceptions/all-exceptions.filter.ts)
+> e a base [`DomainError`](../../src/shared/domain/errors/domain.error.ts).
 
 ## Como o status HTTP é derivado
 

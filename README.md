@@ -231,12 +231,12 @@ npx prisma studio       # GUI do banco de dados
 A pasta [`docs/`](./docs) tem um índice que define a **fonte da verdade de cada assunto**:
 
 - [`docs/README.md`](./docs/README.md) — **comece aqui**: índice da documentação
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — padrões arquiteturais (+ [`ARCHITECTURAL-DECISIONS.md`](./docs/ARCHITECTURAL-DECISIONS.md))
-- [`docs/DATA-MODEL.md`](./docs/DATA-MODEL.md) — esquema e relacionamentos (fonte definitiva: `prisma/schema.prisma`)
-- [`docs/SECURITY.md`](./docs/SECURITY.md) — IDOR, multi-tenant, composição de guards
-- [`docs/ERROR-CATALOG.md`](./docs/ERROR-CATALOG.md) — códigos de erro de domínio → status HTTP
-- [`docs/API_FRONTEND.md`](./docs/API_FRONTEND.md) — contrato da API consumido pelo cliente
-- [`docs/GUIA_TRIP_SCHEDULING.md`](./docs/GUIA_TRIP_SCHEDULING.md) — fluxo template → instância de viagem
+- [`docs/arquitetura/ARCHITECTURE.md`](./docs/arquitetura/ARCHITECTURE.md) — padrões arquiteturais (+ [`ARCHITECTURAL-DECISIONS.md`](./docs/arquitetura/ARCHITECTURAL-DECISIONS.md))
+- [`docs/modelagem/DATA-MODEL.md`](./docs/modelagem/DATA-MODEL.md) — esquema e relacionamentos (fonte definitiva: `prisma/schema.prisma`)
+- [`docs/arquitetura/SECURITY.md`](./docs/arquitetura/SECURITY.md) — IDOR, multi-tenant, composição de guards
+- [`docs/api/ERROR-CATALOG.md`](./docs/api/ERROR-CATALOG.md) — códigos de erro de domínio → status HTTP
+- [`docs/api/API_FRONTEND.md`](./docs/api/API_FRONTEND.md) — contrato da API consumido pelo cliente
+- [`docs/dominio/GUIA_TRIP_SCHEDULING.md`](./docs/dominio/GUIA_TRIP_SCHEDULING.md) — fluxo template → instância de viagem
 
 ---
 
