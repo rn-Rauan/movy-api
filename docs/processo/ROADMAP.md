@@ -41,7 +41,7 @@ Progresso em 27 Abr 2026:
 - Integração end-to-end (Frontend ↔ API)
 - Testes de integração (opcional)
 - **Multi-org switching** (`POST /auth/switch-organization`) — ver ADR-018
-- **Trip Scheduling** ✅ — ver `docs/GUIA_TRIP_SCHEDULING.md`
+- **Trip Scheduling** ✅
   - ✅ **Fase 1** — Hora-do-dia no `TripTemplate` (16 Mai 2026)
   - ✅ **Fase 2** — Módulo `TripSchedulingConfig` per-org (16 Mai 2026)
   - ✅ **Fase 3** — Cron de auto-cancel (`*/15 * * * *`) (16 Mai 2026)

@@ -235,8 +235,7 @@ A pasta [`docs/`](./docs) tem um índice que define a **fonte da verdade de cada
 - [`docs/modelagem/DATA-MODEL.md`](./docs/modelagem/DATA-MODEL.md) — esquema e relacionamentos (fonte definitiva: `prisma/schema.prisma`)
 - [`docs/arquitetura/SECURITY.md`](./docs/arquitetura/SECURITY.md) — IDOR, multi-tenant, composição de guards
 - [`docs/api/ERROR-CATALOG.md`](./docs/api/ERROR-CATALOG.md) — códigos de erro de domínio → status HTTP
-- [`docs/api/API_FRONTEND.md`](./docs/api/API_FRONTEND.md) — contrato da API consumido pelo cliente
-- [`docs/dominio/GUIA_TRIP_SCHEDULING.md`](./docs/dominio/GUIA_TRIP_SCHEDULING.md) — fluxo template → instância de viagem
+- [`docs/api/API.md`](./docs/api/API.md) — contrato da API consumido pelo cliente
 
 ---
 

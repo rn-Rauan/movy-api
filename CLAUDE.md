@@ -66,7 +66,7 @@ Feature modules grouped by concern (each follows the structure above):
 
 - **Identity & access:** `auth` (login/refresh/register/verify/reset), `user`, `membership` (user ↔ org join, soft-deleted via `removedAt`), `organization`
 - **Fleet:** `driver`, `vehicle`
-- **Trips:** `trip` (templates → instances, plus the two cron jobs), `scheduling` (per-org `TripSchedulingConfig` that drives instance generation — see `docs/dominio/GUIA_TRIP_SCHEDULING.md`), `bookings` (passenger reservations against trip instances)
+- **Trips:** `trip` (templates → instances, plus the two cron jobs), `scheduling` (per-org `TripSchedulingConfig` that drives instance generation), `bookings` (passenger reservations against trip instances)
 - **Billing:** `plans`, `subscriptions` (owns `PlanLimitService` + lazy expiration), `payment` (simulated confirm/fail), `plan-usage`
 
 ### Shared Module (`src/shared/`)
@@ -196,7 +196,6 @@ The `docs/` folder contains deeper references that aren't duplicated here. Notab
 - `docs/modelagem/DATA-MODEL.md` — schema and relationships
 - `docs/arquitetura/SECURITY.md` — guard composition, IDOR, multi-tenant isolation
 - `docs/api/ERROR-CATALOG.md` — domain error code → HTTP status reference
-- `docs/dominio/GUIA_TRIP_SCHEDULING.md` — trip template → instance generation flow
 - `docs/processo/ROADMAP.md` — phase tracking (historical)
 
 Consult these before large changes to the corresponding subsystem rather than reverse-engineering from code.
