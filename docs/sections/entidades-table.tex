@@ -1,0 +1,31 @@
+% Entidades do domínio agrupadas por contexto (modelo de domínio do Movy).
+% Importado pelo DOC-TCC.tex via \input{tabelas/tab-entidades}.
+% Requer os pacotes: tabularx, array, booktabs.
+% Coluna Y = X com alinhamento à esquerda.
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+{\footnotesize
+\begin{table}[H]
+\centering
+\caption{Entidades do domínio agrupadas por contexto}
+\label{tab:entidades}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.2cm} p{3.1cm} Y Y@{}}
+\toprule
+\textbf{Contexto} & \textbf{Entidades} & \textbf{Responsabilidade} & \textbf{Observações} \\
+\midrule
+Identidade e acesso & \texttt{User}, \texttt{Role}, \texttt{Membership} & Autenticação e controle de acesso (RBAC). & \texttt{Membership} (chave composta \texttt{userId}--\texttt{roleId}--\texttt{organizationId}) é a base do RBAC; \textit{soft delete}. \\
+\addlinespace
+Organização & \texttt{Organization} & Tenant raiz do modelo SaaS. & \textit{Slug} público e CNPJ validado; \textit{soft delete} por \texttt{status}. \\
+\addlinespace
+Frota & \texttt{Driver}, \texttt{Vehicle} & Recursos operacionais das viagens. & \texttt{Driver} é global (vínculo via \texttt{Membership}); \texttt{Vehicle} pertence à organização. \\
+\addlinespace
+Viagens & \texttt{TripTemplate}, \texttt{TripInstance}, \texttt{TripSchedulingConfig} & Modelo recorrente, execução datada e automação. & \texttt{TripInstance} possui máquina de estados; geração e auto-cancelamento parametrizados por organização. \\
+\addlinespace
+Reservas e pagamentos & \texttt{Booking}, \texttt{Payment} & Inscrição de passageiros e cobrança. & \texttt{Payment} 1:1 com \texttt{Booking}; preço registrado \textit{server-side}; controle de capacidade. \\
+\addlinespace
+Comercial / \textit{Billing} & \texttt{Plan}, \texttt{Subscription} & Planos de serviço e cotas de uso. & Limites aplicados pelo \texttt{PlanLimitService}; expiração \textit{lazy} da assinatura. \\
+\addlinespace
+Auditoria & \texttt{AuditLog} & Rastreabilidade de ações. & Modelada no \textit{schema}, mas não persistida no MVP (\textit{audit-ready}). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+}

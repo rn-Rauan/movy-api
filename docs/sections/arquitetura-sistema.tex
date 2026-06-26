@@ -1,0 +1,119 @@
+\subsection{Arquitetura do Sistema}
+\label{sec:arquitetura}
+
+Em alto nível, o sistema é composto por três elementos: a \textbf{aplicação cliente}, executada no navegador (e implantada em ambiente de borda); a \textbf{API REST}, que concentra a lógica de domínio; e o \textbf{banco de dados} relacional. O cliente comunica-se com a API exclusivamente via HTTP/JSON, e somente a API acessa o banco. Tanto o servidor quanto o cliente foram estruturados segundo o mesmo princípio --- separação de responsabilidades em camadas com fluxo de dados unidirecional ---, de modo que a arquitetura do cliente \textbf{espelha} a do servidor. As subseções a seguir descrevem cada lado.
+
+\subsubsection{Backend --- Clean Architecture e DDD}
+
+A arquitetura do servidor foi estruturada seguindo os princípios da \textit{Clean Architecture} e do \textit{Domain-Driven Design} (DDD), organizando o sistema em camadas bem definidas que isolam responsabilidades e permitem independência de frameworks externos.
+
+\begin{enumerate}
+\item \textbf{Camada de Apresentação (Presentation)}: Controladores REST que orquestram requisições HTTP, validação de DTOs, autenticação JWT e retorno de respostas formatadas.
+\begin{itemize}
+    \item Controllers: Mapeiam rotas HTTP para casos de uso.
+    \item DTOs: Data Transfer Objects com validação via class-validator.
+    \item Presenters: Formatam respostas de domínio para o cliente.
+    \item Mappers: Convertem entidades de domínio em respostas HTTP.
+\end{itemize}
+
+\item \textbf{Camada de Aplicação (Application)}: Orquestra regras de negócio através de Use Cases.
+\begin{itemize}
+    \item Use Cases: Implementam a lógica de negócio de forma testável e independente.
+    \item Aplicação: Coordena fluxo entre domínio e infraestrutura.
+    \item Exceptions: Erros de aplicação específicos (ex: \textit{MembershipAlreadyExistsError}).
+\end{itemize}
+
+\item \textbf{Camada de Domínio (Domain)}: Contém regras de negócio centrais, completamente independentes de frameworks.
+\begin{itemize}
+    \item Entities: Objetos com identidade única (ex: User, Organization).
+    \item Value Objects: Encapsulam validações de dados (ex: Email, CNPJ, Slug, Money).
+    \item Interfaces: Abstraem contratos de repositórios e serviços.
+    \item Erros de Domínio: Exceções específicas do negócio.
+\end{itemize}
+
+\item \textbf{Camada de Infraestrutura (Infrastructure)}: Implementação de detalhes técnicos.
+\begin{itemize}
+    \item Repositories: Implementação do padrão Repositório com Prisma.
+    \item Database: Configuração do Prisma e conexão com PostgreSQL.
+    \item Mappers: Conversão entre entidades de domínio e modelos de persistência.
+    \item Providers: Serviços específicos (ex: Bcrypt para hash de senhas).
+\end{itemize}
+
+\item \textbf{Camada Compartilhada (Shared)}: Componentes reutilizáveis.
+\begin{itemize}
+    \item Domain Errors e Value Objects compartilhados.
+    \item Guards (JWT authentication, RolesGuard, TenantFilterGuard, DevGuard).
+    \item Interceptadores de logging.
+    \item Filters de exceção global.
+    \item UnitOfWork e DbContext para transações atômicas.
+    \item PrismaModule para injeção da conexão em toda a aplicação.
+\end{itemize}
+\end{enumerate}
+
+Cada módulo de negócio segue a mesma estrutura hierárquica, conforme o Código~\ref{cod:modulo_estrutura}.
+
+\begin{lstlisting}[caption={Estrutura de um módulo do backend (exemplo: usuários)}, label={cod:modulo_estrutura}]
+src/modules/user/
+  application/
+    dto/
+      - create-user.dto.ts
+      - update-user.dto.ts
+      - user-response.dto.ts
+    use-cases/
+      - create-user.use-case.ts
+      - find-all-users.use-case.ts
+      - find-user-by-id.use-case.ts
+  domain/
+    entities/
+      - user.entity.ts
+    errors/
+      - user.errors.ts
+    interfaces/
+      - user.repository.ts
+  infrastructure/
+    db/
+      mappers/
+        - user.mapper.ts
+      repositories/
+        - prisma-user.repository.ts
+  presentation/
+    controllers/
+      - user.controller.ts
+    mappers/
+      - user.mapper.ts
+  user.module.ts
+\end{lstlisting}
+
+Os principais padrões de \textit{design} implementados no servidor são: \textbf{Repositório} (abstração da persistência), \textbf{Injeção de Dependência} (nativa do NestJS), \textbf{Value Objects} (validação de valores complexos), \textbf{Use Cases} (cada operação de negócio como classe testável), \textbf{Guards} (proteção de rotas), \textbf{Interceptadores} (\textit{logging} centralizado), \textbf{Filters de Exceção} (tratamento global de erros), \textbf{Soft Delete} (exclusão por status/\textit{timestamp}) e \textbf{UnitOfWork} (transações atômicas via \texttt{AsyncLocalStorage} sem expor Prisma à camada de aplicação).
+
+\subsubsection{Frontend --- Arquitetura em Camadas}
+
+A arquitetura do cliente espelha a separação do servidor, distribuindo responsabilidades em quatro camadas atravessadas por um fluxo de dados unidirecional, conforme o Código~\ref{cod:fe_arquitetura}.
+
+\begin{lstlisting}[caption={Arquitetura em camadas do frontend}, label={cod:fe_arquitetura}]
+Rotas + Componentes      (apresentacao: controladores finos / so props)
+        |  invocam
+Hooks de feature         (casos de uso: estado + obtencao de dados + efeitos)
+        |  chamam
+Servicos                 (padrao repositorio: um arquivo por dominio)
+        |  usam
+Cliente HTTP (lib/api)   (autenticacao + renovacao de sessao + erros)
+        |  HTTP/JSON
+   Movy API (backend)
+\end{lstlisting}
+
+A camada de \textbf{apresentação} compõe-se das rotas e dos componentes. As rotas são deliberadamente finas --- controladores enxutos cuja função é instanciar um \textit{hook} de caso de uso e repassar seus dados aos componentes ---, e os componentes recebem dados apenas por propriedades, sem realizar requisições próprias. A camada de \textbf{casos de uso} materializa-se nos \textit{hooks de feature}, que encapsulam a obtenção de dados, o estado associado (carregamento, erro, conteúdo) e os efeitos colaterais de uma operação de domínio. A camada de \textbf{serviços} implementa o padrão Repositório: cada arquivo agrupa as chamadas a um conjunto coeso de \textit{endpoints} e esconde detalhes de transporte. Por fim, o \textbf{cliente HTTP} é o ponto único de comunicação com a API, responsável por anexar credenciais, normalizar erros e renovar a sessão de forma transparente. Por convenção, nenhum componente ou rota chama o cliente HTTP diretamente --- toda comunicação passa por um serviço.
+
+O código organiza-se em \textbf{módulos de feature}: cada domínio reúne, em um único diretório, seus \textit{hooks} e componentes, como ilustra o Código~\ref{cod:fe_estrutura}. Essa estratificação confere ao cliente \textbf{localidade de mudança} (alterações no contrato de um \textit{endpoint} afetam somente o serviço correspondente) e \textbf{coesão por domínio}.
+
+\begin{lstlisting}[caption={Estrutura de diretórios do frontend}, label={cod:fe_estrutura}]
+src/
+  routes/      # rotas file-based (TanStack Router) - controladores finos
+  features/    # modulos de dominio (hooks + components por feature)
+    trips/  bookings/  organizations/  drivers/
+    templates/  vehicles/  scheduling/  subscriptions/  financial/
+  services/    # camada de servicos (padrao repositorio, 1 arquivo por dominio)
+  components/  # ui/ (shadcn), layout/, feedback/, visual/
+  lib/         # api.ts, auth-context, role-context, types, format, timezone
+\end{lstlisting}
+
