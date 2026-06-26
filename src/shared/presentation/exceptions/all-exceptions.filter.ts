@@ -56,9 +56,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
       if (code.endsWith('_NOT_FOUND')) {
         status = HttpStatus.NOT_FOUND;
-      } else if (code.endsWith('_ALREADY_EXISTS')) {
+      } else if (
+        code.endsWith('_ALREADY_EXISTS') ||
+        code.endsWith('_CONFLICT') ||
+        code.endsWith('_IN_USE')
+      ) {
         status = HttpStatus.CONFLICT;
-      } else if (code.startsWith('INVALID_') || code.endsWith('_BAD_REQUEST')) {
+      } else if (
+        code.startsWith('INVALID_') ||
+        code.endsWith('_BAD_REQUEST') ||
+        code.startsWith('INACTIVE_') ||
+        code.endsWith('_INACTIVE') ||
+        code.startsWith('EXPIRED_')
+      ) {
         status = HttpStatus.BAD_REQUEST;
       } else if (code.endsWith('_FORBIDDEN')) {
         status = HttpStatus.FORBIDDEN;

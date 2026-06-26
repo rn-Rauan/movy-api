@@ -1730,7 +1730,7 @@ Os outros endpoints do módulo (POST, PATCH `/status`, PUT `/driver`, PUT `/vehi
 
 Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP status` do `AllExceptionsFilter` (não exigiu mudanças no filtro). Os testes existentes asseguravam `instanceof <ErrorClass>` — nenhum testou a string literal —, portanto **passam sem alteração**.
 
-**Tabela de mapeamento documentada** em `docs/API_FRONTEND.md` (seção *Booking Cancellation Error Codes*) com sugestões de copy para a UI.
+**Tabela de mapeamento documentada** em `docs/api/API.md` (seção *Booking Cancellation Error Codes*) com sugestões de copy para a UI.
 
 ---
 
@@ -1742,7 +1742,7 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 
 ### Trip Scheduling — Fase 1: Hora-do-dia no `TripTemplate`
 
-**Contexto.** A geração de instâncias de viagem recorrentes (Fase 4 do guia `GUIA_TRIP_SCHEDULING.md`) precisa de uma hora-do-dia fixa por template — caso contrário cada instância exigiria o admin informar `departureTime` completo. Esta fase desacopla "*horário do roteiro*" de "*data de execução*": o template carrega `HH:mm` UTC, a instância carrega só a data.
+**Contexto.** A geração de instâncias de viagem recorrentes (Fase 4 do scheduling recorrente) precisa de uma hora-do-dia fixa por template — caso contrário cada instância exigiria o admin informar `departureTime` completo. Esta fase desacopla "*horário do roteiro*" de "*data de execução*": o template carrega `HH:mm` UTC, a instância carrega só a data.
 
 **Mudanças aplicadas:**
 
@@ -1766,7 +1766,7 @@ Sufixo `_BAD_REQUEST` mantido para preservar o mapeamento `code suffix → HTTP 
 
 **Como o cron de geração (Fase 4) consumirá:** a hora-do-dia fica imutável no template; o cron itera `0..daysAhead` dias, e para cada data válida (`dayOfWeek` está em `template.frequency`) chama `combineDateAndTime(date, template.departureTimeOfDay)` — exatamente a mesma lógica que o create-instance já usa, garantindo paridade entre criação manual e geração automática.
 
-**Trade-off documentado:** o tempo armazenado é **UTC**. Conversão para horário local é responsabilidade do frontend. Ver `docs/GUIA_TRIP_SCHEDULING.md` § Troubleshooting → "Time zone confuso".
+**Trade-off documentado:** o tempo armazenado é **UTC**. Conversão para horário local é responsabilidade do frontend. O `dayOfWeek` que o cron usa é calculado em UTC (`getUTCDay`), o que pode divergir do dia local em fusos como BRT.
 
 **Validação:**
 - `npx tsc --noEmit`: ✅ 0 erros.

@@ -209,11 +209,11 @@ A adoção de NestJS foi fundamentada na necessidade de uma arquitetura estrutur
 \toprule
 \textbf{Tecnologia} & \textbf{Versão} & \textbf{Descrição} \\
 \midrule
-Node.js & v18+ & Ambiente de execução JavaScript/TypeScript \\
-TypeScript & 5.3+ & Linguagem tipada para desenvolvimento seguro \\
+Node.js & v22 LTS & Ambiente de execução JavaScript/TypeScript \\
+TypeScript & 5.7 & Linguagem tipada para desenvolvimento seguro \\
 NestJS & v11.0+ & Framework backend modular com DI nativo\\
 Prisma ORM & v7.5+ & ORM com tipagem forte e migrations automáticas \\
-PostgreSQL & 15+ & SGBD relacional para persistência de dados \\
+PostgreSQL & 17 & SGBD relacional para persistência de dados \\
 JWT (NestJS/Passport) & 11.0+ & Implementação de autenticação com tokens \\
 Bcrypt & 6.0+ & Hash seguro de senhas com salt rounds \\
 Docker & Latest & Conteinerização e orquestração de ambientes \\
@@ -303,7 +303,7 @@ Os requisitos do sistema foram definidos a partir da observação do funcionamen
 \item RF23 – Permitir o cadastro de pontos de embarque pela organização (possível redução de escopo atual).
 \item RF24 – Permitir que o usuário selecione um ponto de embarque no momento da inscrição (possível simplificação no escopo atual).
 \item RF25 – Permitir que o motorista visualize os pontos de embarque associados às inscrições da viagem (possível redução de escopo atual)
-\item RF26 - Registro de Logs de auditoria (entidade modelada; persistência fora do escopo desta versão).
+\item RF26 - Registro de Logs de auditoria.
 
 \end{itemize}
 
@@ -483,7 +483,7 @@ src/
 
 O Diagrama Entidade-Relacionamento (DER) foi elaborado com o objetivo de representar a estrutura lógica do banco de dados do sistema, evidenciando as principais entidades, seus atributos e os relacionamentos existentes entre elas. O modelo foi construído considerando as regras de negócio do transporte universitário intermunicipal, garantindo coerência, integridade dos dados e suporte às funcionalidades propostas pela API. Como a persistência é responsabilidade exclusiva do \textit{backend}, este modelo não se aplica ao cliente, que conhece apenas as representações expostas pela API.
 
-A modelagem reflete um design de multi-tenancy, onde cada organização possui isolamento lógico de dados através do campo \textit{organizationId}. As principais entidades implementadas incluem: Usuário, Organização, Roles, Memberships, Motoristas, Veículos, Templates de Viagem, Instâncias de Viagem, Inscrições, Pagamentos, Planos e Assinaturas. O esquema contempla ainda a entidade \textit{AuditLog} (trilha de auditoria), \textbf{modelada mas não persistida nesta versão} --- decisão consciente registrada entre as limitações (Seção~\ref{subsec:limitacoes}).
+A modelagem reflete um design de multi-tenancy, onde cada organização possui isolamento lógico de dados através do campo \textit{organizationId}. As principais entidades implementadas incluem: Usuário, Organização, Roles, Memberships, Motoristas, Veículos, Templates de Viagem, Instâncias de Viagem, Inscrições, Pagamentos, Planos e Assinaturas, além de registros de Auditoria.
 
 \begin{figure}[H]
 \centering
@@ -666,8 +666,8 @@ Configuração por organização (1:0..1) que controla os \textit{jobs} de gera�
     \item \textbf{createdAt, updatedAt} -- Timestamps
 \end{itemize}
 
-\paragraph{\textbf{AuditLog (Log de Auditoria --- modelado, não persistido)}}\mbox{}\\
-Entidade \textbf{modelada no esquema, mas ainda não persistida} nesta versão: nenhum caso de uso escreve registros de auditoria. Mantém-se no modelo para documentar a intenção de design (o sistema é \textit{audit-ready}) e servir de ponto de extensão futuro. A implementação da persistência é tratada como dívida técnica declarada (ver Limitações). Quando ativada, registrará as ações críticas realizadas no sistema para conformidade e rastreabilidade, com os campos:
+\paragraph{\textbf{AuditLog (Log de Auditoria)}}\mbox{}\\
+Entidade \textbf{modelada} para registrar ações críticas do sistema (conformidade e rastreabilidade). No estágio atual está modelada no schema, mas \textbf{ainda não é persistida} por nenhum caso de uso --- ponto de extensão \textit{audit-ready} (ver Limitações, Seção~\ref{sec:consideracoes}).
 \begin{itemize}
     \item \textbf{id} -- Identificador único (UUID)
     \item \textbf{organizationId} -- FK: Organização
@@ -790,7 +790,7 @@ Plan-Usage & 1 & 1 \\
 
 \textbf{Endpoints}: 9 rotas de autenticação --- \texttt{POST /auth/\{login, register, refresh, logout, register-organization, setup-organization, forgot-password, reset-password, verify-email\}} --- e o CRUD de usuários (\texttt{POST/GET/PUT/DELETE /users}, com \texttt{GET} paginado e \textit{soft-delete} no \texttt{DELETE}).
 
-\textbf{Segurança}: Bcrypt (salt rounds: 10) para hash de senhas; JWT com secrets distintos para access (1h) e refresh tokens (7d). O payload do JWT é enriquecido no login com todos os dados necessários, eliminando consultas ao banco em cada requisição. O módulo implementa ainda \textbf{recuperação de senha} e \textbf{verificação de e-mail} por tokens de uso único armazenados apenas como hash SHA-256 (TTL de 1h e 24h), com resposta constante na solicitação (anti-enumeration) e revogação de \textit{refresh tokens} via \texttt{jti} no \textit{logout} e na redefinição de senha.
+\textbf{Segurança}: Bcrypt (salt rounds: 10) para hash de senhas; JWT com secrets distintos para access (1h) e refresh tokens (7d). O payload do JWT é enriquecido no login com todos os dados necessários, eliminando consultas ao banco em cada requisição. O módulo implementa ainda a lógica de \textbf{recuperação de senha} e \textbf{verificação de e-mail} por tokens de uso único armazenados apenas como hash SHA-256 (TTL de 1h e 24h), com resposta constante na solicitação (anti-enumeration) e revogação de \textit{refresh tokens} via \texttt{jti} no \textit{logout} e na redefinição de senha. A \textbf{entrega efetiva do e-mail} ainda não está integrada a um provedor, de modo que esses dois fluxos permanecem como dívida técnica (Seção~\ref{sec:consideracoes}).
 
 \subsubsection{Organization Module (CRUD)}
 
@@ -869,7 +869,7 @@ Plan-Usage & 1 & 1 \\
 \item CreateVehicleUseCase: Criação com validação de placa única (\texttt{PlateAlreadyInUseError} HTTP 409).
 \item FindVehicleByIdUseCase: Busca com proteção IDOR via \texttt{organizationId} do JWT.
 \item FindAllVehiclesByOrganizationUseCase: Listagem paginada por organização.
-\item UpdateVehicleUseCase: Atualização com proteção IDOR e verificação de status ativo (\texttt{VehicleInactiveError} HTTP 410).
+\item UpdateVehicleUseCase: Atualização com proteção IDOR e verificação de status ativo (\texttt{VehicleInactiveError} HTTP 400).
 \item RemoveVehicleUseCase: Soft-delete com proteção IDOR.
 \end{enumerate}
 
@@ -922,13 +922,13 @@ CANCELED & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
-{\footnotesize * Exige driver e vehicle atribuídos. Transições inválidas lançam \texttt{InvalidTripStatusTransitionError} (HTTP 422).}
+{\footnotesize * Exige driver e vehicle atribuídos. Transições inválidas lançam \texttt{InvalidTripStatusTransitionError} (HTTP 400).}
 
 \subsubsection{Bookings Module}
 
 \textbf{Descrição}: Gerenciamento completo de inscrições de passageiros em viagens, com controle de capacidade, preço registrado server-side e proteção contra race conditions (Status: Implementado).
 
-\textbf{Use Cases Implementados (9 total)}:
+\textbf{Use Cases Implementados (10 total)}:
 \begin{enumerate}
 \item CreateBookingUseCase: Inscreve passageiro com validação de status da viagem, controle de capacidade e preço calculado server-side a partir do template. Todo o fluxo é executado atomicamente via \texttt{UnitOfWork} com isolamento \texttt{Serializable}, prevenindo race conditions clássicas de sistemas de reservas.
 \item CancelBookingUseCase: Cancela inscrição com bloqueio para viagens \texttt{IN\_PROGRESS}/\texttt{FINISHED} e prazo de 30 minutos antes da partida.
@@ -989,7 +989,7 @@ CANCELED & -- & -- & -- & -- & -- \\
 \item \textbf{Auto-cancelamento} (\texttt{*/15 * * * *} UTC): transiciona para \texttt{CANCELED} as instâncias cujo prazo (\texttt{autoCancelAt}) venceu sem atingir a receita mínima, propagando a falha aos pagamentos \texttt{PENDING} associados.
 \end{enumerate}
 
-\textbf{Use Cases (3 total)}: \texttt{FindTripSchedulingConfigUseCase}, \texttt{UpdateTripSchedulingConfigUseCase} e a geração manual \texttt{GenerateTripInstancesForTemplateUseCase} (mesmo núcleo do \textit{cron}, exposta via \texttt{POST /trip-templates/:id/generate-instances}).
+\textbf{Use Cases (2 no módulo)}: \texttt{FindTripSchedulingConfigUseCase} e \texttt{UpdateTripSchedulingConfigUseCase}. A geração manual (\texttt{GenerateTripInstancesForTemplateUseCase}, mesmo núcleo do \textit{cron}, exposta via \texttt{POST /trip-templates/:id/generate-instances}) reside no módulo Trip.
 
 \textbf{Endpoints}: 2 rotas sob \texttt{/organizations/:organizationId/scheduling-config} (\texttt{GET} e \texttt{PATCH}, ADMIN). A cadência dos \textit{jobs} é fixa; a configuração por organização controla apenas a janela (\texttt{daysAhead}) e a ativação (\texttt{enabled}). O \texttt{ScheduleModule} é registrado condicionalmente (\texttt{DISABLE\_CRON}).
 
@@ -1150,11 +1150,11 @@ O sistema implementa hierarquia de exceções mapeadas pelo \texttt{AllException
 \textbf{Sufixo do código de erro} & \textbf{HTTP} \\
 \midrule
 \texttt{\_NOT\_FOUND} & 404 Not Found \\
-\texttt{\_ALREADY\_EXISTS} & 409 Conflict \\
-\texttt{INVALID\_} / \texttt{\_BAD\_REQUEST} & 400 Bad Request \\
+\texttt{\_ALREADY\_EXISTS} / \texttt{\_CONFLICT} / \texttt{\_IN\_USE} & 409 Conflict \\
+\texttt{INVALID\_} / \texttt{\_BAD\_REQUEST} / \texttt{INACTIVE\_} / \texttt{EXPIRED\_} & 400 Bad Request \\
 \texttt{\_FORBIDDEN} & 403 Forbidden \\
 \texttt{\_UNAUTHORIZED} & 401 Unauthorized \\
-\texttt{\_GONE} & 410 Gone \\
+(demais, ex.\ \texttt{\_CREATION\_FAILED}) & 500 Internal Server Error \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1276,15 +1276,15 @@ Rate Limiting & Configurado & 60 req/min \\
 \end{table}
 
 \subsection{Limitações Identificadas}
-\label{subsec:limitacoes}
 
 O sistema cobre o escopo de módulos planejado, mas mantém limitações conscientes, documentadas aqui como decisões datadas e revisáveis, e não como omissões.
 
 \begin{enumerate}
 \item \textbf{Integração com Gateway de Pagamento}: O módulo de pagamentos opera com simulação de ciclo de vida (PENDING → COMPLETED/FAILED). A integração com um gateway real (ex.: Stripe) é a próxima evolução natural do módulo.
-\item \textbf{Trilha de Auditoria}: A entidade \textit{AuditLog} (RF26) está modelada no esquema, mas sua persistência ainda não foi implementada --- nenhum caso de uso grava registros de auditoria. O modelo permanece como ponto de extensão (\textit{audit-ready}); a implementação exige um interceptor transversal sobre as mutações e uma política de retenção.
 \item \textbf{Notificações}: O sistema de notificações por e-mail/SMS ainda não foi implementado, afetando os requisitos RF17 e RF18.
 \item \textbf{Relatórios}: As funcionalidades de geração de relatórios e históricos (RF15, RF16) ainda não foram desenvolvidas no \textit{backend}; o cliente já dispõe de relatório financeiro agregado no painel administrativo.
+\item \textbf{Recuperação de Senha e Verificação de E-mail}: a lógica de \textit{tokens} de uso único (hash SHA-256, TTL, resposta \textit{anti-enumeration}) está implementada no \textit{backend}, mas, sem integração com um provedor de e-mail, o token não é entregue ao usuário --- esses fluxos não operam ponta a ponta e dependem da implementação de notificações (RF17/RF18).
+\item \textbf{Auditoria}: a entidade \texttt{AuditLog} está modelada no schema, mas nenhum caso de uso a persiste (RF26 parcialmente atendido) --- mantida como ponto de extensão \textit{audit-ready}.
 \item \textbf{Cobertura de Testes}: Embora 458 testes cubram os use cases críticos e os \textit{guards} principais, alguns use cases secundários ainda não possuem \textit{specs} dedicadas, e o cliente carece de testes automatizados (verificação atualmente manual).
 \item \textbf{Caching}: Não há \textit{caching} (ex.: Redis) para otimização de consultas frequentes.
 \item \textbf{Frontend --- decisões conscientes}: suporte, no estágio atual, a uma única organização por administrador (a primeira retornada por \texttt{GET /organizations/me}); coexistência de dois estilos de obtenção de dados pela não adoção imediata de uma biblioteca de estado de servidor; e armazenamento de credenciais em \texttt{localStorage}, aceito em troca de simplicidade e marcado para reavaliação antes da operação comercial.

@@ -871,6 +871,6 @@ prisma/
 
 **Fim da Arquitetura Visual** (atualizado 17 Abr 2026)
 
-Para documentação técnica: veja `DOCUMENTACAO_TECNICA.md`
-Para timeline: veja `ROADMAP.md`
+Para documentação técnica: veja `../DOCUMENTACAO_TECNICA.md`
+Para timeline: veja `../processo/ROADMAP.md`
 

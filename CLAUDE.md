@@ -66,7 +66,7 @@ Feature modules grouped by concern (each follows the structure above):
 
 - **Identity & access:** `auth` (login/refresh/register/verify/reset), `user`, `membership` (user ↔ org join, soft-deleted via `removedAt`), `organization`
 - **Fleet:** `driver`, `vehicle`
-- **Trips:** `trip` (templates → instances, plus the two cron jobs), `scheduling` (per-org `TripSchedulingConfig` that drives instance generation — see `docs/GUIA_TRIP_SCHEDULING.md`), `bookings` (passenger reservations against trip instances)
+- **Trips:** `trip` (templates → instances, plus the two cron jobs), `scheduling` (per-org `TripSchedulingConfig` that drives instance generation), `bookings` (passenger reservations against trip instances)
 - **Billing:** `plans`, `subscriptions` (owns `PlanLimitService` + lazy expiration), `payment` (simulated confirm/fail), `plan-usage`
 
 ### Shared Module (`src/shared/`)
@@ -105,10 +105,11 @@ Guard combos:
 | Code suffix | HTTP |
 |---|---|
 | `_NOT_FOUND` | 404 |
-| `_ALREADY_EXISTS` | 409 |
-| `INVALID_` / `_BAD_REQUEST` | 400 |
+| `_ALREADY_EXISTS` / `_CONFLICT` / `_IN_USE` | 409 |
+| `INVALID_` / `_BAD_REQUEST` / `INACTIVE_` / `_INACTIVE` / `EXPIRED_` | 400 |
 | `_FORBIDDEN` | 403 |
 | `_UNAUTHORIZED` | 401 |
+| (otherwise, e.g. `_CREATION_FAILED`) | 500 |
 
 New domain errors must extend `DomainError` and use a code that follows this convention. Shared validation errors live in `src/shared/domain/errors/`; module-specific errors live in `src/modules/<module>/domain/errors/`.
 
@@ -192,12 +193,11 @@ Payments are confirmed/failed via `PATCH /organizations/:orgId/payments/:id/conf
 The `docs/` folder contains deeper references that aren't duplicated here. Notable ones:
 
 - `docs/DOCUMENTACAO_TECNICA.md` — module-by-module architecture and decisions
-- `docs/ARCHITECTURAL-DECISIONS.md`, `docs/ARCHITECTURE.md` — design rationale
-- `docs/DATA-MODEL.md` — schema and relationships
-- `docs/SECURITY.md` — guard composition, IDOR, multi-tenant isolation
-- `docs/ERROR-CATALOG.md` — domain error code → HTTP status reference
-- `docs/GUIA_TRIP_SCHEDULING.md` — trip template → instance generation flow
-- `docs/ROADMAP.md` — phase tracking (historical)
+- `docs/arquitetura/ARCHITECTURAL-DECISIONS.md`, `docs/arquitetura/ARCHITECTURE.md` — design rationale
+- `docs/modelagem/DATA-MODEL.md` — schema and relationships
+- `docs/arquitetura/SECURITY.md` — guard composition, IDOR, multi-tenant isolation
+- `docs/api/ERROR-CATALOG.md` — domain error code → HTTP status reference
+- `docs/processo/ROADMAP.md` — phase tracking (historical)
 
 Consult these before large changes to the corresponding subsystem rather than reverse-engineering from code.
 

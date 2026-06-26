@@ -2,7 +2,7 @@
 
 > ⚠️ **Documento histórico (evidência de processo).** Os registros datados abaixo refletem o
 > planejamento de cada momento. Métricas e estado atuais são canônicos em
-> [`docs/README.md`](./README.md) e no `DOC-TCC.tex` (**13 módulos · 458 testes / 57 suites**).
+> [`docs/README.md`](../README.md) e no `DOC-TCC.tex` (**13 módulos · 458 testes / 57 suites**).
 
 > 4 fases claras até MVP.
 
@@ -41,7 +41,7 @@ Progresso em 27 Abr 2026:
 - Integração end-to-end (Frontend ↔ API)
 - Testes de integração (opcional)
 - **Multi-org switching** (`POST /auth/switch-organization`) — ver ADR-018
-- **Trip Scheduling** ✅ — ver `docs/GUIA_TRIP_SCHEDULING.md`
+- **Trip Scheduling** ✅
   - ✅ **Fase 1** — Hora-do-dia no `TripTemplate` (16 Mai 2026)
   - ✅ **Fase 2** — Módulo `TripSchedulingConfig` per-org (16 Mai 2026)
   - ✅ **Fase 3** — Cron de auto-cancel (`*/15 * * * *`) (16 Mai 2026)
@@ -395,5 +395,5 @@ Testes E2E, Swagger, Docker, Deploy, Docs
 
 ---
 
-**Métricas e estado atuais:** ver [`README.md`](./README.md) e o `DOC-TCC.tex`.
+**Métricas e estado atuais:** ver [`README.md`](../README.md) e o `DOC-TCC.tex`.
 
