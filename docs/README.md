@@ -30,9 +30,9 @@ O que existe aqui é apenas apoio:
 | `DOC-TCC.tex` | **Snapshot de referência** que reflete o estado do TCC. **Pode estar defasado** em relação à versão online. Não é o entregável. |
 | `referencias.bib` | Bibliografia do snapshot (`\bibliography{referencias}`). O `.bib` real acompanha o `.tex` online. |
 
-> ⚠️ As métricas verificadas contra o código em execução (93 endpoints, 458 testes em 57 suites,
-> 13 módulos, 17 entidades) vivem em `DOCUMENTACAO_TECNICA.md`. Se a banca pedir para rodar
-> `npx jest`, o número confere.
+> ⚠️ As métricas verificadas contra o código em execução (93 endpoints, 93 casos de uso,
+> 458 testes em 57 suites, 13 módulos, 14 entidades de domínio — 17 tabelas no schema) vivem em
+> `DOCUMENTACAO_TECNICA.md`. Se a banca pedir para rodar `npx jest`, o número confere.
 
 ## 🚀 Apoio / como executar
 
@@ -93,5 +93,6 @@ Registradas para que sejam lidas como **decisões datadas, não omissões**:
 - **Auditoria** — entidade `AuditLog` **modelada no schema, mas não persistida**
   (nenhum caso de uso grava). Mantida como ponto de extensão (*audit-ready*).
 - **Notificações** e **relatórios no backend** — não implementados (RF15–RF18).
-- **Mapeamento HTTP** — 9 códigos de erro (`_CONFLICT`/`INACTIVE_`/`EXPIRED_`) caem para HTTP 500
-  em vez do 4xx pretendido; documentado em [`api/ERROR-CATALOG.md`](./api/ERROR-CATALOG.md).
+- **Recuperação de senha e verificação de e-mail** — a lógica de tokens (hash SHA-256, TTL,
+  anti-enumeration) está implementada no backend, mas **não há entrega de e-mail** (provedor não
+  integrado), então os fluxos não operam ponta a ponta. Declarados como dívida técnica.

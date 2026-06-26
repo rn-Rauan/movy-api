@@ -105,10 +105,11 @@ Guard combos:
 | Code suffix | HTTP |
 |---|---|
 | `_NOT_FOUND` | 404 |
-| `_ALREADY_EXISTS` | 409 |
-| `INVALID_` / `_BAD_REQUEST` | 400 |
+| `_ALREADY_EXISTS` / `_CONFLICT` / `_IN_USE` | 409 |
+| `INVALID_` / `_BAD_REQUEST` / `INACTIVE_` / `_INACTIVE` / `EXPIRED_` | 400 |
 | `_FORBIDDEN` | 403 |
 | `_UNAUTHORIZED` | 401 |
+| (otherwise, e.g. `_CREATION_FAILED`) | 500 |
 
 New domain errors must extend `DomainError` and use a code that follows this convention. Shared validation errors live in `src/shared/domain/errors/`; module-specific errors live in `src/modules/<module>/domain/errors/`.
 
