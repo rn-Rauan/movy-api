@@ -1,0 +1,31 @@
+% Requisitos Não Funcionais do sistema Movy.
+% Importado pelo DOC-TCC.tex via \input{tabelas/tab-requisitos-nao-funcionais}.
+% Requer os pacotes: longtable, array, booktabs.
+{\footnotesize
+\begin{longtable}{@{}l p{6.1cm} p{2.6cm} p{3.5cm}@{}}
+\caption{Requisitos não funcionais do sistema Movy}\label{tab:rnf}\\
+\toprule
+\textbf{Código} & \textbf{Descrição} & \textbf{Status} & \textbf{Observação} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\footnotesize\itshape Tabela~\ref{tab:rnf} -- continuação}\\
+\toprule
+\textbf{Código} & \textbf{Descrição} & \textbf{Status} & \textbf{Observação} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+RNF01 & Usabilidade da API: padrão RESTful, métodos e códigos de \textit{status} HTTP adequados. & Atendido & Especificação OpenAPI (Swagger) em \texttt{/api}. \\
+RNF02 & Performance: latência inferior a 2\,s em consultas \cite{pressman2016}. & Meta de projeto & Não medida formalmente neste trabalho. \\
+RNF03 & Disponibilidade mínima de 95\%. & Meta de projeto & Não medida formalmente neste trabalho. \\
+RNF04 & Segurança e privacidade: JWT e RBAC, em conformidade com a LGPD. & Atendido & \textit{Guards} de autorização + Bcrypt. \\
+RNF05 & Escalabilidade e \textit{multi-tenancy}: isolamento lógico por organização. & Atendido & Isolamento via \texttt{organizationId}. \\
+RNF06 & Manutenibilidade: NestJS, Clean Architecture e SOLID. & Atendido & Módulos por contexto delimitado. \\
+RNF07 & Interoperabilidade: comunicação exclusiva via JSON. & Atendido & Contratos REST/JSON. \\
+RNF08 & Integridade de dados: transações ACID, sem duplicidade de inscrições. & Atendido & Transações via \texttt{UnitOfWork}. \\
+RNF09 & Persistência e confiabilidade em SGBD relacional (PostgreSQL). & Atendido & \textit{Migrations} versionadas. \\
+RNF10 & Usabilidade do cliente: \textit{mobile-first} e interface em português. & Atendido & Aplicação cliente. \\
+RNF11 & Resiliência de sessão: renovação automática e deduplicada. & Atendido & Renovação transparente no cliente. \\
+RNF12 & Consistência temporal: horários em UTC exibidos em horário de Brasília. & Atendido & Conversão na camada cliente. \\
+\end{longtable}
+}

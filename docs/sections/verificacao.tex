@@ -1,0 +1,44 @@
+\subsection{Verificação}
+
+\subsubsection{Testes Unitários do Backend}
+
+\textbf{Status Atual}: 458 testes em 57 suites, cobrindo os use cases críticos de todos os módulos, guards de autorização e fluxos de negócio complexos.
+
+\textbf{Padrão de Testes Adotado}:
+\begin{itemize}
+\item \textbf{AAA (Arrange-Act-Assert)}: Estrutura consistente em todas as suites.
+\item \textbf{makeMocks()}: Cria todos os mocks via \texttt{jest.fn()} com tipagem \texttt{jest.Mocked<T>}.
+\item \textbf{setupHappyPath()}: Configura mocks para o cenário de sucesso padrão.
+\item \textbf{Injeção manual}: Dependências injetadas diretamente, sem mocks de framework NestJS.
+\item \textbf{Factories}: Funções \texttt{make*()} por módulo com suporte a overrides parciais.
+\end{itemize}
+
+A Tabela~\ref{tab:testes} resume a cobertura agregada por módulo; o detalhamento por use case está versionado no repositório (\texttt{test/modules/}).
+
+\input{sections/cobertura-testes-table}
+
+Os testes apoiam-se em \textit{factories} por módulo (funções \texttt{make*()} com suporte a \textit{overrides} parciais) que constroem entidades de domínio e DTOs de entrada --- por exemplo \texttt{makeUser}, \texttt{makeOrganization}, \texttt{makeDriver}, \texttt{makeTripTemplate}, \texttt{makeTripInstance}, \texttt{makeBooking}, \texttt{makeSubscription} ---, eliminando duplicação de \textit{setup} entre as suites.
+
+\subsubsection{Verificação do Frontend}
+
+Em coerência com o estágio do produto e o tamanho reduzido da equipe, a estratégia de verificação do frontend é, no momento, \textbf{predominantemente manual}, estruturada em um roteiro de dezenas de cenários que cobrem os caminhos principais, os fluxos que cruzam contextos de acesso e os casos de borda. A integração contínua executa a verificação de estilo, a análise estática e a construção, deixando a verificação funcional a cargo do roteiro manual. A adoção de testes automatizados (provavelmente Vitest com \textit{Testing Library} para \textit{hooks} e serviços, e uma ferramenta de ponta a ponta para os fluxos) está condicionada à aproximação da operação comercial, tendo o fluxo de reserva como primeiro candidato à cobertura. A Tabela~\ref{tab:testes_manuais} ilustra o formato dos casos de teste manuais.
+
+\begin{table}[H]
+\centering
+\caption{Exemplos de casos de teste manuais do frontend}
+\label{tab:testes_manuais}
+\begin{tabular}{lll}
+\toprule
+\textbf{Caso} & \textbf{Resultado esperado} & \textbf{Status} \\
+\midrule
+Login com credenciais válidas & Sessão criada e redirecionamento por papel & OK \\
+Login com credenciais inválidas & Mensagem de erro, sem sessão & OK \\
+Expiração do \textit{token} durante navegação & Renovação transparente, ação concluída & OK \\
+Mesmo ponto de embarque e desembarque & Bloqueio com mensagem de validação & OK \\
+Cancelamento fora da janela permitida & Bloqueio com mensagem do \textit{errorCode} & OK \\
+Rota administrativa sem papel de admin & Redirecionamento para a raiz & OK \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ------------------------------

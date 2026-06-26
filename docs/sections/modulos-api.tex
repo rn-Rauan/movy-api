@@ -1,0 +1,273 @@
+\subsection{Módulos da API (13 Módulos)}
+
+A API expõe 93 endpoints REST distribuídos pelos módulos de domínio, totalizando 93 casos de uso. A Tabela~\ref{tab:endpoints} consolida a contagem por módulo; nas subseções seguintes, cada módulo é descrito com seus casos de uso e endpoints representativos (a especificação completa das rotas está disponível via Swagger em \texttt{/api}).
+
+O \textit{backend} também contou com assistência de IA generativa, porém com um papel mais restrito e de natureza distinta da observada na aplicação cliente. Empregou-se o \textbf{GitHub Copilot} como ferramenta de apoio --- para \textbf{refinar ideias, automatizar trechos repetitivos de código} (como a estrutura recorrente de casos de uso, \textit{value objects} e \textit{mappers}) e \textbf{auxiliar na tomada de decisões} de implementação. A modelagem de domínio, a definição da arquitetura, as regras de negócio e os padrões adotados permaneceram, contudo, sob autoria e revisão do autor. Diferentemente do cliente --- gerado inicialmente por IA e posteriormente refatorado ---, o \textit{backend} foi concebido e escrito de forma incremental pelo autor, cabendo à IA um papel de assistência pontual e de aumento de produtividade.
+
+\input{sections/modulos-api-table}
+
+A descrição a seguir prioriza os módulos críticos do sistema --- Auth, Trip, Bookings, Payment e Membership/RBAC --- e as decisões de projeto dos demais; a estrutura padrão comum a todos os módulos (DTOs, mapeadores e repositório Prisma) não é repetida. Antes dos módulos funcionais, apresentam-se dois \textbf{componentes transversais} que sustentam os demais: o sistema de papéis (RBAC) e o módulo compartilhado (\textit{Shared}). Os temas transversais de autenticação, \textit{multi-tenancy}, transações e tratamento de erros são aprofundados na Seção~\ref{sec:autenticacao} e seguintes.
+
+\subsubsection{Componente Transversal: Papéis de Acesso (RBAC)}
+
+\textbf{Descrição}: Sistema de papéis (roles) que define permissões de acesso (Status: Implementado).
+
+\textbf{Funcionalidades}:
+\begin{itemize}
+\item Entidade Role com enum de dois papéis: ADMIN e DRIVER.
+\item Repositório de Roles com persistência e recuperação.
+\item Seed automático que popula roles no banco no primeiro boot.
+\item Integração com Docker Compose para inicialização automática.
+\end{itemize}
+
+\textbf{Endpoints}: N/A (Roles são pré-definidas no sistema)
+
+\subsubsection{Componente Transversal: Módulo Compartilhado (Shared)}
+
+\textbf{Descrição}: Módulo centralizado que expõe componentes reutilizáveis em todos os contextos delimitados (Status: Implementado).
+
+\textbf{Componentes Exportados}:
+\begin{itemize}
+\item PrismaModule: Conexão e injeção com o banco de dados.
+\item JwtGuard: Guard global para autenticação JWT.
+\item RolesGuard, TenantFilterGuard, DevGuard: Guards de autorização.
+\item LoggingInterceptor: Interceptador de logging centrado.
+\item AllExceptionsFilter: Filter global de tratamento de exceções.
+\item Value Objects: Email, Telephone, Money (com validações).
+\item UnitOfWork + DbContext: Transações atômicas via AsyncLocalStorage.
+\item Domain Errors: Classes base para erros de negócio.
+\end{itemize}
+
+A seguir, descrevem-se os \textbf{treze módulos funcionais} da API.
+
+\subsubsection{User Module (CRUD + Autenticação)}
+
+\textbf{Descrição}: Gerenciamento completo de usuários e autenticação via JWT (Status: Implementado).
+
+\textbf{Use Cases Implementados}:
+\begin{enumerate}
+\item CreateUserUseCase: Cadastro com validação de email único e hash de senha Bcrypt.
+\item FindAllUsersUseCase: Listagem paginada de usuários ativos.
+\item FindUserByIdUseCase: Busca individual com validação 404.
+\item UpdateUserUseCase: Atualização com re-validação de dados.
+\item DeleteUserUseCase: Soft-delete alterando status para INACTIVE.
+\item LoginUseCase: Autenticação com geração de JWT + refresh token.
+\item RegisterUseCase: Auto-registro de novo usuário.
+\item RefreshTokenUseCase: Renovação de token expirado.
+\item RegisterOrganizationWithAdminUseCase: Fluxo unificado de onboarding — cria usuário, organização e membership ADMIN atomicamente via \texttt{UnitOfWork}, com rollback automático pelo Prisma em caso de falha.
+\item SetupOrganizationForExistingUserUseCase: Cria organização para usuário já autenticado, gera membership ADMIN e re-emite JWT com o novo \texttt{organizationId} no payload.
+\end{enumerate}
+
+\textbf{Endpoints}: 9 rotas de autenticação --- \texttt{POST /auth/\{login, register, refresh, logout, register-organization, setup-organization, forgot-password, reset-password, verify-email\}} --- e o CRUD de usuários (\texttt{POST/GET/PUT/DELETE /users}, com \texttt{GET} paginado e \textit{soft-delete} no \texttt{DELETE}).
+
+\textbf{Segurança}: Bcrypt (salt rounds: 10) para hash de senhas; JWT com secrets distintos para access (1h) e refresh tokens (7d). O payload do JWT é enriquecido no login com todos os dados necessários, eliminando consultas ao banco em cada requisição. O módulo implementa ainda a lógica de \textbf{recuperação de senha} e \textbf{verificação de e-mail} por tokens de uso único armazenados apenas como hash SHA-256 (TTL de 1h e 24h), com resposta constante na solicitação (anti-enumeration) e revogação de \textit{refresh tokens} via \texttt{jti} no \textit{logout} e na redefinição de senha. A \textbf{entrega efetiva do e-mail} ainda não está integrada a um provedor, de modo que esses dois fluxos permanecem como dívida técnica (Seção~\ref{sec:consideracoes}).
+
+\subsubsection{Organization Module (CRUD)}
+
+\textbf{Descrição}: Gerenciamento de organizações de transporte com multi-tenancy (Status: Implementado).
+
+\textbf{Use Cases Implementados}:
+\begin{enumerate}
+\item CreateOrganizationUseCase: Criação com slug auto-gerado e validação CNPJ.
+\item FindAllOrganizationsUseCase: Listagem paginada de todas (ativas e inativas).
+\item FindAllActiveOrganizationsUseCase: Apenas organizações com status ACTIVE.
+\item FindOrganizationByIdUseCase: Busca individual com erro 404 e \texttt{OrganizationForbiddenError} (HTTP 403).
+\item UpdateOrganizationUseCase: Atualização com re-validação.
+\item DisableOrganizationUseCase: Soft-delete com timestamp.
+\item FindOrganizationByUserUseCase: Retorna orgs associadas ao \texttt{userId} do token JWT.
+\end{enumerate}
+
+\textbf{Endpoints}: 9 rotas. Exemplos: \texttt{GET /organizations/me} (orgs do usuário autenticado), \texttt{GET /organizations/active} (apenas ativas, paginado), \texttt{PUT/DELETE /organizations/:id} (atualização e \textit{soft-delete}). Há ainda endpoints públicos sem autenticação --- \texttt{GET /public/organizations} (lista paginada) e \texttt{GET /public/organizations/:slug} --- para páginas institucionais.
+
+\textbf{Value Objects}: CNPJ (com dígitos verificadores), OrganizationName, Slug (URL-safe), Address.
+
+\subsubsection{Membership Module}
+
+\textbf{Descrição}: Associações entre usuários, roles e organizações. Base fundamental para RBAC (Status: Implementado).
+
+\textbf{Estrutura}: Tabela de junção \textit{OrganizationMembership} com chave composta (userId, roleId, organizationId).
+
+\textbf{Use Cases Implementados}:
+\begin{enumerate}
+\item CreateMembershipUseCase: O \texttt{organizationId} vem exclusivamente do JWT, eliminando o vetor de ataque cross-tenant. Valida pré-requisito de perfil Driver antes de criar membership com role DRIVER.
+\item FindMembershipByCompositeKeyUseCase: Busca específica.
+\item FindMembershipsByUserUseCase: Listagem paginada filtrada pela org do caller.
+\item FindMembershipsByOrganizationUseCase: Listagem paginada por organização.
+\item RemoveMembershipUseCase: Soft-delete via \texttt{removedAt} timestamp.
+\item RestoreMembershipUseCase: Reversão de soft-delete.
+\item FindRoleByUserIdAndOrganizationIdUseCase: Retorna o role do usuário em uma organização.
+\end{enumerate}
+
+\textbf{Endpoints}: 8 rotas operando sobre a chave composta. Exemplos: \texttt{POST /memberships} (org vem do JWT), \texttt{GET /memberships/me/role/:organizationId}, \texttt{DELETE} (\textit{soft-delete}) e \texttt{PATCH .../restore} sobre \texttt{/:userId/:roleId/:organizationId}.
+
+\textbf{Erros de Domínio}: \texttt{MembershipAlreadyExistsError} (HTTP 409), \texttt{MembershipNotFoundError} (HTTP 404), \texttt{DriverNotFoundForMembershipError} (HTTP 400).
+
+\subsubsection{Driver Module}
+
+\textbf{Descrição}: Gerenciamento de perfis de motoristas com Value Objects para CNH. Motoristas são entidades globais — o vínculo com organizações ocorre exclusivamente via \texttt{OrganizationMembership}, permitindo que um usuário seja motorista em múltiplas organizações (Status: Implementado).
+
+\textbf{Fluxo de Onboarding de Motorista}:
+\begin{enumerate}
+\item Usuário cria perfil via \texttt{POST /drivers} (self-service; \texttt{userId} do JWT).
+\item Admin verifica identidade via \texttt{GET /drivers/lookup?email=\&cnh=}.
+\item Admin vincula à organização via \texttt{POST /memberships} com \texttt{roleId=DRIVER}.
+\end{enumerate}
+
+\textbf{Use Cases Implementados (9 total)}:
+\begin{enumerate}
+\item CreateDriverUseCase: Criação self-service com check de duplicata (\texttt{DriverAlreadyExistsError} HTTP 409).
+\item UpdateDriverUseCase: Atualização (fluxo admin) com verificação de ownership.
+\item UpdateOwnDriverUseCase: Atualização parcial self-service (\texttt{cnhExpiresAt}/\texttt{cnhCategories}) via \texttt{PATCH /drivers/me}.
+\item FindDriverByIdUseCase: Busca com proteção IDOR via \texttt{belongsToOrganization}.
+\item FindDriverByUserIdUseCase: Busca por usuário.
+\item FindDriverNameByIdUseCase: Retorna o nome do motorista (visível a passageiros).
+\item FindAllDriversByOrganizationUseCase: Paginação com JOIN via membership.
+\item RemoveDriverUseCase: Soft delete com validação de ownership.
+\item LookupDriverUseCase: Verificação cruzada email + CNH para administrador.
+\end{enumerate}
+
+\textbf{Value Objects}: \textbf{Cnh} (9--12 caracteres alfanuméricos) e \textbf{CnhCategories} --- coleção de categorias (A--E) com deduplicação, ordenação e normalização \textit{case-insensitive}, permitindo que um motorista possua múltiplas categorias (ex.: A+B).
+
+\textbf{Endpoints}: 9 rotas. Exemplos: \texttt{POST /drivers} (perfil \textit{self-service}), \texttt{GET /drivers/me}, \texttt{PATCH /drivers/me} (atualização parcial de \texttt{cnhExpiresAt}/\texttt{cnhCategories}), \texttt{GET /drivers/lookup?email=\&cnh=} (ADMIN), \texttt{GET /drivers/organization/:orgId} (paginado) e \texttt{GET /drivers/:id/name} (visível a qualquer usuário autenticado).
+
+\subsubsection{Vehicle Module}
+
+\textbf{Descrição}: Gerenciamento de frota de veículos com Value Object para placa e proteção IDOR (Status: Implementado).
+
+\textbf{Use Cases Implementados (5 total)}:
+\begin{enumerate}
+\item CreateVehicleUseCase: Criação com validação de placa única (\texttt{PlateAlreadyInUseError} HTTP 409).
+\item FindVehicleByIdUseCase: Busca com proteção IDOR via \texttt{organizationId} do JWT.
+\item FindAllVehiclesByOrganizationUseCase: Listagem paginada por organização.
+\item UpdateVehicleUseCase: Atualização com proteção IDOR e verificação de status ativo (\texttt{VehicleInactiveError} HTTP 400).
+\item RemoveVehicleUseCase: Soft-delete com proteção IDOR.
+\end{enumerate}
+
+\textbf{Value Objects}: \textbf{Plate} — valida placa brasileira nos formatos \texttt{ABC1234} (padrão) e \texttt{ABC1D23} (Mercosul).
+
+\textbf{Endpoints}: 5 rotas. Exemplos: \texttt{POST/GET /vehicles/organization/:organizationId} (registro e listagem paginada) e \texttt{GET/PUT/DELETE /vehicles/:id} (consulta, atualização e \textit{soft-delete}, todas com proteção IDOR).
+
+\subsubsection{Trip Module}
+
+\textbf{Descrição}: Módulo de viagens com separação entre templates (configuração recorrente) e instâncias (execuções reais), máquina de estados e atribuição de motorista/veículo (Status: Implementado).
+
+\textbf{TripTemplate --- Use Cases (5 total)}:
+\begin{enumerate}
+\item CreateTripTemplateUseCase: Cria template com configuração de preços por tipo de trajeto.
+\item FindTripTemplateByIdUseCase: Busca com proteção IDOR.
+\item FindAllTripTemplatesByOrganizationUseCase: Listagem paginada por organização.
+\item UpdateTripTemplateUseCase: Atualização com validações de acesso e status.
+\item DeactivateTripTemplateUseCase: Soft-deactivation via \texttt{status = INACTIVE}.
+\end{enumerate}
+
+\textbf{TripInstance --- Use Cases (7 total)}:
+\begin{enumerate}
+\item CreateTripInstanceUseCase: Criação a partir de template com propagação de campos.
+\item FindTripInstanceByIdUseCase: Busca individual com proteção IDOR.
+\item FindAllTripInstancesByOrganizationUseCase: Listagem paginada por organização.
+\item FindTripInstancesByTemplateUseCase: Listagem paginada por template.
+\item TransitionTripInstanceStatusUseCase: Máquina de estados da viagem.
+\item AssignDriverToTripInstanceUseCase: Atribuição/desatribuição de motorista com validação de existência.
+\item AssignVehicleToTripInstanceUseCase: Atribuição/desatribuição de veículo com validação de existência.
+\end{enumerate}
+
+\textbf{Endpoints}: 17 rotas. \textit{TripTemplate}: CRUD em \texttt{/trip-templates} mais \texttt{POST /trip-templates/:id/generate-instances} (geração manual). \textit{TripInstance}: \texttt{POST /trip-instances}, listagens por org/template, \texttt{GET /trip-instances/driver/me} (viagens do motorista), \texttt{PATCH /trip-instances/:id/status} (máquina de estados) e \texttt{:id/driver}, \texttt{:id/vehicle} (atribuição). Há ainda rotas públicas \texttt{GET /public/trip-instances} e \texttt{.../org/:slug}.
+
+\textbf{Máquina de Estados}:
+
+\begin{table}[H]
+\centering
+\caption{Transições de status de TripInstance}
+\label{tab:trip_status}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{De $\backslash$ Para} & \textbf{SCHEDULED} & \textbf{CONFIRMED} & \textbf{IN\_PROGRESS} & \textbf{FINISHED} & \textbf{CANCELED} \\
+\midrule
+DRAFT & \checkmark* & -- & -- & -- & \checkmark \\
+SCHEDULED & -- & \checkmark* & -- & -- & \checkmark \\
+CONFIRMED & \checkmark & -- & \checkmark* & -- & \checkmark \\
+IN\_PROGRESS & -- & -- & -- & \checkmark & \checkmark \\
+FINISHED & -- & -- & -- & -- & -- \\
+CANCELED & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+{\footnotesize * Exige driver e vehicle atribuídos. Transições inválidas lançam \texttt{InvalidTripStatusTransitionError} (HTTP 400).}
+
+\subsubsection{Bookings Module}
+
+\textbf{Descrição}: Gerenciamento completo de inscrições de passageiros em viagens, com controle de capacidade, preço registrado server-side e proteção contra race conditions (Status: Implementado).
+
+\textbf{Use Cases Implementados (10 total)}:
+\begin{enumerate}
+\item CreateBookingUseCase: Inscreve passageiro com validação de status da viagem, controle de capacidade e preço calculado server-side a partir do template. Todo o fluxo é executado atomicamente via \texttt{UnitOfWork} com isolamento \texttt{Serializable}, prevenindo race conditions clássicas de sistemas de reservas.
+\item CancelBookingUseCase: Cancela inscrição com bloqueio para viagens \texttt{IN\_PROGRESS}/\texttt{FINISHED} e prazo de 30 minutos antes da partida.
+\item ConfirmPresenceUseCase: Confirma presença do passageiro (apenas org members; owner bloqueado).
+\item FindBookingByIdUseCase: Busca com isolamento de tenant.
+\item FindBookingsByOrganizationUseCase: Listagem paginada por organização.
+\item FindBookingsByTripInstanceUseCase: Lista passageiros de uma viagem (apenas org members).
+\item FindBookingsByUserUseCase: Bookings do próprio usuário com filtro de status opcional.
+\item FindBookingDetailsUseCase: Detalhe enriquecido com dados da \texttt{TripInstance} (horário, capacidade, vagas disponíveis).
+\item GetBookingAvailabilityUseCase: Verifica disponibilidade de vagas antes da inscrição.
+\end{enumerate}
+
+\textbf{Endpoints}: 10 rotas. Exemplos: \texttt{POST /bookings} (preço \textit{server-side}), \texttt{GET /bookings/availability/:tripInstanceId} (vagas), \texttt{GET /bookings/:id/details} (detalhe enriquecido), \texttt{PATCH /bookings/:id/cancel} e \texttt{.../confirm-presence} (confirmação restrita a \textit{org members}).
+
+\textbf{Erros de Domínio}: \texttt{BookingNotFoundError} (404), \texttt{BookingAlreadyExistsError} (409), \texttt{TripInstanceFullError} (409), \texttt{TripInstanceNotBookableError} (400), \texttt{BookingCancellationNotAllowedError} (400), \texttt{BookingCancellationDeadlineError} (400), \texttt{BookingAlreadyInactiveError} (400), \texttt{BookingAccessForbiddenError} (403), entre outros.
+
+\subsubsection{Plans Module}
+
+\textbf{Descrição}: Gerenciamento dos planos de assinatura disponíveis na plataforma. Escritas restritas a desenvolvedores via \texttt{DevGuard} (Status: Implementado).
+
+\textbf{Use Cases (5 total)}: \texttt{CreatePlanUseCase}, \texttt{UpdatePlanUseCase}, \texttt{DeactivatePlanUseCase}, \texttt{FindPlanByIdUseCase}, \texttt{FindAllPlansUseCase}.
+
+\textbf{Endpoints}: 6 rotas. Escritas restritas a \texttt{@Dev()} (\texttt{POST /plans}, \texttt{PATCH /plans/:id}, \texttt{.../deactivate}); leitura autenticada (\texttt{GET /plans}, \texttt{/plans/:id}) e endpoint público \texttt{GET /public/plans} para a tela de \textit{onboarding}.
+
+\subsubsection{Subscriptions Module}
+
+\textbf{Descrição}: Gerenciamento de assinaturas das organizações nos planos. Implementa expiração lazy (sem cron job) e controle de limites de plano via \texttt{PlanLimitService} (Status: Implementado).
+
+\textbf{Expiração Lazy}: O helper \texttt{resolveActiveSubscription(orgId, repo)} centraliza a busca + verificação de expiração. Se a assinatura estiver vencida, é transicionada para \texttt{PAST\_DUE} on-demand no momento da leitura.
+
+\textbf{PlanLimitService}: Centraliza verificação de limites de plano (veículos, motoristas, viagens/mês). Injetável em qualquer use case que precise bloquear criação de recursos além da cota.
+
+\textbf{Use Cases (4 total)}:
+\begin{enumerate}
+\item SubscribeToPlanUseCase: Valida plano ativo e ausência de assinatura ACTIVE. Calcula \texttt{expiresAt = startDate + plan.durationDays}.
+\item CancelSubscriptionUseCase: Transita para CANCELED.
+\item FindActiveSubscriptionUseCase: Retorna assinatura ativa com lazy expiry.
+\item FindSubscriptionsByOrganizationUseCase: Histórico paginado.
+\end{enumerate}
+
+\textbf{Endpoints}: 5 rotas sob \texttt{/organizations/:orgId/subscriptions}. Exemplos: \texttt{POST} (assinar plano), \texttt{PATCH /:id/cancel}, \texttt{GET /active} (assinatura vigente, com \textit{lazy expiry}) e \texttt{GET} (histórico paginado).
+
+\subsubsection{Payment Module}
+
+\textbf{Descrição}: Registro e simulação de pagamentos associados a inscrições. A criação de pagamentos é responsabilidade do \texttt{CreateBookingUseCase} — cada inscrição gera automaticamente um registro de pagamento com status \texttt{PENDING}. Os endpoints de simulação permitem demonstrar o fluxo completo sem gateway externo (Status: Implementado). Além do ADMIN, o motorista pode confirmar/falhar pagamentos de viagens atribuídas a ele (\texttt{PaymentNotAssignedToDriverError}, HTTP 403). A resposta inclui \texttt{tripInstanceId} e \texttt{tripDepartureTime} (\textit{snapshots} de leitura), permitindo ao cliente agregar receita por data da viagem.
+
+\textbf{Use Cases (4 total)}: \texttt{FindPaymentByIdUseCase}, \texttt{FindPaymentsByOrganizationUseCase}, \texttt{ConfirmPaymentUseCase} (\texttt{PENDING → COMPLETED}), \texttt{FailPaymentUseCase} (\texttt{PENDING → FAILED}).
+
+\textbf{Endpoints}: 4 rotas sob \texttt{/organizations/:orgId/payments}. \texttt{GET /:id} e \texttt{GET} (listagem paginada); \texttt{PATCH /:id/confirm} (\texttt{PENDING → COMPLETED}) e \texttt{.../fail} (\texttt{PENDING → FAILED}), simulando o ciclo sem gateway externo.
+
+\subsubsection{Scheduling Module}
+
+\textbf{Descrição}: Automação da geração e do encerramento de viagens recorrentes via \textit{jobs} agendados (\texttt{@nestjs/schedule}), parametrizados por organização através de \texttt{TripSchedulingConfig} (Status: Implementado).
+
+\textbf{Jobs (\textit{cron})}:
+\begin{enumerate}
+\item \textbf{Geração recorrente} (\texttt{0 2 * * *} UTC): para cada organização ativa, materializa uma janela rolante de \texttt{TripInstance} a partir dos \texttt{TripTemplate} recorrentes, respeitando \texttt{daysAhead} e a cota de viagens do plano. Idempotente por (template, dia).
+\item \textbf{Auto-cancelamento} (\texttt{*/15 * * * *} UTC): transiciona para \texttt{CANCELED} as instâncias cujo prazo (\texttt{autoCancelAt}) venceu sem atingir a receita mínima, propagando a falha aos pagamentos \texttt{PENDING} associados.
+\end{enumerate}
+
+\textbf{Use Cases (2 no módulo)}: \texttt{FindTripSchedulingConfigUseCase} e \texttt{UpdateTripSchedulingConfigUseCase}. A geração manual (\texttt{GenerateTripInstancesForTemplateUseCase}, mesmo núcleo do \textit{cron}, exposta via \texttt{POST /trip-templates/:id/generate-instances}) reside no módulo Trip.
+
+\textbf{Endpoints}: 2 rotas sob \texttt{/organizations/:organizationId/scheduling-config} (\texttt{GET} e \texttt{PATCH}, ADMIN). A cadência dos \textit{jobs} é fixa; a configuração por organização controla apenas a janela (\texttt{daysAhead}) e a ativação (\texttt{enabled}). O \texttt{ScheduleModule} é registrado condicionalmente (\texttt{DISABLE\_CRON}).
+
+\subsubsection{Plan-Usage Module}
+
+\textbf{Descrição}: Exposição consolidada do consumo de recursos da organização frente aos limites do plano vigente, para alimentar painéis administrativos (Status: Implementado).
+
+\textbf{Use Case (1 total)}: \texttt{FindPlanUsageUseCase} --- agrega contagem de veículos, motoristas e viagens (estas contadas dentro do \textbf{período de assinatura} corrente, \texttt{[startDate, expiresAt)}, e não por mês-calendário) e confronta com \texttt{maxVehicles}, \texttt{maxDrivers} e \texttt{maxMonthlyTrips}.
+
+\textbf{Endpoints}: 1 rota --- \texttt{GET /organizations/:id/plan-usage}.
+

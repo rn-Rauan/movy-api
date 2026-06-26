@@ -1,0 +1,24 @@
+\begin{table}[H]
+\centering
+\caption{Tecnologias implementadas no backend (Movy API)}
+\label{tab:tecnologias_implementadas}
+\begin{tabular}{lll}
+\toprule
+\textbf{Tecnologia} & \textbf{Versão} & \textbf{Descrição} \\
+\midrule
+Node.js & v22 LTS & Ambiente de execução JavaScript/TypeScript \\
+TypeScript & 5.7 & Linguagem tipada para desenvolvimento seguro \\
+NestJS & v11.0+ & Framework backend modular com DI nativo\\
+Prisma ORM & v7.5+ & ORM com tipagem forte e migrations automáticas \\
+PostgreSQL & 17 & SGBD relacional para persistência de dados \\
+JWT (NestJS/Passport) & 11.0+ & Implementação de autenticação com tokens \\
+Bcrypt & 6.0+ & Hash seguro de senhas com salt rounds \\
+Docker & Latest & Conteinerização e orquestração de ambientes \\
+Jest & 30+ & Framework de testes unitários e de integração \\
+ESLint & 9+ & Análise estática de código TypeScript \\
+Swagger & 11.2+ & Documentação interativa de endpoints REST \\
+@nestjs/schedule & 6.1+ & Agendamento de \textit{jobs} (cron) de viagens \\
+@nestjs/throttler & 6.5+ & \textit{Rate limiting} global (60 req/min) \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,48 @@
+% Requisitos Funcionais do sistema Movy.
+% Importado pelo DOC-TCC.tex via \input{tabelas/tab-requisitos-funcionais}.
+% Requer os pacotes: longtable, array, booktabs.
+{\footnotesize
+\begin{longtable}{@{}l p{5.9cm} p{2.7cm} p{3.7cm}@{}}
+\caption{Requisitos funcionais do sistema Movy}\label{tab:rf}\\
+\toprule
+\textbf{Código} & \textbf{Descrição} & \textbf{Status} & \textbf{Observação} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\footnotesize\itshape Tabela~\ref{tab:rf} -- continuação}\\
+\toprule
+\textbf{Código} & \textbf{Descrição} & \textbf{Status} & \textbf{Observação} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape continua na próxima página}\\
+\endfoot
+\bottomrule
+\endlastfoot
+RF01 & Cadastro de usuários com dados pessoais e de identificação. & Implementado & Vínculo opcional a organização via \texttt{Membership}. \\
+RF02 & Cadastro de organizações e administradores responsáveis. & Implementado & Onboarding atômico (usuário + organização + \textit{membership} ADMIN). \\
+RF03 & Cadastro de motoristas. & Implementado & Perfil \textit{self-service}; vínculo via \texttt{Membership}. \\
+RF04 & Agendamento de viagens com data, horário, turno e destino. & Implementado & \texttt{TripTemplate} (recorrente) e \texttt{TripInstance} (datada). \\
+RF05 & Cancelamento de viagens pela organização/administrador. & Implementado & Transição de estado para \texttt{CANCELED}. \\
+RF06 & Definição de turnos das viagens (manhã, tarde, noite). & Implementado & Enum \texttt{Shift}. \\
+RF07 & Inscrição de usuários em viagens disponíveis. & Implementado & Módulo \textit{Bookings}. \\
+RF08 & Cancelamento da inscrição dentro de prazo definido. & Implementado & Bloqueio a 30 min da partida. \\
+RF09 & Escolha do tipo de trajeto (ida, volta, ida e volta). & Implementado & Enum \texttt{EnrollmentType}. \\
+RF10 & Indicação da forma de pagamento (PIX, dinheiro etc.). & Implementado & Enum \texttt{MethodPayment}. \\
+RF11 & Visualização da lista de passageiros por viagem. & Implementado & Restrita a membros da organização. \\
+RF12 & Confirmação de presença no momento do embarque. & Implementado & \texttt{ConfirmPresenceUseCase}. \\
+RF13 & Visualização da lista de passageiros pelo motorista. & Implementado & Compartilha a tela de detalhe da viagem. \\
+RF14 & Marcação da viagem como iniciada ou concluída pelo motorista. & Implementado & Máquina de estados (\texttt{IN\_PROGRESS}/\texttt{FINISHED}). \\
+RF15 & Geração de relatórios das viagens realizadas. & Evolução futura & Não desenvolvido no \textit{backend}. \\
+RF16 & Visualização do histórico de viagens da organização. & Evolução futura & Listagens existem; relatório consolidado planejado. \\
+RF17 & Envio de notificações para lembrar usuários sobre inscrições. & Evolução futura & Depende de provedor de notificações. \\
+RF18 & Envio de notificações de confirmação ou cancelamento. & Evolução futura & Depende de provedor de notificações. \\
+RF19 & Cálculo da estimativa financeira de arrecadação por viagem. & Implementado & Preço registrado por inscrição (\textit{server-side}). \\
+RF20 & Cadastro de meios de transporte (ônibus, vans etc.). & Implementado & Módulo \textit{Vehicle}. \\
+RF21 & Vinculação de meios de transporte e motoristas às viagens. & Implementado & Atribuição na \texttt{TripInstance}. \\
+RF22 & Impedir inscrições acima da capacidade máxima. & Implementado & Controle transacional (isolamento \texttt{Serializable}). \\
+RF23 & Cadastro de pontos de embarque pela organização. & Implementado (simplificado) & Lista \texttt{stops} no \texttt{TripTemplate}; sem CRUD dedicado. \\
+RF24 & Seleção de ponto de embarque no momento da inscrição. & Implementado (simplificado) & Campos de embarque/desembarque na inscrição. \\
+RF25 & Visualização dos pontos de embarque pelo motorista. & Implementado (simplificado) & Exibidos no detalhe das inscrições. \\
+RF26 & Registro de \textit{logs} de auditoria. & Modelado (fora do MVP) & Entidade \texttt{AuditLog} não persistida. \\
+\end{longtable}
+}
