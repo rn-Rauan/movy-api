@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Booking } from 'src/modules/bookings/domain/entities';
-import { BookingRepository } from 'src/modules/bookings/domain/interfaces';
+import {
+  BookingRepository,
+  BookingWithTripMeta,
+} from 'src/modules/bookings/domain/interfaces';
+import type { TripStatus } from 'src/modules/trip/domain/interfaces';
 import {
   PaginatedResponse,
   PaginationOptions,
@@ -179,6 +183,53 @@ export class PrismaBookingRepository implements BookingRepository {
 
     return {
       data: bookings.map((row) => BookingMapper.toDomainFromRow(row)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Returns a paginated list of a user's bookings enriched with the parent trip
+   * instance's lifecycle status and departure time, via a single `include` join.
+   *
+   * @param userId - UUID of the user
+   * @param options - Pagination parameters `{ page, limit }`
+   * @param status - Optional booking status filter (`ACTIVE` or `INACTIVE`)
+   * @returns A {@link PaginatedResponse} of {@link BookingWithTripMeta} items
+   */
+  async findByUserIdWithTrip(
+    userId: string,
+    options: PaginationOptions,
+    status?: Status,
+  ): Promise<PaginatedResponse<BookingWithTripMeta>> {
+    const { page, limit } = options;
+    const skip = (page - 1) * limit;
+    const where = status ? { userId, status } : { userId };
+
+    const [rows, total] = await Promise.all([
+      this.db.enrollment.findMany({
+        where,
+        orderBy: { enrollmentDate: 'desc' },
+        include: {
+          ...PAYMENT_INCLUDE,
+          tripInstance: {
+            select: { tripStatus: true, departureTime: true },
+          },
+        },
+        skip,
+        take: limit,
+      }),
+      this.db.enrollment.count({ where }),
+    ]);
+
+    return {
+      data: rows.map(({ tripInstance, ...enrollmentRow }) => ({
+        booking: BookingMapper.toDomainFromRow(enrollmentRow),
+        tripStatus: tripInstance.tripStatus as TripStatus,
+        tripDepartureTime: tripInstance.departureTime,
+      })),
       total,
       page,
       limit,

@@ -1,5 +1,7 @@
+import { BookingListItemResponseDto } from '../../application/dtos/booking-list-item-response.dto';
 import { BookingResponseDto } from '../../application/dtos/booking-response.dto';
 import { Booking } from '../../domain/entities';
+import { BookingWithTripMeta } from '../../domain/interfaces';
 
 /**
  * Serialises a {@link Booking} domain object into the HTTP response shape {@link BookingResponseDto}.
@@ -41,5 +43,32 @@ export class BookingPresenter {
    */
   static toHTTPList(entities: Booking[]): BookingResponseDto[] {
     return entities.map((e) => this.toHTTP(e));
+  }
+
+  /**
+   * Maps a {@link BookingWithTripMeta} (booking + trip status/departure) to the
+   * enriched list-item DTO used by `GET /bookings/user`.
+   *
+   * @param meta - Booking enriched with its parent trip instance's status and departure time
+   * @returns A {@link BookingListItemResponseDto} safe to include in an HTTP response
+   */
+  static toListItemHTTP(meta: BookingWithTripMeta): BookingListItemResponseDto {
+    const base = this.toHTTP(meta.booking);
+    return Object.assign(new BookingListItemResponseDto(base), {
+      tripStatus: meta.tripStatus,
+      tripDepartureTime: meta.tripDepartureTime,
+    });
+  }
+
+  /**
+   * Maps a collection of {@link BookingWithTripMeta} to enriched list-item DTOs.
+   *
+   * @param metas - Array of bookings enriched with trip status/departure time
+   * @returns Array of {@link BookingListItemResponseDto} objects
+   */
+  static toListItemHTTPList(
+    metas: BookingWithTripMeta[],
+  ): BookingListItemResponseDto[] {
+    return metas.map((m) => this.toListItemHTTP(m));
   }
 }

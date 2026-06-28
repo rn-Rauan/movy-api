@@ -28,6 +28,7 @@ import { PaginatedDto } from 'src/shared/presentation/dtos/paginated.dto';
 import {
   BookingAvailabilityResponseDto,
   BookingDetailsResponseDto,
+  BookingListItemResponseDto,
   BookingResponseDto,
   CreateBookingDto,
   TripPassengerResponseDto,
@@ -146,22 +147,23 @@ export class BookingController {
   })
   @ApiResponse({
     status: 200,
-    description: "Paginated list of authenticated user's bookings.",
-    type: PaginatedDto<BookingResponseDto>,
+    description:
+      "Paginated list of authenticated user's bookings, each enriched with the parent trip's status and departure time.",
+    type: PaginatedDto<BookingListItemResponseDto>,
   })
   async findByUser(
     @GetUser() context: TenantContext,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('status') status?: 'ACTIVE' | 'INACTIVE',
-  ): Promise<PaginatedDto<BookingResponseDto>> {
+  ): Promise<PaginatedDto<BookingListItemResponseDto>> {
     const result = await this.findBookingsByUserUseCase.execute(
       context.userId,
       { page, limit },
       status,
     );
     return new PaginatedDto(
-      BookingPresenter.toHTTPList(result.data),
+      BookingPresenter.toListItemHTTPList(result.data),
       result.total,
       result.page,
       result.limit,

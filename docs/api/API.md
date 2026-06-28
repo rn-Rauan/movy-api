@@ -455,8 +455,8 @@ List all vehicles in an organization (paginated).
 
 ---
 
-### `GET /vehicles/{id}` 🛡️ ADMIN
-Get a vehicle by ID.
+### `GET /vehicles/{id}` 🛡️ ADMIN | 🚗 DRIVER
+Get a vehicle by ID. ADMINs and DRIVERs of the owning organisation may read it; the vehicle is scoped to the caller's organisation (cross-tenant access returns `403`).
 
 **Response `200`** → [VehicleResponse](#vehicleresponse)
 

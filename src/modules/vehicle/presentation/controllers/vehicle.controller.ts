@@ -43,13 +43,15 @@ import { VehiclePresenter } from '../mappers/vehicle.presenter';
 /**
  * HTTP controller for vehicle management.
  *
- * All endpoints require authentication (`JwtAuthGuard`) and are further
- * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`).
+ * All endpoints require authentication (`JwtAuthGuard`). Most are further
+ * restricted to organisation administrators (`RolesGuard` + `TenantFilterGuard`);
+ * `GET /vehicles/:id` is also accessible to drivers of the same organisation
+ * (org scoping is enforced inside the use case).
  *
  * Endpoints:
  * - `POST /vehicles/organization/:organizationId` — register a new vehicle
  * - `GET /vehicles/organization/:organizationId` — list all vehicles (paginated)
- * - `GET /vehicles/:id` — get by ID
+ * - `GET /vehicles/:id` — get by ID (ADMIN or DRIVER of the same org)
  * - `PUT /vehicles/:id` — partial update
  * - `DELETE /vehicles/:id` — soft-deactivate
  *
@@ -121,8 +123,8 @@ export class VehicleController {
 
   @Get(':id')
   @UseGuards(RolesGuard, TenantFilterGuard)
-  @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Find a vehicle by ID' })
+  @Roles(RoleName.ADMIN, RoleName.DRIVER)
+  @ApiOperation({ summary: '[ADMIN | DRIVER] Find a vehicle by ID' })
   @ApiParam({ name: 'id', description: 'UUID of the vehicle' })
   @ApiResponse({
     status: 200,

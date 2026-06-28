@@ -3,7 +3,21 @@ import {
   PaginationOptions,
 } from 'src/shared/domain/interfaces';
 import type { Status } from 'src/shared/domain/types';
+import type { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { Booking } from '../entities';
+
+/**
+ * A {@link Booking} enriched with the lifecycle status and departure time of its
+ * parent trip instance, resolved in a single joined query (no N+1).
+ *
+ * Used by the user's bookings listing so the client can render finished trips as
+ * read-only history without an extra round-trip per booking.
+ */
+export interface BookingWithTripMeta {
+  booking: Booking;
+  tripStatus: TripStatus;
+  tripDepartureTime: Date;
+}
 
 /**
  * Repository contract for {@link Booking}.
@@ -80,6 +94,21 @@ export abstract class BookingRepository {
     options: PaginationOptions,
     status?: Status,
   ): Promise<PaginatedResponse<Booking>>;
+
+  /**
+   * Returns a paginated list of a user's bookings, each enriched with the parent
+   * trip instance's lifecycle status and departure time (single joined query).
+   *
+   * @param userId - UUID of the user
+   * @param options - Pagination parameters `{ page, limit }`
+   * @param status - Optional booking status filter (`ACTIVE` or `INACTIVE`)
+   * @returns A {@link PaginatedResponse} of {@link BookingWithTripMeta} items
+   */
+  abstract findByUserIdWithTrip(
+    userId: string,
+    options: PaginationOptions,
+    status?: Status,
+  ): Promise<PaginatedResponse<BookingWithTripMeta>>;
 
   /**
    * Returns a paginated list of bookings for a specific trip instance.

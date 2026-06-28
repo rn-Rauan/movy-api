@@ -133,7 +133,9 @@ describe('LoginUseCase', () => {
       mocks.userRepository.findByEmail.mockResolvedValue(inactiveUser);
 
       // Act & Assert
-      await expect(sut.execute(validInput)).rejects.toThrow(InactiveAccountError);
+      await expect(sut.execute(validInput)).rejects.toThrow(
+        InactiveAccountError,
+      );
       expect(mocks.hashProvider.compare).not.toHaveBeenCalled();
     });
 

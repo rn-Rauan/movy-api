@@ -1,6 +1,10 @@
 ﻿import { FindBookingsByUserUseCase } from 'src/modules/bookings/application/use-cases/find-bookings-by-user.use-case';
-import { BookingRepository } from 'src/modules/bookings/domain/interfaces/booking.repository';
+import {
+  BookingRepository,
+  BookingWithTripMeta,
+} from 'src/modules/bookings/domain/interfaces/booking.repository';
 import { Booking } from 'src/modules/bookings/domain/entities';
+import { TripStatus } from 'src/modules/trip/domain/interfaces';
 import { PaginatedResponse } from 'src/shared/domain/interfaces';
 import { makeBooking } from '../../factories/booking.factory';
 
@@ -8,15 +12,25 @@ import { makeBooking } from '../../factories/booking.factory';
 
 function makeMocks() {
   const bookingRepository = {
-    findByUserId: jest.fn(),
+    findByUserIdWithTrip: jest.fn(),
   } as any as jest.Mocked<BookingRepository>;
 
   return { bookingRepository };
 }
 
-function makePaginatedResponse(items: Booking[]): PaginatedResponse<Booking> {
+function toMeta(booking: Booking): BookingWithTripMeta {
   return {
-    data: items,
+    booking,
+    tripStatus: TripStatus.SCHEDULED,
+    tripDepartureTime: new Date('2026-06-15T07:30:00.000Z'),
+  };
+}
+
+function makePaginatedResponse(
+  items: Booking[],
+): PaginatedResponse<BookingWithTripMeta> {
+  return {
+    data: items.map(toMeta),
     total: items.length,
     page: 1,
     limit: 10,
@@ -31,7 +45,7 @@ function setupHappyPath(mocks: ReturnType<typeof makeMocks>) {
   ];
   const paginated = makePaginatedResponse(bookings);
 
-  mocks.bookingRepository.findByUserId.mockResolvedValue(paginated);
+  mocks.bookingRepository.findByUserIdWithTrip.mockResolvedValue(paginated);
 
   return { bookings, paginated };
 }
@@ -73,15 +87,17 @@ describe('FindBookingsByUserUseCase', () => {
       await sut.execute(USER_ID, PAGINATION);
 
       // Assert
-      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+      expect(mocks.bookingRepository.findByUserIdWithTrip).toHaveBeenCalledWith(
         USER_ID,
         PAGINATION,
         undefined,
       );
-      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledTimes(1);
+      expect(
+        mocks.bookingRepository.findByUserIdWithTrip,
+      ).toHaveBeenCalledTimes(1);
     });
 
-    it('should map entities to response dtos', async () => {
+    it('should return bookings enriched with trip status and departure time', async () => {
       // Arrange
       setupHappyPath(mocks);
 
@@ -89,16 +105,18 @@ describe('FindBookingsByUserUseCase', () => {
       const result = await sut.execute(USER_ID, PAGINATION);
 
       // Assert
-      expect(result.data[0]).toHaveProperty('id');
-      expect(result.data[0]).toHaveProperty('userId');
-      expect(result.data[0]).toHaveProperty('status');
+      expect(result.data[0].booking).toHaveProperty('id');
+      expect(result.data[0].booking).toHaveProperty('userId');
+      expect(result.data[0].booking).toHaveProperty('status');
+      expect(result.data[0]).toHaveProperty('tripStatus');
+      expect(result.data[0]).toHaveProperty('tripDepartureTime');
     });
 
     it('should NOT expose other users bookings — only userId is queried', async () => {
       // Arrange
       const otherUserId = 'other-user-id';
       const otherUserBookings = [makeBooking({ userId: otherUserId })];
-      mocks.bookingRepository.findByUserId.mockResolvedValue(
+      mocks.bookingRepository.findByUserIdWithTrip.mockResolvedValue(
         makePaginatedResponse(otherUserBookings),
       );
 
@@ -106,21 +124,19 @@ describe('FindBookingsByUserUseCase', () => {
       await sut.execute(otherUserId, PAGINATION);
 
       // Assert — repo is called with the other user's id, never mixing ids
-      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+      expect(mocks.bookingRepository.findByUserIdWithTrip).toHaveBeenCalledWith(
         otherUserId,
         PAGINATION,
         undefined,
       );
-      expect(mocks.bookingRepository.findByUserId).not.toHaveBeenCalledWith(
-        USER_ID,
-        expect.anything(),
-        expect.anything(),
-      );
+      expect(
+        mocks.bookingRepository.findByUserIdWithTrip,
+      ).not.toHaveBeenCalledWith(USER_ID, expect.anything(), expect.anything());
     });
 
     it('should return empty list when user has no bookings', async () => {
       // Arrange
-      mocks.bookingRepository.findByUserId.mockResolvedValue(
+      mocks.bookingRepository.findByUserIdWithTrip.mockResolvedValue(
         makePaginatedResponse([]),
       );
 
@@ -137,7 +153,7 @@ describe('FindBookingsByUserUseCase', () => {
     it('should pass status ACTIVE to repository when provided', async () => {
       setupHappyPath(mocks);
       await sut.execute(USER_ID, PAGINATION, 'ACTIVE');
-      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+      expect(mocks.bookingRepository.findByUserIdWithTrip).toHaveBeenCalledWith(
         USER_ID,
         PAGINATION,
         'ACTIVE',
@@ -147,7 +163,7 @@ describe('FindBookingsByUserUseCase', () => {
     it('should pass status INACTIVE to repository when provided', async () => {
       setupHappyPath(mocks);
       await sut.execute(USER_ID, PAGINATION, 'INACTIVE');
-      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+      expect(mocks.bookingRepository.findByUserIdWithTrip).toHaveBeenCalledWith(
         USER_ID,
         PAGINATION,
         'INACTIVE',
@@ -157,7 +173,7 @@ describe('FindBookingsByUserUseCase', () => {
     it('should pass undefined to repository when no status is provided', async () => {
       setupHappyPath(mocks);
       await sut.execute(USER_ID, PAGINATION);
-      expect(mocks.bookingRepository.findByUserId).toHaveBeenCalledWith(
+      expect(mocks.bookingRepository.findByUserIdWithTrip).toHaveBeenCalledWith(
         USER_ID,
         PAGINATION,
         undefined,
