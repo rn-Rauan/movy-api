@@ -2,7 +2,9 @@ import { Controller, Get } from '@nestjs/common';
 @Controller()
 export class AppController {
   @Get('/')
-  getHello(): string {
-    return 'Api Initialized';
+  getHealth() {
+    return {
+      status: 'ok',
+    };
   }
 }

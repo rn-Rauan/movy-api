@@ -42,19 +42,20 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger Configuration
-  const config = new DocumentBuilder()
-    .setTitle('Movy API')
-    .setDescription('The Movy API documentation')
-    .setVersion('1.0')
-    .addTag('users')
-    .addTag('organizations')
-    .addTag('auth')
-    .addBearerAuth()
-    .addSecurityRequirements('bearer')
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  if (process.env.ENABLE_SWAGGER === 'true') {
+    const config = new DocumentBuilder()
+      .setTitle('Movy API')
+      .setDescription('The Movy API documentation')
+      .setVersion('1.0')
+      .addTag('users')
+      .addTag('organizations')
+      .addTag('auth')
+      .addBearerAuth()
+      .addSecurityRequirements('bearer')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
 
   if (!process.env.PORT) {
     throw new Error('PORT invalid');
