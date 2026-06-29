@@ -16,9 +16,9 @@ COPY . .
 ARG DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 ENV DATABASE_URL=$DATABASE_URL
 
-RUN npx prisma generate && npm run build
+RUN npm run build
 
 EXPOSE 3001
 
-CMD [ "npm", "start" ]
+CMD [ "npm", "run", "start:prod" ]
 
