@@ -80,6 +80,7 @@ O que existe aqui é apenas apoio:
 
 | Arquivo | Papel |
 |---|---|
+| [`processo/DEPLOY-NEON-RENDER.md`](./processo/DEPLOY-NEON-RENDER.md) | Registro do deploy online: Neon, Render, variáveis, ajustes de startup e hardening básico. |
 | [`processo/ROADMAP.md`](./processo/ROADMAP.md) | **Documento histórico** — registros datados das fases. Não é fonte de verdade do estado atual. |
 
 ---
