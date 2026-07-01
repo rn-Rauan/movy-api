@@ -16,6 +16,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:cov:module": "jest --coverage && node scripts/coverage-by-module.js",
+    "cov:module": "node scripts/coverage-by-module.js",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:seed": "tsx prisma/seed.ts"
@@ -88,9 +90,18 @@
       "^test/(.*)$": "<rootDir>/test/$1"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "src/**/*.ts",
+      "!src/main.ts",
+      "!src/app.controller.ts",
+      "!src/**/*.module.ts",
+      "!src/**/*.dto.ts"
     ],
     "coverageDirectory": "./coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "json-summary"
+    ],
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
       "<rootDir>/node_modules/",
@@ -103,7 +114,9 @@
       "<rootDir>/dist/",
       "<rootDir>/coverage/",
       "<rootDir>/generated/",
-      "<rootDir>/prisma.config.ts"
+      "<rootDir>/prisma.config.ts",
+      "<rootDir>/test/"
+
     ]
   },
   "overrides": {
