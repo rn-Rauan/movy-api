@@ -18,7 +18,7 @@
 RNF01 & Usabilidade da API: padrão RESTful, métodos e códigos de \textit{status} HTTP adequados. & Atendido & Especificação OpenAPI (Swagger) em \texttt{/api}. \\
 RNF02 & Performance: latência inferior a 2\,s em consultas \cite{pressman2016}. & Meta de projeto & Não medida formalmente neste trabalho. \\
 RNF03 & Disponibilidade mínima de 95\%. & Meta de projeto & Não medida formalmente neste trabalho. \\
-RNF04 & Segurança e privacidade: JWT e RBAC, em conformidade com a LGPD. & Atendido & \textit{Guards} de autorização + Bcrypt. \\
+RNF04 & Segurança e privacidade: JWT, RBAC e Bcrypt como mecanismos técnicos alinhados à proteção de dados; a conformidade plena à LGPD depende de políticas e processos adicionais. & Parcial & \textit{Guards} de autorização + Bcrypt; LGPD não auditada. \\
 RNF05 & Escalabilidade e \textit{multi-tenancy}: isolamento lógico por organização. & Atendido & Isolamento via \texttt{organizationId}. \\
 RNF06 & Manutenibilidade: NestJS, Clean Architecture e SOLID. & Atendido & Módulos por contexto delimitado. \\
 RNF07 & Interoperabilidade: comunicação exclusiva via JSON. & Atendido & Contratos REST/JSON. \\
@@ -28,4 +28,5 @@ RNF10 & Usabilidade do cliente: \textit{mobile-first} e interface em português.
 RNF11 & Resiliência de sessão: renovação automática e deduplicada. & Atendido & Renovação transparente no cliente. \\
 RNF12 & Consistência temporal: horários em UTC exibidos em horário de Brasília. & Atendido & Conversão na camada cliente. \\
 \end{longtable}
+\fonte{Elaborado pelo autor (2026)}
 }

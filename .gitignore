@@ -65,4 +65,3 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Documentação interna (não faz parte da entrega: auto-validação, revisões de IA)
 docs/_internal/
-docs/imagens/

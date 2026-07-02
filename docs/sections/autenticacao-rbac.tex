@@ -1,40 +1,29 @@
-\subsection{Autenticação e Autorização (RBAC)}
+\subsubsection{Autenticação e Autorização (RBAC)}
 \label{sec:autenticacao}
 
-A segurança de acesso é definida no \textit{backend} e refletida no cliente. No servidor, o fluxo de autenticação JWT compreende: (i) \textbf{registro}, com a senha \textit{hasheada} com Bcrypt (10 \textit{salt rounds}) antes da persistência; (ii) \textbf{login}, que valida credenciais e emite um \textit{access token} de curta duração (1 hora) e um \textit{refresh token} de longa duração (7 dias); (iii) \textbf{refresh}, em que o cliente troca o \textit{refresh token} por um novo par; e (iv) \textbf{proteção de rotas}, na qual o \texttt{JwtAuthGuard} valida o \textit{access token} e responde 401 quando inválido ou expirado.
+A segurança de acesso é definida no \textit{backend} e refletida no cliente. No servidor, o fluxo de autenticação JWT compreende: (i) registro, com a senha \textit{hasheada} com Bcrypt (10 \textit{salt rounds}) antes da persistência; (ii) login, que valida credenciais e emite um \textit{access token} de curta duração (1 hora) e um \textit{refresh token} de longa duração (7 dias); (iii) refresh, em que o cliente troca o \textit{refresh token} por um novo par; e (iv) proteção de rotas, na qual o \texttt{JwtAuthGuard} valida o \textit{access token} e responde 401 quando inválido ou expirado.
 
-O pipeline de segurança é composto por quatro \textit{guards} executados em sequência (Código~\ref{cod:auth_pipeline}):
+O controle de acesso é composto por \textit{guards} aplicados conforme a natureza de cada rota, conforme a Tabela~\ref{tab:auth_pipeline}. O \texttt{JwtAuthGuard} é a base das rotas protegidas, pois constrói o \texttt{TenantContext} usado pelas demais validações. Os demais \textit{guards} são combinados nos controladores de acordo com a necessidade de papel, isolamento por organização ou acesso de desenvolvedor.
 
-\begin{lstlisting}[caption={Pipeline de autorização do backend}, label={cod:auth_pipeline}]
-Request
-  -> JwtAuthGuard      # valida JWT; constroi TenantContext -> req.context
-  -> RolesGuard        # verifica @Roles(); isDev ignora
-  -> TenantFilterGuard # :organizationId param == req.context.organizationId
-  -> DevGuard          # apenas isDev=true passa em rotas @Dev()
-  -> Controller
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\caption{Guards de autorização do \textit{backend}}
+\label{tab:auth_pipeline}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Guard} & \textbf{Responsabilidade} \\
+\midrule
+\texttt{JwtAuthGuard}      & Valida o \textit{token} JWT e constrói o \texttt{TenantContext} em \texttt{req.context}. \\
+\texttt{RolesGuard}        & Verifica o papel exigido por \texttt{@Roles()}; usuários \texttt{isDev} são dispensados. \\
+\texttt{TenantFilterGuard} & Confere se o parâmetro \texttt{:organizationId} da rota coincide com o do \texttt{req.context}. \\
+\texttt{DevGuard}          & Restringe rotas \texttt{@Dev()} a usuários com \texttt{isDev=true}. \\
+\midrule
+\multicolumn{2}{l}{\textit{Aprovado nos guards aplicáveis} $\rightarrow$ a requisição alcança o Controller.} \\
+\bottomrule
+\end{tabularx}
+\fonte{Elaborado pelo autor (2026)}
+\end{table}
 
-O \texttt{JwtAuthGuard} enriquece o \textit{payload} JWT no momento do login com todos os dados necessários (\texttt{userId}, \texttt{organizationId}, \texttt{role}, \texttt{isDev}), eliminando consultas ao banco a cada requisição. Usuários listados em \texttt{DEV\_EMAILS} recebem \texttt{isDev=true} no token e ignoram validações de tenant e role. Em termos de papéis, o \textbf{ADMIN} tem acesso total (organizações, usuários, motoristas, configurações), o \textbf{DRIVER} tem acesso limitado (visualizar viagens e confirmar ações relacionadas) e o \textbf{USER} implícito (passageiro) pode inscrever-se em viagens e visualizar suas inscrições. As \textit{memberships} permitem múltiplas \textit{roles} por usuário em diferentes organizações (ex.: motorista em uma org, admin em outra).
+O \texttt{JwtAuthGuard} enriquece o \textit{payload} JWT no momento do login com todos os dados necessários (\texttt{userId}, \texttt{organizationId}, \texttt{role}, \texttt{isDev}), eliminando consultas ao banco a cada requisição. Usuários listados em \texttt{DEV\_EMAILS} recebem \texttt{isDev=true} no token e ignoram validações de tenant e role. Em termos de papéis, o ADMIN tem acesso total (organizações, usuários, motoristas, configurações), o DRIVER tem acesso limitado (visualizar viagens e confirmar ações relacionadas) e o USER implícito (passageiro) pode inscrever-se em viagens e visualizar suas inscrições. As \textit{memberships} permitem múltiplas \textit{roles} por usuário em diferentes organizações (ex.: motorista em uma org, admin em outra).
 
-\textbf{Reflexo no cliente.} A aplicação persiste a sessão em \texttt{localStorage} (\textit{token} de acesso, \textit{token} de renovação e dados básicos do usuário) e provê o estado de autenticação por meio de dois contextos encadeados: um de autenticação, que envolve um de papel, garantindo que a determinação de papel só ocorra quando a identidade já está disponível. A principal característica de resiliência é a \textbf{renovação transparente de sessão}: diante de uma resposta \texttt{401}, o cliente dispara uma única renovação --- \textbf{deduplicada} entre requisições concorrentes --- e repete a chamada original, conforme o Código~\ref{cod:fe_api}.
-
-\begin{lstlisting}[language=JavaScript, caption={Cliente HTTP com renovação transparente de sessão (\texttt{lib/api.ts})}, label={cod:fe_api}]
-export async function api(path, init = {}) {
-  const { auth = true, _retry = false, headers, ...rest } = init;
-  if (auth && tokenStorage.access)
-    headers.Authorization = `Bearer ${tokenStorage.access}`;
-
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...rest, headers });
-
-  // Tenta uma unica renovacao (deduplicada) em caso de 401 e repete a chamada.
-  if (res.status === 401 && auth && !_retry) {
-    if (!refreshPromise)
-      refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
-    try { await refreshPromise; return api(path, { ...init, _retry: true }); }
-    catch { /* renovacao falhou - propaga o erro original */ }
-  }
-  if (!res.ok) throw new ApiError(message, res.status, data, errorCode);
-  return data;
-}
-\end{lstlisting}
-
+Reflexo no cliente. A aplicação persiste a sessão em \texttt{localStorage} (\textit{token} de acesso, \textit{token} de renovação e dados básicos do usuário) e provê o estado de autenticação por meio de dois contextos encadeados: um de autenticação, que envolve um de papel, garantindo que a determinação de papel só ocorra quando a identidade já está disponível. A principal característica de resiliência é a renovação transparente de sessão, concentrada no cliente HTTP único (\texttt{lib/api.ts}): por padrão, cada requisição anexa o cabeçalho \texttt{Authorization: Bearer}; diante de uma resposta \texttt{401}, o cliente dispara uma única renovação do \textit{access token}, deduplicada entre requisições concorrentes por meio de uma \textit{promise} compartilhada, e, em caso de sucesso, repete automaticamente a chamada original uma única vez. Se a renovação falhar, o erro original é propagado e a sessão é encerrada. Toda falha é, ainda, normalizada em uma exceção tipada (\texttt{ApiError}) que carrega \texttt{status}, dados e \texttt{errorCode}.

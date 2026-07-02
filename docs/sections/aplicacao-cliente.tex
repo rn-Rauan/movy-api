@@ -1,63 +1,81 @@
-\subsection{Aplicação Cliente}
+\subsubsection{Aplicação Cliente}
 \label{sec:cliente}
 
 A aplicação cliente é um \textit{Single Page Application} (SPA) \textit{mobile-first} que consome os 93 \textit{endpoints} da API e materializa, para os perfis de passageiro, motorista e administrador, os fluxos descritos na Seção~\ref{sec:interfaces}.
 
-\subsubsection{Processo de Desenvolvimento Assistido por IA}
+\paragraph{Processo de Desenvolvimento Assistido por IA}
 
-A aplicação cliente foi \textbf{integralmente desenvolvida com o apoio de ferramentas de inteligência artificial (IA) generativa}, sob direção, revisão e validação do autor. Esse modelo de trabalho --- frequentemente denominado \textit{AI-assisted development} ou programação assistida por IA --- foi adotado de forma deliberada para acelerar a prototipação e a implementação, mantendo-se a autoria das decisões de requisitos, de arquitetura e de qualidade sob responsabilidade humana. Registra-se o uso dessas ferramentas em conformidade com as boas práticas de transparência acadêmica. O processo organizou-se em três etapas sequenciais e complementares, cada uma apoiada por uma ferramenta distinta.
+A aplicação cliente foi integralmente desenvolvida com o apoio de ferramentas de inteligência artificial (IA) generativa, sob direção, revisão e validação do autor. Esse modelo de trabalho, frequentemente denominado \textit{AI-assisted development} ou programação assistida por IA, foi adotado de forma deliberada para acelerar a prototipação e a implementação, mantendo-se a autoria das decisões de requisitos, de arquitetura e de qualidade sob responsabilidade humana. Registra-se o uso dessas ferramentas em conformidade com as boas práticas de transparência acadêmica. O processo organizou-se em três etapas sequenciais e complementares, cada uma apoiada por uma ferramenta distinta.
 
-Na primeira etapa, de \textbf{geração inicial}, a base do projeto foi produzida com a plataforma \textbf{Lovable}, ferramenta de geração de aplicações assistida por IA, que estabeleceu o esqueleto da aplicação --- a \textit{stack} React com TanStack Router, Tailwind CSS e shadcn/ui --- e um primeiro conjunto de telas funcionais. Na segunda etapa, de \textbf{concepção visual}, o \textbf{Claude Design} (da Anthropic) foi empregado para \textbf{aprimorar as telas existentes e gerar novos protótipos de alta fidelidade}, apoiando as decisões de \textit{layout}, de hierarquia visual e de sistema de design. Na terceira etapa, de \textbf{implementação real}, o assistente de programação agêntico \textbf{Claude Code} (também da Anthropic) foi utilizado para escrever, refatorar e evoluir o código de produção e para \textbf{realizar a integração efetiva com o \textit{backend}}, sempre a partir de instruções do autor e com revisão do resultado. É importante destacar que \textbf{as telas geradas nas etapas iniciais foram posteriormente refatoradas e aprimoradas} na fase de implementação: o código foi reorganizado na arquitetura de \textit{feature modules}, as chamadas à API foram centralizadas na camada de serviços, o controle de acesso por papel foi consolidado nos \textit{layouts} de rota e a apresentação foi unificada sob um sistema de design coeso. Dessa forma, a IA atuou como ferramenta de produtividade ao longo de todo o ciclo --- da prototipação à integração ---, enquanto a estrutura, os padrões e a qualidade final do código resultam das decisões e da revisão conduzidas pelo autor.
+Na primeira etapa, de geração inicial, a base do projeto foi produzida com a plataforma Lovable, ferramenta de geração de aplicações assistida por IA, que estabeleceu o esqueleto da aplicação, a \textit{stack} React com TanStack Router, Tailwind CSS e shadcn/ui, e um primeiro conjunto de telas funcionais. Na segunda etapa, de concepção visual, o Claude Design (da Anthropic) foi empregado para aprimorar as telas existentes e gerar novos protótipos de alta fidelidade, apoiando as decisões de \textit{layout}, de hierarquia visual e de sistema de design. Na terceira etapa, de implementação real, o assistente de programação agêntico Claude Code (também da Anthropic) foi utilizado para escrever, refatorar e evoluir o código de produção e para realizar a integração efetiva com o \textit{backend}, sempre a partir de instruções do autor e com revisão do resultado. É importante destacar que as telas geradas nas etapas iniciais foram posteriormente refatoradas e aprimoradas na fase de implementação: o código foi reorganizado na arquitetura de \textit{feature modules}, as chamadas à API foram centralizadas na camada de serviços, o controle de acesso por papel foi consolidado nos \textit{layouts} de rota e a apresentação foi unificada sob o sistema de design proprietário descrito a seguir. Dessa forma, a IA atuou como ferramenta de produtividade ao longo de todo o ciclo, da prototipação à integração, enquanto a estrutura, os padrões e a qualidade final do código resultam das decisões e da revisão conduzidas pelo autor.
 
-\subsubsection{Roteamento e Controle de Acesso}
+O sistema de design da aplicação é proprietário: não se adotou nenhum \textit{design system} de terceiros (como Material Design ou Ant Design). Sua identidade visual, uma paleta de cores com variáveis semânticas (\textit{accent}, \textit{success}, \textit{danger}, \textit{warn}, entre outras), a tipografia (\texttt{Manrope} para texto e \texttt{JetBrains Mono} para dados numéricos) e a iconografia em traço, foi concebida na etapa de concepção visual, em um conjunto de primitivas escritas à mão acompanhado de um painel de ajuste em tempo real de paleta, raio de borda e densidade. Na etapa de implementação, essa identidade foi materializada na aplicação de produção sobre as primitivas acessíveis do shadcn/ui (Radix) e do Tailwind CSS: os \textit{tokens} de design foram portados para variáveis CSS e os componentes, reestilizados para a identidade do Movy. Trata-se, portanto, de uma identidade visual original implementada sobre primitivas de interface acessíveis, e não da adoção de um tema de terceiros.
 
-O roteamento utiliza o mecanismo \textit{file-based} do TanStack Router, no qual a estrutura de nomes dos arquivos determina a árvore de URLs. \textit{Layouts} sem caminho (prefixados por sublinhado) não acrescentam segmento à URL, mas estabelecem nós sob os quais outras rotas são aninhadas, permitindo associar a um conjunto de rotas uma verificação de acesso comum. A autenticação é verificada uma única vez, no \textit{layout} \texttt{\_protected}, que envolve todas as rotas que exigem sessão; sobre essa base, dois \textit{layouts} adicionais --- \texttt{\_admin} e \texttt{\_driver} --- aplicam as verificações de papel, redirecionando usuários sem o papel correspondente. A composição resulta em uma cadeia de verificações (autenticado \textbf{e} administrador, por exemplo), sem que os segmentos de proteção apareçam na URL. Esse modelo é o reflexo, no cliente, do RBAC implementado pelos \textit{guards} do \textit{backend}.
+\paragraph{Roteamento e Controle de Acesso}
 
-\subsubsection{Padrão de Serviços e Hooks}
+O roteamento utiliza o mecanismo \textit{file-based} do TanStack Router, no qual a estrutura de nomes dos arquivos determina a árvore de URLs. \textit{Layouts} sem caminho (prefixados por sublinhado) não acrescentam segmento à URL, mas estabelecem nós sob os quais outras rotas são aninhadas, permitindo associar a um conjunto de rotas uma verificação de acesso comum. A autenticação é verificada uma única vez, no \textit{layout} \texttt{\_protected}, que envolve todas as rotas que exigem sessão; sobre essa base, dois \textit{layouts} adicionais, \texttt{\_admin} e \texttt{\_driver}, aplicam as verificações de papel, redirecionando usuários sem o papel correspondente. A composição resulta em uma cadeia de verificações (autenticado e administrador, por exemplo), sem que os segmentos de proteção apareçam na URL. Esse modelo é o reflexo, no cliente, do RBAC implementado pelos \textit{guards} do \textit{backend}.
 
-O Código~\ref{cod:fe_camadas} ilustra o fluxo unidirecional através das camadas: um serviço expõe operações de alto nível sobre os \textit{endpoints}; um \textit{hook} de caso de uso combina o serviço com estado e lógica de apresentação (busca, filtros), derivando o estado de carregamento da ausência simultânea de conteúdo e erro; e uma rota fina apenas decide entre os estados (carregando, erro, conteúdo) e delega a renderização.
+\begin{figure}[H]
+\centering
+\caption{Organização das rotas e dos \textit{guards} no cliente}
+\label{fig:fe_rotas_guards}
+\setlength{\fboxsep}{8pt}
+\fbox{%
+\begin{minipage}{0.94\textwidth}
+\small
+\begin{tabularx}{\linewidth}{>{\bfseries}p{0.24\linewidth} X}
+Público &
+\texttt{/}, \texttt{/login}, \texttt{/signup}, \texttt{/public/trip-instances}, \texttt{/public/organizations}, \texttt{/public/plans}. \\
+\texttt{\_protected} &
+Rotas que exigem sessão: \texttt{/my-bookings}, \texttt{/profile}, \texttt{/trips/:orgId/:tripId/book}, \texttt{/setup}. \\
+\texttt{\_admin} &
+Subárvore administrativa: \texttt{/dashboard}, \texttt{/trips}, \texttt{/templates}, \texttt{/drivers}, \texttt{/vehicles}, \texttt{/organization}, \texttt{/financial}. \\
+\texttt{\_driver} &
+Subárvore operacional do motorista: \texttt{/my-trips} e acesso à tela compartilhada de detalhe da viagem. \\
+\end{tabularx}
+\end{minipage}}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
 
-\begin{lstlisting}[language=JavaScript, caption={Fluxo entre as camadas: serviço, hook e rota}, label={cod:fe_camadas}]
-// SERVICO (services/bookings.service.ts) - padrao repositorio
-export const bookingsService = {
-  listForUser: () => api("/bookings/user"),
-  cancel: (id) => api(`/bookings/${id}/cancel`, { method: "PATCH" }),
-};
+\paragraph{Padrão de Serviços e Hooks}
 
-// HOOK (features/bookings/hooks/useBookings.ts) - caso de uso
-export function useBookings() {
-  const [bookings, setBookings] = useState(null);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    bookingsService.listForUser()
-      .then((res) => setBookings(res.data ?? res))
-      .catch((err) => { setError(err.message); toast.error(err.message); });
-  }, []);
-  return { bookings, loading: bookings === null && !error, error };
+A Tabela~\ref{tab:fe_camadas} concretiza o fluxo unidirecional através das camadas, tomando como exemplo a funcionalidade ``minhas inscrições'': um serviço expõe operações de alto nível sobre os \textit{endpoints}; um \textit{hook} de caso de uso combina o serviço com estado e lógica de apresentação (busca, filtros), derivando o estado de carregamento da ausência simultânea de conteúdo e erro; e uma rota fina apenas decide entre os estados (carregando, erro, conteúdo) e delega a renderização.
+
+\begin{table}[H]
+\centering
+\caption{Responsabilidades por camada no fluxo serviço $\rightarrow$ \textit{hook} $\rightarrow$ rota}
+\label{tab:fe_camadas}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.8cm} >{\raggedright\arraybackslash}p{4.7cm} X@{}}
+\toprule
+\textbf{Camada} & \textbf{Exemplo} & \textbf{Responsabilidade} \\
+\midrule
+Serviço &
+\texttt{bookings.service.ts} &
+Expõe operações de alto nível sobre os \textit{endpoints}, como listar e cancelar inscrições, escondendo os detalhes do transporte HTTP. \\
+\addlinespace
+\textit{Hook} de caso de uso &
+\texttt{useBookings.ts} &
+Invoca o serviço, mantém o estado da tela (conteúdo e erro) e deriva o estado de carregamento. \\
+\addlinespace
+Rota fina &
+\texttt{my-bookings.tsx} &
+Instancia o \textit{hook}, decide entre carregamento, erro e conteúdo, e delega a renderização aos componentes de apresentação. \\
+\bottomrule
+\end{tabularx}
 }
+\fonte{Elaborado pelo autor (2026)}
+\end{table}
 
-// ROTA (routes/_protected.my-bookings.tsx) - controlador fino
-function MyBookingsContent() {
-  const { bookings, loading, error } = useBookings();
-  return (
-    <AppShell title="Minhas inscricoes">
-      {loading ? <LoadingList /> :
-       error ? <ErrorCard message={error} /> :
-       <BookingsList bookings={bookings} />}
-    </AppShell>
-  );
-}
-\end{lstlisting}
+\paragraph{Integração com a API}
 
-\subsubsection{Integração com a API}
+A comunicação com o \textit{backend} é concentrada no cliente HTTP único (\texttt{lib/api.ts}) e organizada pela camada de serviços. Os aspectos mais relevantes dessa integração são:
 
-A comunicação com o \textit{backend} é concentrada no cliente HTTP (Código~\ref{cod:fe_api}) e organizada pela camada de serviços. Os aspectos mais relevantes dessa integração são:
+Autenticação. Toda requisição é autenticada por padrão, com o cabeçalho \texttt{Authorization: Bearer}; chamadas a \textit{endpoints} públicos desabilitam esse comportamento explicitamente. A expiração do \textit{access token} é tratada de forma transparente pela renovação automática descrita na Seção~\ref{sec:autenticacao}.
 
-\textbf{Autenticação.} Toda requisição é autenticada por padrão, com o cabeçalho \texttt{Authorization: Bearer}; chamadas a \textit{endpoints} públicos desabilitam esse comportamento explicitamente. A expiração do \textit{access token} é tratada de forma transparente pela renovação automática descrita na Seção~\ref{sec:autenticacao}.
+Endpoints públicos. As telas do contexto público consomem rotas anônimas expostas pela API, \texttt{GET /public/trip-instances}, \texttt{GET /public/organizations} (e \texttt{/:slug}) e \texttt{GET /public/plans}, permitindo a descoberta de viagens, organizações e planos sem autenticação, em conformidade com o funil de conversão do produto.
 
-\textbf{Endpoints públicos.} As telas do contexto público consomem rotas anônimas expostas pela API --- \texttt{GET /public/trip-instances}, \texttt{GET /public/organizations} (e \texttt{/:slug}) e \texttt{GET /public/plans} ---, permitindo a descoberta de viagens, organizações e planos sem autenticação, em conformidade com o funil de conversão do produto.
+Contexto multi-tenant. O isolamento por organização é responsabilidade do \textit{backend} (campo \texttt{organizationId} e \texttt{TenantFilterGuard}); no cliente, o contexto de papel deriva a organização administrada do usuário cruzando \texttt{GET /organizations/me} com \texttt{GET /memberships/me/role/:organizationId}, padrão também reutilizado para listar as organizações em que o usuário atua como motorista.
 
-\textbf{Contexto multi-tenant.} O isolamento por organização é responsabilidade do \textit{backend} (campo \texttt{organizationId} e \texttt{TenantFilterGuard}); no cliente, o contexto de papel deriva a organização administrada do usuário cruzando \texttt{GET /organizations/me} com \texttt{GET /memberships/me/role/:organizationId}, padrão também reutilizado para listar as organizações em que o usuário atua como motorista.
-
-\textbf{Apresentação temporal.} A API armazena horários recorrentes em UTC; o cliente os converte e exibe sempre em horário de Brasília, e nunca expõe \textit{cron expressions} ou horários UTC literais ao usuário.
-
+Apresentação temporal. A API armazena horários recorrentes em UTC; o cliente os converte e exibe sempre em horário de Brasília, e nunca expõe \textit{cron expressions} ou horários UTC literais ao usuário.

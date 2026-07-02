@@ -1,0 +1,126 @@
+% Capturas de tela da aplicação cliente, organizadas por contexto de acesso.
+% Cada tela: descrição + requisitos evidenciados + figura + legenda.
+% As imagens estão em docs/imagens/ (todas capturas mobile, em retrato ~0,5).
+% IMPORTANTE: capturas com dados fictícios; sem tokens, e-mails, chaves ou IDs sensíveis.
+
+As capturas a seguir ilustram as principais telas da aplicação cliente, todas com dados de demonstração. Como o produto é \textit{mobile-first}, as telas são apresentadas em orientação retrato. Para cada uma, indicam-se os requisitos funcionais evidenciados.
+
+\subsubsection{Catálogo público de viagens}
+
+Tela inicial do contexto público, acessível sem autenticação. Apresenta as viagens disponíveis agrupadas por rota, com busca e filtros (data, turno e ordenação), e exibe a ocupação de cada viagem. Evidencia os requisitos RF04 (viagens agendadas), RF07 (ponto de entrada para inscrição) e RF22 (indicação de capacidade/ocupação).
+
+\begin{figure}[H]
+\centering
+\caption{Catálogo público de viagens disponíveis.}
+\label{fig:fe-catalogo}
+\includegraphics[width=0.45\textwidth]{imagens/fe-catalogo.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Detalhe público da viagem}
+
+Tela única de detalhe de uma viagem, funcional logada e deslogada. Mostra rota, horário, pontos de embarque e datas alternativas da mesma rota, além do botão de compartilhamento e do botão de inscrição (ou de \textit{login}, quando não autenticado). Evidencia RF04 e RF07.
+
+\begin{figure}[H]
+\centering
+\caption{Detalhe público de uma viagem, com datas alternativas e compartilhamento.}
+\label{fig:fe-detalhe-viagem}
+\includegraphics[width=0.45\textwidth]{imagens/fe-detalhe-viagem.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Formulário de inscrição}
+
+Formulário em que o passageiro autenticado escolhe os pontos de embarque e desembarque, o tipo de trajeto e a forma de pagamento. A decisão definitiva de disponibilidade e preço é delegada à API. Evidencia RF07 (inscrição), RF09 (tipo de trajeto), RF10 (forma de pagamento) e RF24 (seleção do ponto de embarque).
+
+\begin{figure}[H]
+\centering
+\caption{Formulário de inscrição em uma viagem.}
+\label{fig:fe-formulario}
+\includegraphics[width=0.45\textwidth]{imagens/fe-formulario.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Painel administrativo}
+
+Painel com métricas operacionais (viagens ativas, próximas, passageiros, ocupação) e financeiras (receita prevista), além de atalho para o relatório financeiro. Evidencia parcialmente RF15 e RF16 (relatório/histórico agregados no cliente) e RF19 (estimativa financeira de arrecadação).
+
+\begin{figure}[H]
+\centering
+\caption{Painel administrativo com métricas operacionais e financeiras.}
+\label{fig:fe-dashboard}
+\includegraphics[width=0.45\textwidth]{imagens/fe-dashboard.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Gestão de viagens}
+
+Tela administrativa de \textit{CRUD} de instâncias de viagem, com transições de estado e atribuição de motorista e veículo. Evidencia RF04 (agendamento), RF05 (cancelamento de viagem), RF06 (turnos), RF21 (vinculação de motorista/veículo) e RF23 (pontos de embarque).
+
+\begin{figure}[H]
+\centering
+\caption{Gestão administrativa de viagens.}
+\label{fig:fe-gestao-viagens}
+\includegraphics[width=0.45\textwidth]{imagens/fe-gestao-viagens.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Gestão de templates de rota}
+
+Tela de \textit{CRUD} de modelos de rota recorrentes e de geração manual de instâncias. Evidencia RF04 (base do agendamento recorrente), RF06 (turnos) e RF23 (pontos de embarque do modelo).
+
+\begin{figure}[H]
+\centering
+\caption{Gestão de templates de rota.}
+\label{fig:fe-gestao-templates}
+\includegraphics[width=0.45\textwidth]{imagens/fe-gestao-templates.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Detalhe operacional da viagem}
+
+Tela compartilhada por administrador e motorista para a gestão operacional das inscrições: confirmação de presença e de pagamento por passageiro e transições de estado da viagem. Evidencia RF11 (lista de passageiros), RF12 (confirmação de presença), RF13 (lista para o motorista), RF14 (início/conclusão da viagem) e RF25 (pontos de embarque por passageiro).
+
+\begin{figure}[H]
+\centering
+\caption{Detalhe operacional da viagem, com gestão de presença e pagamento.}
+\label{fig:fe-operacional}
+\includegraphics[width=0.45\textwidth]{imagens/fe-operacional.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Gestão de motoristas e veículos}
+
+Telas administrativas de gestão da frota: motoristas vinculados à organização e veículos cadastrados. Evidenciam RF03 (cadastro de motoristas) e RF20 (cadastro de meios de transporte).
+
+\begin{figure}[H]
+\centering
+\caption{Gestão de motoristas (à esquerda) e de veículos (à direita).}
+\label{fig:fe-frota}
+\includegraphics[width=0.42\textwidth]{imagens/fe-motoristas.png}
+\hfill
+\includegraphics[width=0.42\textwidth]{imagens/fe-veiculos.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+% --------------------------------------------------------------------
+% Telas ainda sem captura. Para incluí-las, salve o PNG correspondente em
+% docs/imagens/ e descomente o bloco desejado:
+%
+% \subsubsection{Confirmação da inscrição}
+% Tela de confirmação após a inscrição (RF07). Imagem: fe-sucesso.png
+% \begin{figure}[H]\centering
+% \caption{Confirmação de inscrição concluída.}\label{fig:fe-sucesso}
+% \includegraphics[width=0.45\textwidth]{imagens/fe-sucesso.png}
+% \fonte{Elaborado pelo autor (2026)}
+% \end{figure}
+%
+% \subsubsection{Minhas inscrições}
+% Lista das inscrições do passageiro, com filtro por estado (RF08). Imagem: fe-minhas-inscricoes.png
+%
+% \subsubsection{Detalhe da inscrição}
+% Detalhe de uma inscrição, com cancelamento (RF08). Imagem: fe-detalhe-inscricao.png
+%
+% \subsubsection{Viagens do motorista}
+% Lista das viagens atribuídas ao motorista (RF13, RF14). Imagem: fe-motorista-viagens.png
+% --------------------------------------------------------------------

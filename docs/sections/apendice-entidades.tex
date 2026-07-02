@@ -1,181 +1,178 @@
-\paragraph{\textbf{Role (Papéis de Acesso)}}\mbox{}\\
-Armazena os diferentes papéis (roles) disponíveis no sistema para controle de acesso baseado em funções (RBAC).
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (autoincrement)
-    \item \textbf{name} -- Nome do papel (ADMIN, DRIVER)
-    \item \textbf{createdAt} -- Timestamp de criação
-    \item \textbf{updatedAt} -- Timestamp de atualização
-\end{itemize}
+﻿% Dicionario de dados das entidades principais do dominio Movy.
+% Formato tabular para consulta objetiva no apendice.
 
-\paragraph{\textbf{User (Usuários)}}\mbox{}\\
-Armazena informações de todos os usuários do sistema.
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{name} -- Nome completo do usuário
-    \item \textbf{email} -- Endereço de e-mail único
-    \item \textbf{passwordHash} -- Senha criptografada com Bcrypt
-    \item \textbf{telephone} -- Telefone para contato
-    \item \textbf{status} -- Status do usuário (ACTIVE, INACTIVE) - soft delete
-    \item \textbf{createdAt} -- Timestamp de criação
-    \item \textbf{updatedAt} -- Timestamp de atualização
-\end{itemize}
+\newcommand{\ddfield}[1]{{\scriptsize\texttt{#1}}}
+\newcommand{\ddentity}[1]{\textbf{#1}}
 
-\paragraph{\textbf{Organization (Organizações)}}\mbox{}\\
-Armazena dados das organizações de transporte cadastradas no sistema.
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{name} -- Nome da organização
-    \item \textbf{cnpj} -- CNPJ da organização (único, com validação de dígitos verificadores)
-    \item \textbf{email} -- E-mail institucional único
-    \item \textbf{telephone} -- Telefone para contato
-    \item \textbf{address} -- Endereço completo
-    \item \textbf{slug} -- Identificador URL-friendly único
-    \item \textbf{status} -- Status (ACTIVE, INACTIVE) - soft delete
-    \item \textbf{createdAt} -- Timestamp de criação
-    \item \textbf{updatedAt} -- Timestamp de atualização
-\end{itemize}
+{\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.85cm}
+                  >{\raggedright\arraybackslash}p{3.15cm}
+                  >{\raggedright\arraybackslash}p{2.9cm}
+                  >{\raggedright\arraybackslash}p{6.05cm}@{}}
+\caption{Dicionário de dados das entidades do domínio Movy}
+\label{tab:dicionario_dados}\\
+\toprule
+\textbf{Entidade} & \textbf{Campo} & \textbf{Tipo / chave} & \textbf{Descrição e regras} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\footnotesize\itshape Tabela~\ref{tab:dicionario_dados} -- continuação}\\
+\toprule
+\textbf{Entidade} & \textbf{Campo} & \textbf{Tipo / chave} & \textbf{Descrição e regras} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape continua na próxima página}\\
+\endfoot
+\bottomrule
+\endlastfoot
 
-\paragraph{\textbf{Plan (Planos de Assinatura)}}\mbox{}\\
-Define os planos (tiers) de serviço disponíveis (FREE, BASIC, PRO, PREMIUM).
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (autoincrement)
-    \item \textbf{name} -- Nome do plano (FREE, BASIC, PRO, PREMIUM)
-    \item \textbf{price} -- Preço (Decimal 10.2)
-    \item \textbf{description} -- Descrição do plano
-    \item \textbf{maxVehicles} -- Quantidade máxima de veículos
-    \item \textbf{maxDrivers} -- Quantidade máxima de motoristas
-    \item \textbf{maxMonthlyTrips} -- Quantidade máxima de viagens por mês
-    \item \textbf{durationDays} -- Duração da assinatura em dias (padrão: 30)
-    \item \textbf{isActive} -- Se o plano está disponível
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{Role} & \ddfield{id} & Inteiro, PK & Identificador do papel de acesso. \\
+& \ddfield{name} & Enum, único & Nome do papel disponível no RBAC: \texttt{ADMIN} ou \texttt{DRIVER}. \\
+& \ddfield{createdAt} & Data/hora & Data de criação do registro. \\
+& \ddfield{updatedAt} & Data/hora & Data da última atualização. \\
+\addlinespace
 
-\paragraph{\textbf{Subscription (Assinaturas)}}\mbox{}\\
-Registra as assinaturas das organizações nos planos.
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{organizationId} -- FK: Organização
-    \item \textbf{planId} -- FK: Plano
-    \item \textbf{status} -- Status da assinatura (ACTIVE, PAST\_DUE, CANCELED)
-    \item \textbf{startDate} -- Data de início
-    \item \textbf{expiresAt} -- Data de expiração (startDate + plan.durationDays)
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{User} & \ddfield{id} & UUID, PK & Identificador global do usuário. \\
+& \ddfield{name} & Texto & Nome completo do usuário. \\
+& \ddfield{email} & Texto, único & Credencial de login e contato; validada por \textit{Value Object}. \\
+& \ddfield{passwordHash} & Texto & Senha armazenada somente como hash Bcrypt. \\
+& \ddfield{telephone} & Texto, opcional & Telefone para contato. \\
+& \ddfield{status} & Enum & Estado do usuário: \texttt{ACTIVE} ou \texttt{INACTIVE}; usado para exclusão lógica. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{OrganizationMembership (Associações Usuário-Role-Organização)}}\mbox{}\\
-Tabela de junção que associa usuários com roles em organizações específicas, formando a base do RBAC.
-\begin{itemize}
-    \item \textbf{userId, roleId, organizationId} -- Chave composta (PK)
-    \item \textbf{assignedAt} -- Data de atribuição do papel
-    \item \textbf{removedAt} -- Data de remoção (NULL para memberships ativos) - soft delete
-    \item Relacionamentos: User (cascade), Role (cascade), Organization (cascade)
-\end{itemize}
+\ddentity{Organization} & \ddfield{id} & UUID, PK & Identificador da organização de transporte. \\
+& \ddfield{name} & Texto & Nome público ou comercial da organização. \\
+& \ddfield{cnpj} & Texto, único & CNPJ validado por dígitos verificadores. \\
+& \ddfield{email} & Texto, único & E-mail institucional da organização. \\
+& \ddfield{telephone} & Texto & Telefone institucional. \\
+& \ddfield{address} & Texto & Endereço completo. \\
+& \ddfield{slug} & Texto, único & Identificador seguro para URLs públicas. \\
+& \ddfield{status} & Enum & Estado da organização; permite exclusão lógica. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{Driver (Motoristas)}}\mbox{}\\
-Extensão da entidade User para motoristas. Motoristas são entidades globais, vinculados a organizações exclusivamente via \texttt{OrganizationMembership}, permitindo que um usuário seja motorista em múltiplas organizações.
-\begin{itemize}
-    \item \textbf{userId} -- PK e FK: Usuário
-    \item \textbf{cnh} -- Número da CNH (único)
-    \item \textbf{cnhCategories} -- Categorias da CNH (coleção; um motorista pode ter A+B etc.)
-    \item \textbf{cnhExpiresAt} -- Data de validade da CNH
-    \item \textbf{status} -- Status (ACTIVE, INACTIVE, SUSPENDED)
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{OrganizationMembership} & \ddfield{userId} & UUID, PK/FK & Usuário vinculado à organização. \\
+& \ddfield{roleId} & Inteiro, PK/FK & Papel exercido pelo usuário na organização. \\
+& \ddfield{organizationId} & UUID, PK/FK & Organização do vínculo; base do isolamento por tenant. \\
+& \ddfield{assignedAt} & Data/hora & Data de atribuição do papel. \\
+& \ddfield{removedAt} & Data/hora, nulo & Data de remoção do vínculo; nulo quando o vínculo está ativo. \\
+\addlinespace
 
-\paragraph{\textbf{Vehicle (Veículos)}}\mbox{}\\
-Armazena informações dos veículos da frota.
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{plate} -- Placa do veículo (único, formatos ABC1234 e Mercosul ABC1D23)
-    \item \textbf{model} -- Modelo do veículo
-    \item \textbf{type} -- Tipo (VAN, BUS, MINIBUS, CAR)
-    \item \textbf{maxCapacity} -- Capacidade máxima de passageiros
-    \item \textbf{status} -- Status (ACTIVE, INACTIVE)
-    \item \textbf{organizationId} -- FK: Organização (multi-tenancy)
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{Driver} & \ddfield{userId} & UUID, PK/FK & Usuário que possui perfil de motorista. \\
+& \ddfield{cnh} & Texto, único & Número da CNH, validado por \textit{Value Object}. \\
+& \ddfield{cnhCategories} & Lista/enum & Categorias da CNH (A, B, C, D, E), normalizadas e sem duplicidade. \\
+& \ddfield{cnhExpiresAt} & Data & Validade da CNH. \\
+& \ddfield{status} & Enum & Estado do perfil: \texttt{ACTIVE}, \texttt{INACTIVE} ou \texttt{SUSPENDED}. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{TripTemplate (Template de Viagens Recorrentes)}}\mbox{}\\
-Define template para viagens recorrentes (rotas com horários e frequência).
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{departurePoint} -- Local de partida
-    \item \textbf{destination} -- Destino
-    \item \textbf{departureTimeOfDay, arrivalTimeOfDay} -- Hora do dia (HH:mm, UTC) de partida/chegada
-    \item \textbf{priceOneWay, priceReturn, priceRoundTrip} -- Preços por tipo de trajeto
-    \item \textbf{isRecurring} -- Se é recorrente
-    \item \textbf{frequency} -- Array de dias da semana (DayOfWeek enum)
-    \item \textbf{shift} -- Turno (MORNING, AFTERNOON, EVENING)
-    \item \textbf{stops} -- Array de paradas
-    \item \textbf{defaultCapacity} -- Capacidade padrão propagada às instâncias geradas
-    \item \textbf{autoCancelEnabled, minRevenue, autoCancelOffset} -- Configuração de auto-cancelamento
-    \item \textbf{status} -- Status (ACTIVE, INACTIVE)
-    \item \textbf{organizationId} -- FK: Organização
-    \item \textbf{isPublic} -- Se está disponível para inscrição
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{Vehicle} & \ddfield{id} & UUID, PK & Identificador do veículo. \\
+& \ddfield{plate} & Texto, único & Placa nos formatos nacional ou Mercosul, validada por \textit{Value Object}. \\
+& \ddfield{model} & Texto & Modelo do veículo. \\
+& \ddfield{type} & Enum & Tipo do veículo: \texttt{VAN}, \texttt{BUS}, \texttt{MINIBUS} ou \texttt{CAR}. \\
+& \ddfield{maxCapacity} & Inteiro & Capacidade máxima de passageiros. \\
+& \ddfield{status} & Enum & Estado do veículo: \texttt{ACTIVE} ou \texttt{INACTIVE}. \\
+& \ddfield{organizationId} & UUID, FK & Organização proprietária; aplica o isolamento multi-tenant. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{TripInstance (Instâncias de Viagem)}}\mbox{}\\
-Representa uma viagem específica (execução de um template).
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{driverId} -- FK: Motorista (nullable)
-    \item \textbf{vehicleId} -- FK: Veículo (nullable)
-    \item \textbf{totalCapacity} -- Capacidade total da viagem
-    \item \textbf{tripStatus} -- Status (DRAFT, SCHEDULED, CONFIRMED, IN\_PROGRESS, FINISHED, CANCELED)
-    \item \textbf{tripTemplateId} -- FK: Template
-    \item \textbf{departureTime} -- Horário de partida
-    \item \textbf{arrivalEstimate} -- Previsão de chegada
-    \item \textbf{organizationId} -- FK: Organização (multi-tenancy)
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{TripTemplate} & \ddfield{id} & UUID, PK & Identificador do modelo recorrente de viagem. \\
+& \ddfield{departurePoint} & Texto & Local de partida da rota. \\
+& \ddfield{destination} & Texto & Destino da rota. \\
+& \ddfield{departureTimeOfDay} & Hora & Horário recorrente de partida, armazenado em UTC. \\
+& \ddfield{arrivalTimeOfDay} & Hora & Horário recorrente estimado de chegada, armazenado em UTC. \\
+& \ddfield{priceOneWay} & Decimal & Preço para trajeto somente ida. \\
+& \ddfield{priceReturn} & Decimal & Preço para trajeto somente volta. \\
+& \ddfield{priceRoundTrip} & Decimal & Preço para ida e volta. \\
+& \ddfield{isRecurring} & Booleano & Indica se o modelo gera instâncias automaticamente. \\
+& \ddfield{frequency} & Lista/enum & Dias da semana em que a rota ocorre. \\
+& \ddfield{shift} & Enum & Turno da viagem: manhã, tarde ou noite. \\
+& \ddfield{stops} & Lista de texto & Paradas disponíveis; no MVP não há entidade própria para paradas. \\
+& \ddfield{defaultCapacity} & Inteiro & Capacidade padrão propagada para novas instâncias. \\
+& \ddfield{autoCancelEnabled} & Booleano & Habilita auto-cancelamento por baixa arrecadação. \\
+& \ddfield{minRevenue} & Decimal & Receita mínima esperada para manter a viagem. \\
+& \ddfield{autoCancelOffset} & Inteiro & Janela de antecedência para auto-cancelamento. \\
+& \ddfield{status} & Enum & Estado do modelo: \texttt{ACTIVE} ou \texttt{INACTIVE}. \\
+& \ddfield{organizationId} & UUID, FK & Organização proprietária do modelo. \\
+& \ddfield{isPublic} & Booleano & Define se a rota pode aparecer nas listagens públicas. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{Booking (Inscrições)}}\mbox{}\\
-Registra a inscrição de um usuário em uma viagem específica.
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{enrollmentDate} -- Data da inscrição
-    \item \textbf{status} -- Status (ACTIVE, INACTIVE) - soft delete
-    \item \textbf{presenceConfirmed} -- Se a presença foi confirmada
-    \item \textbf{enrollmentType} -- Tipo de trajeto (ONE\_WAY, RETURN, ROUND\_TRIP)
-    \item \textbf{recordedPrice} -- Preço registrado no momento da inscrição (imutável)
-    \item \textbf{userId} -- FK: Usuário
-    \item \textbf{tripInstanceId} -- FK: Instância de Viagem
-    \item \textbf{boardingStop} -- Parada de embarque
-    \item \textbf{alightingStop} -- Parada de desembarque
-    \item \textbf{organizationId} -- FK: Organização (multi-tenancy)
-    \item \textbf{activeKey} -- Chave única para garantir no máximo uma inscrição ativa por (userId, tripInstanceId)
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{TripInstance} & \ddfield{id} & UUID, PK & Identificador da viagem datada. \\
+& \ddfield{driverId} & UUID, FK, nulo & Motorista atribuído à viagem. \\
+& \ddfield{vehicleId} & UUID, FK, nulo & Veículo atribuído à viagem. \\
+& \ddfield{totalCapacity} & Inteiro & Capacidade efetiva da viagem. \\
+& \ddfield{tripStatus} & Enum & Estado operacional: \texttt{DRAFT}, \texttt{SCHEDULED}, \texttt{CONFIRMED}, \texttt{IN\_PROGRESS}, \texttt{FINISHED} ou \texttt{CANCELED}. \\
+& \ddfield{tripTemplateId} & UUID, FK & Modelo de rota que originou a instância. \\
+& \ddfield{departureTime} & Data/hora & Data e horário absolutos de partida. \\
+& \ddfield{arrivalEstimate} & Data/hora & Previsão absoluta de chegada. \\
+& \ddfield{organizationId} & UUID, FK & Organização responsável pela viagem. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{Payment (Pagamentos)}}\mbox{}\\
-Registra transações de pagamento associadas a inscrições (relação 1:1 com Booking).
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{organizationId} -- FK: Organização
-    \item \textbf{method} -- Método de pagamento (MONEY, PIX, CREDIT\_CARD, DEBIT\_CARD)
-    \item \textbf{amount} -- Valor (Decimal 10.2)
-    \item \textbf{status} -- Status (PENDING, COMPLETED, FAILED)
-    \item \textbf{enrollmentId} -- FK: Inscrição (\textit{unique}, 1:1 com Booking)
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{Booking} & \ddfield{id} & UUID, PK & Identificador da inscrição do passageiro. \\
+& \ddfield{enrollmentDate} & Data/hora & Momento em que a inscrição foi realizada. \\
+& \ddfield{status} & Enum & Estado da inscrição: \texttt{ACTIVE} ou \texttt{INACTIVE}. \\
+& \ddfield{presenceConfirmed} & Booleano & Indica se a presença foi confirmada no embarque. \\
+& \ddfield{enrollmentType} & Enum & Tipo de trajeto: \texttt{ONE\_WAY}, \texttt{RETURN} ou \texttt{ROUND\_TRIP}. \\
+& \ddfield{recordedPrice} & Decimal & Preço congelado no momento da inscrição. \\
+& \ddfield{userId} & UUID, FK & Passageiro inscrito. \\
+& \ddfield{tripInstanceId} & UUID, FK & Viagem associada à inscrição. \\
+& \ddfield{boardingStop} & Texto & Parada de embarque escolhida pelo passageiro. \\
+& \ddfield{alightingStop} & Texto & Parada de desembarque escolhida pelo passageiro. \\
+& \ddfield{organizationId} & UUID, FK & Organização da viagem; reforça o isolamento multi-tenant. \\
+& \ddfield{activeKey} & Texto, único parcial & Impede mais de uma inscrição ativa do mesmo usuário na mesma viagem. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{TripSchedulingConfig (Configuração de Agendamento)}}\mbox{}\\
-Configuração por organização (1:0..1) que controla os \textit{jobs} de geração recorrente e auto-cancelamento de viagens.
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{organizationId} -- FK: Organização (único)
-    \item \textbf{daysAhead} -- Janela de geração antecipada de instâncias (1--90, padrão 14)
-    \item \textbf{enabled} -- Se os \textit{jobs} estão ativos para a organização
-    \item \textbf{createdAt, updatedAt} -- Timestamps
-\end{itemize}
+\ddentity{Payment} & \ddfield{id} & UUID, PK & Identificador do pagamento. \\
+& \ddfield{organizationId} & UUID, FK & Organização responsável pela cobrança. \\
+& \ddfield{method} & Enum & Método: \texttt{MONEY}, \texttt{PIX}, \texttt{CREDIT\_CARD} ou \texttt{DEBIT\_CARD}. \\
+& \ddfield{amount} & Decimal & Valor cobrado pela inscrição. \\
+& \ddfield{status} & Enum & Estado: \texttt{PENDING}, \texttt{COMPLETED} ou \texttt{FAILED}. \\
+& \ddfield{enrollmentId} & UUID, FK único & Inscrição associada; relação 1:1 com \texttt{Booking}. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
 
-\paragraph{\textbf{AuditLog (Log de Auditoria)}}\mbox{}\\
-Entidade \textbf{modelada} para registrar ações críticas do sistema (conformidade e rastreabilidade). No estágio atual está modelada no schema, mas \textbf{ainda não é persistida} por nenhum caso de uso --- ponto de extensão \textit{audit-ready} (ver Limitações, Seção~\ref{sec:consideracoes}).
-\begin{itemize}
-    \item \textbf{id} -- Identificador único (UUID)
-    \item \textbf{organizationId} -- FK: Organização
-    \item \textbf{userId} -- FK: Usuário que realizou a ação
-    \item \textbf{action} -- Descrição da ação realizada
-    \item \textbf{timestamp} -- Data e hora da ação
-\end{itemize}
+\ddentity{Plan} & \ddfield{id} & Inteiro, PK & Identificador do plano. \\
+& \ddfield{name} & Enum, único & Nome comercial: \texttt{FREE}, \texttt{BASIC}, \texttt{PRO} ou \texttt{PREMIUM}. \\
+& \ddfield{price} & Decimal & Preço do plano. \\
+& \ddfield{description} & Texto & Descrição exibida ao usuário. \\
+& \ddfield{maxVehicles} & Inteiro & Limite de veículos permitidos. \\
+& \ddfield{maxDrivers} & Inteiro & Limite de motoristas permitidos. \\
+& \ddfield{maxMonthlyTrips} & Inteiro & Limite mensal de viagens. \\
+& \ddfield{durationDays} & Inteiro & Duração da assinatura em dias. \\
+& \ddfield{isActive} & Booleano & Indica se o plano pode ser contratado. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
+
+\ddentity{Subscription} & \ddfield{id} & UUID, PK & Identificador da assinatura. \\
+& \ddfield{organizationId} & UUID, FK & Organização assinante. \\
+& \ddfield{planId} & Inteiro, FK & Plano contratado. \\
+& \ddfield{status} & Enum & Estado: \texttt{ACTIVE}, \texttt{PAST\_DUE} ou \texttt{CANCELED}. \\
+& \ddfield{startDate} & Data/hora & Início da vigência. \\
+& \ddfield{expiresAt} & Data/hora & Data de expiração calculada a partir do plano. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
+
+\ddentity{TripScheduling\newline Config} & \ddfield{id} & UUID, PK & Identificador da configuração de agendamento. \\
+& \ddfield{organizationId} & UUID, FK único & Organização configurada; relação 1:0..1. \\
+& \ddfield{daysAhead} & Inteiro & Quantos dias à frente gerar instâncias; intervalo permitido de 1 a 90. \\
+& \ddfield{enabled} & Booleano & Liga ou desliga os jobs automáticos da organização. \\
+& \ddfield{createdAt} / \ddfield{updatedAt} & Data/hora & Controle de criação e atualização. \\
+\addlinespace
+
+\ddentity{AuditLog} & \ddfield{id} & UUID, PK & Identificador do registro de auditoria. \\
+& \ddfield{organizationId} & UUID, FK & Organização relacionada ao evento auditado. \\
+& \ddfield{userId} & UUID, FK & Usuário que realizou a ação. \\
+& \ddfield{action} & Texto & Descrição objetiva da ação realizada. \\
+& \ddfield{timestamp} & Data/hora & Momento da ação. \\
+\end{longtable}
+\fonte{Elaborado pelo autor (2026)}
+}
+
+\noindent\textit{Observação}: a entidade \texttt{AuditLog} está modelada no esquema para rastreabilidade, mas ainda não é persistida por casos de uso no MVP.
+

@@ -1,33 +1,50 @@
-\subsection{Verificação}
+\subsection{Testes}
+\label{subsec:verificacao}
 
 \subsubsection{Testes Unitários do Backend}
 
-\textbf{Status Atual}: 458 testes em 57 suites, cobrindo os use cases críticos de todos os módulos, guards de autorização e fluxos de negócio complexos.
+Status atual: 458 testes em 57 suites, cobrindo os use cases críticos de todos os módulos, guards de autorização e fluxos de negócio complexos.
 
-\textbf{Padrão de Testes Adotado}:
+A seleção dos testes unitários seguiu uma estratégia baseada em risco: foram priorizados os casos de uso que concentram regras de negócio críticas, decisões de autorização, isolamento entre organizações e efeitos financeiros. Por isso, a maior parte da cobertura concentra-se nos módulos de viagens, inscrições, autenticação, pagamentos e limites de plano, nos quais falhas poderiam causar overbooking, acesso indevido entre tenants, cobrança incorreta ou transições inválidas de estado.
+
+Nos testes do backend foram verificados cenários de sucesso, validações de entrada, erros de domínio, bloqueios por permissão, proteção multi-tenant, regras de capacidade, prazos de cancelamento, transições da máquina de estados de viagens, geração recorrente de instâncias, auto-cancelamento, expiração de assinatura e aplicação de limites de plano. Essa escolha é coerente com a arquitetura adotada, pois os casos de uso concentram as regras de negócio e podem ser exercitados de forma isolada, com dependências simuladas por mocks manuais.
+
+A elaboração dos testes também contou com apoio de ferramentas de IA generativa, especialmente para acelerar a criação de estruturas repetitivas, variações de cenários e organização inicial dos casos. Entretanto, a seleção dos comportamentos a serem testados, a validação dos resultados esperados, a adequação aos padrões do projeto e a revisão final permaneceram sob responsabilidade do autor.
+
+Critérios e estratégia de teste:
 \begin{itemize}
-\item \textbf{AAA (Arrange-Act-Assert)}: Estrutura consistente em todas as suites.
-\item \textbf{makeMocks()}: Cria todos os mocks via \texttt{jest.fn()} com tipagem \texttt{jest.Mocked<T>}.
-\item \textbf{setupHappyPath()}: Configura mocks para o cenário de sucesso padrão.
-\item \textbf{Injeção manual}: Dependências injetadas diretamente, sem mocks de framework NestJS.
-\item \textbf{Factories}: Funções \texttt{make*()} por módulo com suporte a overrides parciais.
+\item AAA (Arrange-Act-Assert): Estrutura consistente em todas as suites.
+\item makeMocks(): Cria todos os mocks via \texttt{jest.fn()} com tipagem \texttt{jest.Mocked<T>}.
+\item setupHappyPath(): Configura mocks para o cenário de sucesso padrão.
+\item Injeção manual: Dependências injetadas diretamente, sem mocks de framework NestJS.
+\item Factories: Funções \texttt{make*()} por módulo com suporte a overrides parciais.
 \end{itemize}
 
-A Tabela~\ref{tab:testes} resume a cobertura agregada por módulo; o detalhamento por use case está versionado no repositório (\texttt{test/modules/}).
+A Tabela~\ref{tab:testes} resume a quantidade de suites e testes por módulo; o detalhamento por use case está versionado no repositório (\texttt{test/modules/}).
 
 \input{sections/cobertura-testes-table}
 
-Os testes apoiam-se em \textit{factories} por módulo (funções \texttt{make*()} com suporte a \textit{overrides} parciais) que constroem entidades de domínio e DTOs de entrada --- por exemplo \texttt{makeUser}, \texttt{makeOrganization}, \texttt{makeDriver}, \texttt{makeTripTemplate}, \texttt{makeTripInstance}, \texttt{makeBooking}, \texttt{makeSubscription} ---, eliminando duplicação de \textit{setup} entre as suites.
+Os testes apoiam-se em \textit{factories} por módulo (funções \texttt{make*()} com suporte a \textit{overrides} parciais) que constroem entidades de domínio e DTOs de entrada, por exemplo \texttt{makeUser}, \texttt{makeOrganization}, \texttt{makeDriver}, \texttt{makeTripTemplate}, \texttt{makeTripInstance}, \texttt{makeBooking}, \texttt{makeSubscription}, eliminando duplicação de \textit{setup} entre as suites.
+
+Complementarmente à contagem de testes, a Figura~\ref{fig:cobertura} apresenta o relatório de cobertura gerado pelo Jest, com os percentuais de \textit{statements}, \textit{branches}, \textit{functions} e \textit{lines} por módulo. A cobertura concentra-se nos módulos de maior criticidade de negócio, com destaque para \textit{bookings}, \textit{trip} e \textit{auth}, refletindo a priorização deliberada dos casos de uso centrais do sistema; a ampliação da cobertura dos módulos secundários consta entre as limitações e recomendações (Seção~\ref{sec:consideracoes}).
+
+\begin{figure}[H]
+\centering
+\caption{Relatório de cobertura de testes do \textit{backend} (Jest), agregado por módulo.}
+\label{fig:cobertura}
+\includegraphics[width=\textwidth]{imagens/jest-coverage-completo.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
 
 \subsubsection{Verificação do Frontend}
 
-Em coerência com o estágio do produto e o tamanho reduzido da equipe, a estratégia de verificação do frontend é, no momento, \textbf{predominantemente manual}, estruturada em um roteiro de dezenas de cenários que cobrem os caminhos principais, os fluxos que cruzam contextos de acesso e os casos de borda. A integração contínua executa a verificação de estilo, a análise estática e a construção, deixando a verificação funcional a cargo do roteiro manual. A adoção de testes automatizados (provavelmente Vitest com \textit{Testing Library} para \textit{hooks} e serviços, e uma ferramenta de ponta a ponta para os fluxos) está condicionada à aproximação da operação comercial, tendo o fluxo de reserva como primeiro candidato à cobertura. A Tabela~\ref{tab:testes_manuais} ilustra o formato dos casos de teste manuais.
+Em coerência com o estágio do produto e o tamanho reduzido da equipe, a estratégia de verificação do frontend é, no momento, predominantemente manual, estruturada em um roteiro de dezenas de cenários que cobrem os caminhos principais, os fluxos que cruzam contextos de acesso e os casos de borda. A integração contínua executa a verificação de estilo, a análise estática e a construção, deixando a verificação funcional a cargo do roteiro manual. A adoção de testes automatizados (provavelmente Vitest com \textit{Testing Library} para \textit{hooks} e serviços, e uma ferramenta de ponta a ponta para os fluxos) está condicionada à aproximação da operação comercial, tendo o fluxo de reserva como primeiro candidato à cobertura. A Tabela~\ref{tab:testes_manuais} ilustra o formato dos casos de teste manuais.
 
 \begin{table}[H]
 \centering
 \caption{Exemplos de casos de teste manuais do frontend}
 \label{tab:testes_manuais}
-\begin{tabular}{lll}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l}
 \toprule
 \textbf{Caso} & \textbf{Resultado esperado} & \textbf{Status} \\
 \midrule
@@ -38,7 +55,8 @@ Mesmo ponto de embarque e desembarque & Bloqueio com mensagem de validação & O
 Cancelamento fora da janela permitida & Bloqueio com mensagem do \textit{errorCode} & OK \\
 Rota administrativa sem papel de admin & Redirecionamento para a raiz & OK \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
+\fonte{Elaborado pelo autor (2026)}
 \end{table}
 
 % ------------------------------

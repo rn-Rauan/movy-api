@@ -1,0 +1,111 @@
+\subsection{Fundamentação Técnica dos Conceitos Utilizados}
+\label{sec:fundamentacao}
+
+Antes de apresentar as tecnologias específicas adotadas, esta subseção
+fundamenta os principais conceitos de Engenharia de Software que orientaram
+as decisões de projeto do Movy. O objetivo é situar o leitor quanto aos
+referenciais teóricos e normativos que sustentam as escolhas descritas nas
+subseções seguintes, evitando que a discussão técnica se reduza a uma
+enumeração de ferramentas.
+
+\subsubsection{Requisitos de Software}
+
+Requisitos de software descrevem as funções, restrições e qualidades
+esperadas de um sistema, servindo de contrato entre as necessidades dos
+interessados e a solução a ser construída. A literatura clássica distingue
+requisitos funcionais, que especificam o que o sistema deve fazer,
+de requisitos não funcionais, que expressam atributos de
+qualidade, como desempenho, segurança e usabilidade \cite{sommerville2011,
+pressman2016}. A norma \textit{ISO/IEC/IEEE 29148} consolida as boas práticas
+de engenharia de requisitos, recomendando que cada requisito seja verificável,
+não ambíguo e rastreável \cite{ieee29148}. No presente trabalho, os requisitos
+são tratados como requisitos do sistema, expostos pela API e
+materializados em telas pela aplicação cliente, conforme detalhado na
+Seção~\ref{sec:modelagem}.
+
+\subsubsection{Modelagem de Software}
+
+A modelagem de software emprega abstrações gráficas para representar a
+estrutura e o comportamento de um sistema antes e durante a sua construção.
+A \textit{Unified Modeling Language} (UML), mantida pela \textit{Object
+Management Group}, é a notação de referência para essa finalidade, oferecendo
+diagramas como o de casos de uso (que captura as interações entre
+atores e o sistema), o de classes (que descreve entidades e seus
+relacionamentos) e modelos de dados \cite{omguml}. A modelagem antecipa
+decisões de projeto, favorece a comunicação entre os envolvidos e reduz o
+retrabalho na implementação \cite{sommerville2011}. Neste trabalho, a
+modelagem abrange casos de uso, modelo de domínio (diagrama de classes) e o
+modelo entidade-relacionamento (Seção~\ref{sec:modelagem} e seguintes).
+
+\subsubsection{Arquitetura em Camadas, Clean Architecture e DDD}
+
+A organização de um sistema em camadas separa responsabilidades
+distintas, como apresentação, aplicação, domínio e infraestrutura, de modo
+que cada camada dependa apenas das mais internas, e não o contrário. A
+\textit{Clean Architecture} formaliza esse princípio por meio da
+regra de dependência: as regras de negócio centrais não conhecem
+detalhes de \textit{frameworks}, banco de dados ou interface, tornando-se
+testáveis e resistentes a mudanças tecnológicas \cite{martin2017}. O
+\textit{Domain-Driven Design} (DDD) complementa essa abordagem ao colocar o
+modelo de domínio no centro do projeto, propondo conceitos como
+entidades, \textit{value objects}, agregados e contextos delimitados
+(\textit{bounded contexts}) para alinhar o código à linguagem do negócio
+\cite{evans2003}. Esses dois referenciais orientam tanto a estrutura do
+servidor quanto, por espelhamento, a da aplicação cliente.
+
+\subsubsection{APIs REST}
+
+\textit{Representational State Transfer} (REST) é um estilo arquitetural para
+sistemas distribuídos, definido por Fielding, que estabelece restrições como
+a comunicação cliente-servidor, a ausência de estado de sessão no
+servidor (\textit{statelessness}), a possibilidade de \textit{cache} e uma
+interface uniforme baseada em recursos identificados por URIs e manipulados
+por métodos HTTP \cite{fielding2000}. Uma API REST bem desenhada favorece a
+escalabilidade horizontal, o desacoplamento entre cliente e servidor e a
+integração com múltiplos consumidores. No Movy, a API REST concentra toda a
+lógica de domínio e é consumida por uma aplicação cliente web, mas permanece
+apta a atender outros clientes (por exemplo, aplicações móveis).
+
+\subsubsection{SaaS e Multi-tenancy}
+
+\textit{Software as a Service} (SaaS) é um modelo de entrega de software no
+qual a aplicação é executada em infraestrutura do provedor e disponibilizada
+aos clientes pela rede, sob demanda, sem instalação local \cite{nist800145}. É
+comum que plataformas SaaS adotem a multi-tenancy (multitenância), em
+que uma mesma instância da aplicação atende a diversas organizações
+(\textit{tenants}) mantendo o isolamento lógico dos respectivos
+dados. Esse isolamento pode ser obtido por bancos separados, esquemas
+separados ou, como neste trabalho, por um discriminador de tenant em
+cada registro (o campo \texttt{organizationId}), com filtragem aplicada em
+todas as consultas e validada por mecanismos de autorização.
+
+\subsubsection{Segurança, Autenticação e Autorização}
+
+Autenticação é o processo de comprovar a identidade de um usuário,
+ao passo que autorização determina o que esse usuário pode fazer.
+Em APIs REST \textit{stateless}, é usual empregar \textit{tokens} assinados no
+padrão \textit{JSON Web Token} (JWT), que transportam, de forma verificável,
+as informações de identidade e permissões \cite{rfc7519}. As senhas devem ser
+armazenadas apenas como \textit{hash} com função adaptativa e \textit{salt},
+como o bcrypt, de modo a resistir a ataques de força bruta
+\cite{bcrypt}. O controle de acesso baseado em papéis (RBAC) associa
+permissões a papéis, e papéis a usuários, simplificando a administração das
+autorizações \cite{nistrbac}. As diretrizes do \textit{OWASP}, particularmente
+o \textit{Top 10} e o \textit{Application Security Verification Standard}
+(ASVS), orientam a prevenção de vulnerabilidades
+recorrentes em aplicações web, como o \textit{Broken Access Control} e as
+referências diretas inseguras a objetos (IDOR) \cite{owasptop10, owaspasvs}.
+Por fim, o tratamento de dados pessoais observa os princípios da Lei Geral de
+Proteção de Dados (LGPD) \cite{lgpd}.
+
+\subsubsection{Testes de Software}
+
+Testes de software constituem a atividade de verificação que executa o sistema
+sob condições controladas para revelar defeitos e aumentar a confiança na sua
+corretude \cite{pressman2016, sommerville2011}. Os testes unitários
+exercitam, de forma isolada, as menores unidades de código (como casos de uso
+e \textit{value objects}), favorecendo a detecção precoce de erros e
+funcionando como documentação executável do comportamento esperado. Padrões
+como o \textit{Arrange-Act-Assert} (AAA) e o uso de \textit{test doubles}
+(\textit{mocks}) promovem testes legíveis e determinísticos. A estratégia de
+verificação adotada neste trabalho é detalhada na Seção~\ref{subsec:verificacao}.

@@ -1,0 +1,375 @@
+% ============================================================
+% artigotemplate.sty
+% Template de artigo acadêmico em LaTeX
+%
+% CRIADO POR: José Nilton Silva Lima
+% CURRÍCULO LATTES: https://lattes.cnpq.br/9910161133761662
+%
+% SOBRE O PACOTE:
+% Este arquivo define a estrutura completa para artigos científicos
+% seguindo as normas ABNT NBR 6022:2018 para referências bibliográficas.
+% A versão LaTeX das Referências foi desenvolvida pelo grupo abnTeX2:
+% http://www.abntex.net.br/
+%  
+% Estrutura base utilizada como espelho para o desenvolvimento deste template:
+% Manual de Trabalhos Acadêmicos do IFPI (Versão Artigo):
+% https://www.ifpi.edu.br/area-do-estudante/bibliotecas/manual-de-trabalhos-academicos
+%
+% RECOMENDAÇÃO: utilizar compilador pdfLaTeX para gerar o PDF final.
+%
+% DATA DE CRIAÇÃO: 14 de julho de 2025
+%
+% COPYRIGHT:
+% © 2025 José Nilton Silva Lima. Todos os direitos reservados.
+% É permitida a cópia, distribuição e modificação deste código
+% para fins acadêmicos, desde que mantidos os créditos originais.
+% Uso comercial proibido sem autorização prévia do autor.
+% ============================================================
+
+% artigotemplate.sty
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{artigotemplate}[2025/07/14 Template para Artigo Científico]
+
+% ============================================================
+% Pacotes básicos
+% ============================================================
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[T1]{fontenc}
+\RequirePackage[brazil]{babel}
+\RequirePackage{amsmath, amssymb}
+\RequirePackage{graphicx}
+\RequirePackage{float}
+\RequirePackage{titlesec}
+\RequirePackage[top=3cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\RequirePackage{helvet}
+\RequirePackage{setspace}
+\RequirePackage{indentfirst}
+\RequirePackage{fancyhdr}
+\RequirePackage{etoolbox}
+\RequirePackage{changepage}
+\RequirePackage{hyperref}
+\RequirePackage{caption}
+\RequirePackage[alf]{abntex2cite}
+\RequirePackage[dvipsnames]{xcolor} 
+\RequirePackage{tcolorbox}          
+\RequirePackage{listings}           
+\RequirePackage{accsupp}
+\tcbuselibrary{listings}            
+\tcbuselibrary{breakable}
+\renewcommand{\familydefault}{\sfdefault}
+\setlength{\headheight}{14.5pt}
+
+% ============================================================
+% Comandos para dados do artigo
+% ============================================================
+\newcommand{\titulo}[1]{\def\dadostitulo{#1}}
+\newcommand{\autor}[1]{\def\dadosautores{#1}}
+\newcommand{\instituicao}[1]{\def\dadosinstituicao{#1}}
+\newcommand{\campus}[1]{\def\dadoscampus{#1}}
+\newcommand{\curso}[1]{\def\dadoscurso{#1}}
+\newcommand{\cidade}[1]{\def\dadoscidade{#1}}
+\newcommand{\ano}[1]{\def\dadosano{#1}}
+\newcommand{\orientador}[1]{\def\dadosorientador{#1}}
+\newcommand{\coorientador}[1]{\def\dadoscoorientador{#1}}
+
+% ============================================================
+% Capa e contracapa
+% ============================================================
+\newcommand{\capaartigo}{
+    \thispagestyle{empty}
+    \begin{spacing}{1.0}
+    \begin{center}
+        \includegraphics[width=3cm]{logoIFPI.png}
+    
+        \vspace*{0.2cm}
+        \textbf{\MakeUppercase{\dadosinstituicao}} \\
+        \textbf{\MakeUppercase{\dadoscampus}} \\
+        \textbf{\MakeUppercase{\dadoscurso}} \\
+        
+        \vspace{3cm}
+        \MakeUppercase{\textbf{\dadosautores}} \\
+        
+        \vspace{3cm}
+        \textbf{\large\dadostitulo} \\
+        
+        \vfill
+        \textbf{\MakeUppercase{\dadoscidade}} \\
+        \textbf{\MakeUppercase{\dadosano}}
+    \end{center}
+    \end{spacing}
+    \newpage
+}
+
+\newcommand{\contracapaartigo}{
+    \thispagestyle{empty}
+    \begin{spacing}{1.0}
+    \begin{center}
+        \MakeUppercase{\dadosautores} \\
+        
+        \vspace{5cm}
+        \large\dadostitulo \\
+        
+        \vspace{2cm}
+    \end{center}
+    
+    \begin{adjustwidth}{8cm}{0cm}
+        \singlespacing
+        \noindent Trabalho de Conclusão de Curso (artigo científico) apresentado como exigência parcial para obtenção do diploma do Curso de \dadoscurso\ do \dadosinstituicao, \dadoscampus.
+        
+        \vspace{0.5cm}
+        \noindent Orientador(a): \dadosorientador
+        
+        \ifdef{\dadoscoorientador}{
+            \noindent Coorientador: \dadoscoorientador
+        }{}
+    \end{adjustwidth}
+    
+    \vfill
+    \begin{center}
+        \singlespacing
+        \MakeUppercase{\dadoscidade} \\
+        \MakeUppercase{\dadosano}
+    \end{center}
+    \end{spacing}
+    \newpage
+}
+
+% ============================================================
+% Notas de rodapé (autor, orientador, coorientador)
+% ============================================================
+\makeatletter
+\newcommand{\notaautor}[1]{\def\@notaautor{#1}}
+\newcommand{\notaorientador}[1]{\def\@notaorientador{#1}}
+\newcommand{\notacoorientador}[1]{\def\@notacoorientador{#1}}
+\newcommand{\@notaautor}{}
+\newcommand{\@notaorientador}{}
+\newcommand{\@notacoorientador}{}
+
+% Impressão formatada
+\newcommand{\infoartigo}{
+    \begin{spacing}{1}
+        \begin{center}
+            {\large\textbf{\dadostitulo}} \\[1.2em]
+        \end{center}
+        \begin{flushright}
+            \dadosautores
+            \ifdefempty{\@notaautor}{}{%
+                \footnote{\@notaautor}%
+            } \\
+
+            \ifdefvoid{\dadosorientador}{}{%
+                \dadosorientador
+                \ifdefempty{\@notaorientador}{}{%
+                    \footnote{\@notaorientador}%
+                } \\
+            }
+
+            \ifdefvoid{\dadoscoorientador}{}{%
+                \dadoscoorientador
+                \ifdefempty{\@notacoorientador}{}{%
+                    \footnote{\@notacoorientador}%
+                }%
+            }
+        \end{flushright}
+        \vspace{-0.5cm}
+    \end{spacing}
+}
+\makeatother
+
+% ============================================================
+% Resumo e abstract
+% ============================================================
+\newcommand{\resumo}[2]{
+    \begin{center}
+        \textbf{RESUMO}
+        \vspace{-0.3cm}
+    \end{center}
+
+    \begin{spacing}{1} 
+        \setlength{\parindent}{0pt} #1
+
+        \vspace{0.2cm}
+        \noindent\textbf{Palavras-chave:} #2
+    \end{spacing}
+}
+
+\newcommand{\abstracten}[2]{
+    \vspace{0.1cm}
+    \begin{center}
+        \textbf{ABSTRACT}
+        \vspace{-0.3cm}
+    \end{center}
+
+    \begin{spacing}{1} 
+        \setlength{\parindent}{0pt} #1
+
+        \vspace{0.2cm}
+        \noindent\textbf{Keywords:} #2
+    \end{spacing}
+}
+
+% ============================================================
+% Data de aprovação
+% ============================================================
+\newcommand{\dataaprovacao}[1]{
+    \vspace{1cm}
+    \noindent\textbf{Data de aprovação:} #1
+}
+
+% ============================================================
+% Formatação de seções e parágrafos
+% ============================================================
+\titleformat{\section}{\normalfont\bfseries\normalsize}{\thesection}{0.5em}{\MakeUppercase}
+\titleformat{\subsection}{\normalfont\normalsize}{\thesubsection}{0.5em}{\MakeUppercase}
+\titleformat{\subsubsection}{\normalfont\bfseries\normalsize}{\thesubsubsection}{0.5em}{}
+
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{-0.2em}
+\onehalfspacing
+
+% ============================================================
+% Ambientes de citação direta e código
+% ============================================================
+\newenvironment{citacaodireta}{
+  \vspace{18pt}
+  \begin{adjustwidth}{4cm}{0cm}
+  \begin{spacing}{1} 
+  \footnotesize 
+}{
+  \end{spacing}
+  \end{adjustwidth}
+}
+
+% ============================================================
+% Paginação e cabeçalho
+% ============================================================
+\fancypagestyle{paginacaoDireita}{
+    \fancyhf{}
+    \fancyhead[R]{\thepage}
+    \renewcommand{\headrulewidth}{0pt} 
+    \renewcommand{\footrulewidth}{0pt} 
+}
+
+\newcommand{\iniciarpaginacao}{
+    \clearpage 
+    \pagenumbering{arabic} 
+    \setcounter{page}{2} 
+    \pagestyle{paginacaoDireita} 
+}
+
+% ============================================================
+% Figuras, tabelas e quadros customizados
+% ============================================================
+\DeclareCaptionLabelSeparator{traco}{\ --\ }
+\captionsetup{
+    labelsep=traco,
+    labelfont=none
+}
+
+\captionsetup[figure]{justification=centering,font=normalsize}
+\captionsetup[table]{justification=centering,font=normalsize}
+
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabela}
+
+\newcommand{\fonte}[1]{
+  \par\smallskip
+  {\noindent\begingroup
+     \fontsize{10pt}{12pt}\selectfont
+     \raggedright Fonte: #1\par
+   \endgroup}
+}
+
+\newenvironment{figuraCustom}[2][]{
+  \begin{figure}[htbp]
+    \centering
+    \caption{#2}
+}{
+  \end{figure}
+}
+
+\newenvironment{tabelaCustom}[1]{
+  \begin{table}[htbp]
+    \centering
+    \caption{#1}
+}{
+  \end{table}
+}
+
+\newcounter{quadro}
+\renewcommand{\thequadro}{\arabic{quadro}}
+\newenvironment{quadroCustom}[1]{
+  \refstepcounter{quadro}
+  \begin{table}[htbp]
+    \centering
+    \caption*{Quadro \thequadro~-- #1}
+}{
+    \end{table}
+}
+
+
+% ============================================================
+% Ambiente para Bloco de Código
+% ============================================================
+\definecolor{codegray}{rgb}{0.95, 0.95, 0.95}
+\definecolor{codebordergray}{rgb}{0.80, 0.80, 0.80}
+
+\newtcblisting{blocoDeCodigo}{
+  breakable,
+  listing only,
+  colback=codegray,      
+  colframe=codebordergray,     
+  boxrule=1pt,           
+  arc=0mm,               
+  boxsep=2pt,            
+  left=4pt,             
+  right=4pt,            
+  top=1pt,               
+  bottom=1pt,            
+  listing options={
+    language=bash,                  
+    basicstyle=\ttfamily\footnotesize,     
+    breaklines=true,                
+    keepspaces=true,                
+    showstringspaces=false,          
+    breakautoindent=false,  
+    breakindent=0pt,
+  }
+}
+
+\newenvironment{citacaoCodigo}[1][]{
+  \begin{center}
+    \refstepcounter{figure}
+    Figura~\thefigure~--~#1\\[4pt]
+}{
+    \vspace{1pt}
+  \end{center}
+}
+
+% ============================================================
+% Apêndices e anexos
+% ============================================================
+\newcommand{\apendice}[2]{
+    \clearpage
+    \phantomsection
+    \addcontentsline{toc}{section}{Apêndice #1 -- #2} 
+    \begin{center}
+        \textbf{APÊNDICE #1 -- #2}
+    \end{center}
+}
+
+\newcommand{\anexo}[2]{
+    \clearpage
+    \phantomsection
+    \addcontentsline{toc}{section}{Anexo #1 -- #2} 
+    \begin{center}
+        \textbf{ANEXO #1 -- #2}
+    \end{center}
+}
+
+% ============================================================
+% Estilo de bibliografia
+% ============================================================
+\bibliographystyle{abntex2-alf}
+
+\endinput

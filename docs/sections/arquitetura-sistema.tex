@@ -1,14 +1,22 @@
 \subsection{Arquitetura do Sistema}
 \label{sec:arquitetura}
 
-Em alto nível, o sistema é composto por três elementos: a \textbf{aplicação cliente}, executada no navegador (e implantada em ambiente de borda); a \textbf{API REST}, que concentra a lógica de domínio; e o \textbf{banco de dados} relacional. O cliente comunica-se com a API exclusivamente via HTTP/JSON, e somente a API acessa o banco. Tanto o servidor quanto o cliente foram estruturados segundo o mesmo princípio --- separação de responsabilidades em camadas com fluxo de dados unidirecional ---, de modo que a arquitetura do cliente \textbf{espelha} a do servidor. As subseções a seguir descrevem cada lado.
+Em alto nível, o sistema é composto por três elementos: a aplicação cliente, executada no navegador (e implantada em ambiente de borda); a API REST, que concentra a lógica de domínio; e o banco de dados relacional. O cliente comunica-se com a API exclusivamente via HTTP/JSON, e somente a API acessa o banco. Tanto o servidor quanto o cliente foram estruturados segundo o mesmo princípio, separação de responsabilidades em camadas com fluxo de dados unidirecional, de modo que a arquitetura do cliente espelha a do servidor. A Figura~\ref{fig:arquitetura} sintetiza essa organização em camadas e o sentido único do fluxo de dados, do cliente até o banco; as subseções a seguir descrevem cada lado.
 
-\subsubsection{Backend --- Clean Architecture e DDD}
+\begin{figure}[H]
+\centering
+\caption{Arquitetura em camadas do sistema, aplicação cliente, API REST e banco de dados.}
+\label{fig:arquitetura}
+\includegraphics[width=0.6\textwidth]{imagens/arquitetura.png}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
+
+\subsubsection{Backend, Clean Architecture e DDD}
 
 A arquitetura do servidor foi estruturada seguindo os princípios da \textit{Clean Architecture} e do \textit{Domain-Driven Design} (DDD), organizando o sistema em camadas bem definidas que isolam responsabilidades e permitem independência de frameworks externos.
 
 \begin{enumerate}
-\item \textbf{Camada de Apresentação (Presentation)}: Controladores REST que orquestram requisições HTTP, validação de DTOs, autenticação JWT e retorno de respostas formatadas.
+\item Camada de Apresentação (Presentation): Controladores REST que orquestram requisições HTTP, validação de DTOs, autenticação JWT e retorno de respostas formatadas.
 \begin{itemize}
     \item Controllers: Mapeiam rotas HTTP para casos de uso.
     \item DTOs: Data Transfer Objects com validação via class-validator.
@@ -16,14 +24,14 @@ A arquitetura do servidor foi estruturada seguindo os princípios da \textit{Cle
     \item Mappers: Convertem entidades de domínio em respostas HTTP.
 \end{itemize}
 
-\item \textbf{Camada de Aplicação (Application)}: Orquestra regras de negócio através de Use Cases.
+\item Camada de Aplicação (Application): Orquestra regras de negócio através de Use Cases.
 \begin{itemize}
     \item Use Cases: Implementam a lógica de negócio de forma testável e independente.
     \item Aplicação: Coordena fluxo entre domínio e infraestrutura.
     \item Exceptions: Erros de aplicação específicos (ex: \textit{MembershipAlreadyExistsError}).
 \end{itemize}
 
-\item \textbf{Camada de Domínio (Domain)}: Contém regras de negócio centrais, completamente independentes de frameworks.
+\item Camada de Domínio (Domain): Contém regras de negócio centrais, completamente independentes de frameworks.
 \begin{itemize}
     \item Entities: Objetos com identidade única (ex: User, Organization).
     \item Value Objects: Encapsulam validações de dados (ex: Email, CNPJ, Slug, Money).
@@ -31,7 +39,7 @@ A arquitetura do servidor foi estruturada seguindo os princípios da \textit{Cle
     \item Erros de Domínio: Exceções específicas do negócio.
 \end{itemize}
 
-\item \textbf{Camada de Infraestrutura (Infrastructure)}: Implementação de detalhes técnicos.
+\item Camada de Infraestrutura (Infrastructure): Implementação de detalhes técnicos.
 \begin{itemize}
     \item Repositories: Implementação do padrão Repositório com Prisma.
     \item Database: Configuração do Prisma e conexão com PostgreSQL.
@@ -39,7 +47,7 @@ A arquitetura do servidor foi estruturada seguindo os princípios da \textit{Cle
     \item Providers: Serviços específicos (ex: Bcrypt para hash de senhas).
 \end{itemize}
 
-\item \textbf{Camada Compartilhada (Shared)}: Componentes reutilizáveis.
+\item Camada Compartilhada (Shared): Componentes reutilizáveis.
 \begin{itemize}
     \item Domain Errors e Value Objects compartilhados.
     \item Guards (JWT authentication, RolesGuard, TenantFilterGuard, DevGuard).
@@ -50,70 +58,80 @@ A arquitetura do servidor foi estruturada seguindo os princípios da \textit{Cle
 \end{itemize}
 \end{enumerate}
 
-Cada módulo de negócio segue a mesma estrutura hierárquica, conforme o Código~\ref{cod:modulo_estrutura}.
+Cada módulo de negócio segue a mesma estrutura hierárquica, com um diretório por camada, conforme a Tabela~\ref{tab:modulo_estrutura} (exemplificada com o módulo de usuários).
 
-\begin{lstlisting}[caption={Estrutura de um módulo do backend (exemplo: usuários)}, label={cod:modulo_estrutura}]
-src/modules/user/
-  application/
-    dto/
-      - create-user.dto.ts
-      - update-user.dto.ts
-      - user-response.dto.ts
-    use-cases/
-      - create-user.use-case.ts
-      - find-all-users.use-case.ts
-      - find-user-by-id.use-case.ts
-  domain/
-    entities/
-      - user.entity.ts
-    errors/
-      - user.errors.ts
-    interfaces/
-      - user.repository.ts
-  infrastructure/
-    db/
-      mappers/
-        - user.mapper.ts
-      repositories/
-        - prisma-user.repository.ts
-  presentation/
-    controllers/
-      - user.controller.ts
-    mappers/
-      - user.mapper.ts
-  user.module.ts
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\caption{Estrutura de diretórios de um módulo do \textit{backend} (exemplo: \texttt{user})}
+\label{tab:modulo_estrutura}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Camada (diretório)} & \textbf{Conteúdo típico} \\
+\midrule
+\texttt{application/}    & DTOs e casos de uso (ex.: \texttt{create-user}, \texttt{find-all-users}, \texttt{find-user-by-id}). \\
+\texttt{domain/}         & Entidades, erros de domínio e interfaces de repositório (ex.: \texttt{user.entity}, \texttt{user.errors}, \texttt{user.repository}). \\
+\texttt{infrastructure/} & Implementação Prisma do repositório e \textit{mappers} de persistência. \\
+\texttt{presentation/}   & Controladores REST e \textit{mappers} de resposta HTTP. \\
+\texttt{user.module.ts}  & Declaração do módulo NestJS, que conecta as quatro camadas via injeção de dependência. \\
+\bottomrule
+\end{tabularx}
+\fonte{Elaborado pelo autor (2026)}
+\end{table}
 
-Os principais padrões de \textit{design} implementados no servidor são: \textbf{Repositório} (abstração da persistência), \textbf{Injeção de Dependência} (nativa do NestJS), \textbf{Value Objects} (validação de valores complexos), \textbf{Use Cases} (cada operação de negócio como classe testável), \textbf{Guards} (proteção de rotas), \textbf{Interceptadores} (\textit{logging} centralizado), \textbf{Filters de Exceção} (tratamento global de erros), \textbf{Soft Delete} (exclusão por status/\textit{timestamp}) e \textbf{UnitOfWork} (transações atômicas via \texttt{AsyncLocalStorage} sem expor Prisma à camada de aplicação).
+Os principais padrões de \textit{design} implementados no servidor são: Repositório (abstração da persistência), Injeção de Dependência (nativa do NestJS), Value Objects (validação de valores complexos), Use Cases (cada operação de negócio como classe testável), Guards (proteção de rotas), Interceptadores (\textit{logging} centralizado), Filters de Exceção (tratamento global de erros), Soft Delete (exclusão por status/\textit{timestamp}) e UnitOfWork (transações atômicas via \texttt{AsyncLocalStorage} sem expor Prisma à camada de aplicação).
 
-\subsubsection{Frontend --- Arquitetura em Camadas}
+\subsubsection{Frontend, Arquitetura em Camadas}
 
-A arquitetura do cliente espelha a separação do servidor, distribuindo responsabilidades em quatro camadas atravessadas por um fluxo de dados unidirecional, conforme o Código~\ref{cod:fe_arquitetura}.
+A arquitetura do cliente espelha a separação do servidor, distribuindo responsabilidades em quatro camadas atravessadas por um fluxo de dados unidirecional, conforme a Figura~\ref{fig:fe_arquitetura}.
 
-\begin{lstlisting}[caption={Arquitetura em camadas do frontend}, label={cod:fe_arquitetura}]
-Rotas + Componentes      (apresentacao: controladores finos / so props)
-        |  invocam
-Hooks de feature         (casos de uso: estado + obtencao de dados + efeitos)
-        |  chamam
-Servicos                 (padrao repositorio: um arquivo por dominio)
-        |  usam
-Cliente HTTP (lib/api)   (autenticacao + renovacao de sessao + erros)
-        |  HTTP/JSON
-   Movy API (backend)
-\end{lstlisting}
+\begin{figure}[H]
+\centering
+\caption{Arquitetura em camadas da aplicação cliente}
+\label{fig:fe_arquitetura}
+\setlength{\fboxsep}{8pt}
+\fbox{%
+\begin{minipage}{0.88\textwidth}
+\centering
+Apresentação\\
+\texttt{src/routes} + componentes de tela\\
+\small rotas finas, composição visual e dados recebidos por propriedades\\[0.2cm]
+\(\downarrow\) invocam\\[0.2cm]
+Hooks de feature\\
+\texttt{src/features/*/hooks}\\
+\small casos de uso do cliente: estado, busca, filtros e efeitos\\[0.2cm]
+\(\downarrow\) chamam\\[0.2cm]
+Serviços\\
+\texttt{src/services}\\
+\small repositórios de API agrupados por domínio\\[0.2cm]
+\(\downarrow\) usam\\[0.2cm]
+Cliente HTTP\\
+\texttt{src/lib/api.ts}\\
+\small autenticação, renovação de sessão e normalização de erros\\[0.2cm]
+\(\downarrow\) HTTP/JSON\\[0.2cm]
+Movy API
+\end{minipage}}
+\fonte{Elaborado pelo autor (2026)}
+\end{figure}
 
-A camada de \textbf{apresentação} compõe-se das rotas e dos componentes. As rotas são deliberadamente finas --- controladores enxutos cuja função é instanciar um \textit{hook} de caso de uso e repassar seus dados aos componentes ---, e os componentes recebem dados apenas por propriedades, sem realizar requisições próprias. A camada de \textbf{casos de uso} materializa-se nos \textit{hooks de feature}, que encapsulam a obtenção de dados, o estado associado (carregamento, erro, conteúdo) e os efeitos colaterais de uma operação de domínio. A camada de \textbf{serviços} implementa o padrão Repositório: cada arquivo agrupa as chamadas a um conjunto coeso de \textit{endpoints} e esconde detalhes de transporte. Por fim, o \textbf{cliente HTTP} é o ponto único de comunicação com a API, responsável por anexar credenciais, normalizar erros e renovar a sessão de forma transparente. Por convenção, nenhum componente ou rota chama o cliente HTTP diretamente --- toda comunicação passa por um serviço.
+A camada de apresentação compõe-se das rotas e dos componentes. As rotas são deliberadamente finas, controladores enxutos cuja função é instanciar um \textit{hook} de caso de uso e repassar seus dados aos componentes, e os componentes recebem dados apenas por propriedades, sem realizar requisições próprias. A camada de casos de uso materializa-se nos \textit{hooks de feature}, que encapsulam a obtenção de dados, o estado associado (carregamento, erro, conteúdo) e os efeitos colaterais de uma operação de domínio. A camada de serviços implementa o padrão Repositório: cada arquivo agrupa as chamadas a um conjunto coeso de \textit{endpoints} e esconde detalhes de transporte. Por fim, o cliente HTTP é o ponto único de comunicação com a API, responsável por anexar credenciais, normalizar erros e renovar a sessão de forma transparente. Por convenção, nenhum componente ou rota chama o cliente HTTP diretamente, toda comunicação passa por um serviço.
 
-O código organiza-se em \textbf{módulos de feature}: cada domínio reúne, em um único diretório, seus \textit{hooks} e componentes, como ilustra o Código~\ref{cod:fe_estrutura}. Essa estratificação confere ao cliente \textbf{localidade de mudança} (alterações no contrato de um \textit{endpoint} afetam somente o serviço correspondente) e \textbf{coesão por domínio}.
+O código organiza-se em módulos de feature: cada domínio reúne, em um único diretório, seus \textit{hooks} e componentes, como sintetiza a Tabela~\ref{tab:fe_estrutura}. Essa estratificação confere ao cliente localidade de mudança (alterações no contrato de um \textit{endpoint} afetam somente o serviço correspondente) e coesão por domínio.
 
-\begin{lstlisting}[caption={Estrutura de diretórios do frontend}, label={cod:fe_estrutura}]
-src/
-  routes/      # rotas file-based (TanStack Router) - controladores finos
-  features/    # modulos de dominio (hooks + components por feature)
-    trips/  bookings/  organizations/  drivers/
-    templates/  vehicles/  scheduling/  subscriptions/  financial/
-  services/    # camada de servicos (padrao repositorio, 1 arquivo por dominio)
-  components/  # ui/ (shadcn), layout/, feedback/, visual/
-  lib/         # api.ts, auth-context, role-context, types, format, timezone
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\caption{Estrutura de diretórios da aplicação cliente}
+\label{tab:fe_estrutura}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Diretório} & \textbf{Papel} \\
+\midrule
+\texttt{routes/}     & Rotas \textit{file-based} (TanStack Router), controladores finos. \\
+\texttt{features/}   & Módulos de domínio (\textit{hooks} + componentes): \texttt{trips}, \texttt{bookings}, \texttt{organizations}, \texttt{drivers}, \texttt{templates}, \texttt{vehicles}, \texttt{scheduling}, \texttt{subscriptions}, \texttt{financial}. \\
+\texttt{services/}   & Camada de serviços (padrão Repositório, um arquivo por domínio). \\
+\texttt{components/} & Componentes de apresentação: \texttt{ui/} (shadcn), \texttt{layout/}, \texttt{feedback/}, \texttt{visual/}. \\
+\texttt{lib/}        & Infraestrutura compartilhada: \texttt{api.ts}, contextos de autenticação e papel, tipos, formatação e \textit{timezone}. \\
+\bottomrule
+\end{tabularx}
+\fonte{Elaborado pelo autor (2026)}
+\end{table}
 
