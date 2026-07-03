@@ -1,0 +1,267 @@
+# Modelagem de software para atender o sistema público de transporte escolar municipal
+
+**Título em inglês:** Software modeling to meet the public municipal school transport system
+
+**Autores:** André Luiz dos Reis; Daniel Guimarães do Lago; Lázaro Eduardo da Silva; Eduardo Gomes Carvalho; Augusto Sérgio de Oliveira Silva
+
+**Periódico:** Brazilian Journal of Development, Curitiba, v. 7, n. 12, p. 111756-111774, dez. 2021
+**ISSN:** 2525-8761
+**DOI:** 10.34117/bjdv7n12-117
+**Recebimento dos originais:** 12/11/2021
+**Aceitação para publicação:** 06/12/2021
+
+## Resumo
+
+O presente artigo faz parte de um sistema maior que tem como objetivo fazer o Controle de Embarque de Alunos do Transporte Escolar CEATE. O objetivo é definir os requisitos e modelar software de controle e gerenciamento do transporte escolar destinado a uma instituição de ensino, que possui aproximadamente 980 alunos. A escola atende alunos que moram no campo e bairros distantes tornando o transporte escolar indispensável para grande parte dos estudantes. A má gestão do serviço do transporte escolar influência a frequência dos alunos e compromete a qualidade da educação. No Brasil, 2.802.258 crianças e adolescentes de 4 a 17 anos estão fora da escola, segundo a Pesquisa Nacional por Amostra de Domicílios. Os maiores índices de exclusão se concentram na zona rural. Dispersos pelo Brasil, 661.110 meninos e meninas estão longe das salas de aula fora das cidades, vilas e áreas urbanas isoladas (UNICEF, 2017). O transporte escolar é direito do aluno, cabe o município contratar ou adquirir uma frota para que atenda a demanda. A Secretaria de Educação Municipal (SME) é responsável pela contratação e administração do transporte escolar. A escola em questão atende estudantes com idade que variam entre 4 a 11 anos, e grande parte faz uso do transporte escolar, a organização torna-se um desafio. Os problemas são muitos, como: precisão de horários nos pontos pré-estabelecidos, controle de entrada e saída dos alunos, controle de permissões para o uso do transporte escolar, controle de rotas dos ônibus, controle de motoristas e monitores, ocasionando um transtorno para o município, os problemas são crônicos. Com o problema em evidência será apresentado uma revisão bibliográfica do assunto para obtenção de respostas teóricas e necessárias para modelar um software que pode ou não atender o problema que acerca o transporte escolar. A linha do tempo do estudo segue o manual da Engenharia de Software, o levantamento de requisitos e diagramas, descreverão os fundamentos e objetivo de modelar o software do transporte escolar. Definições da UML (Unified Modeling Language), Linguagem de modelagem unificada com auxílio do Software ArgoUML, que é uma ferramenta de modelagem gratuita usada para modelar o desenho de software de computador que foram contextualizados os diagramas.
+
+**Palavras-chave:** Engenharia de Software. Software transporte escolar. Modelagem.
+
+## Abstract
+
+This article is part of a larger system that aims to make the Boarding Control of Students in CEATE School Transport, the objective is to define the requirements and model software for controlling and managing school transport for an educational institution, which has approximately 980 students. The school serves students who live in the countryside and distant neighborhoods, making school transport essential for most students. Mismanagement of the school transport service influences student attendance and commitment to the quality of education. In Brazil, 2,802,258 children and adolescents from 4 to 17 years of age are out of school, according to the National Household Sample Survey. The highest exclusion rates are concentrated in the rural area. Scattered across Brazil, 661,110 boys and girls are far from classrooms for cities, towns and fixed urban areas (UNICEF, 2017). School transport is a student's right, it is up to the municipality to hire or purchase a fleet to meet the demand. The Municipal Education Secretariat (SME) is responsible for contracting and administering school transport. The school in question serves students aged between 4 and 11 years, and a large part uses school transport, organization becomes a challenge. The problems are many, such as: accuracy of time at pre-collected points, control of entry and exit of students, control of permission to use school transport, control of bus routes, control of drivers and monitors, causing an inconvenience to the municipality, the problems are chronic. With the problem in evidence, a bibliographic review of the subject will be presented for the theoretical answers and required to model a software that may or may not meet or a problem that concerns school transport. The timeline of the study follows the Software Engineering manual, requirements gathering and diagrams, will describe the fundamentals and objective of modeling the school transport software. Definitions of UML (Unified Modeling Language), Unified modeling language with the help of ArgoUML Software, which is a free modeling tool used to model the design of computer software that have been contextualized in diagrams.
+
+**Keywords:** Software Engineering, School transport software, Modeling.
+
+## 1 INTRODUÇÃO
+
+A Constituição Federal de 1988 diz que o aluno da escola pública tem o direito ao transporte escolar. A Lei nº 9.394/96 da LDB (Lei de diretrizes e bases da educação nacional) também cita o direito do aluno no uso do transporte escolar, sendo obrigação dos Estados e Municípios a lei diz "Art. 10. Os Estados incumbir-se-ão de: VI - assumir o transporte escolar dos alunos da rede municipal". (LDB, 2017). De acordo com a Constituição Federal, em seu artigo 205: "A educação, direito de todos e dever do Estado e da família, será promovida e incentivada com a colaboração da sociedade, visando o pleno desenvolvimento da pessoa, seu preparo para o exercício da cidadania e sua qualificação para o trabalho." Assim como contextualiza (COSTA, 2021) e diz que a LDB:
+
+[...] vai mais além, ao estabelecer o direito à educação, determina a obrigatoriedade por parte dos entes federativos em promover o acesso e a permanência dos alunos na escola. Esse acesso se dá pelo transporte escolar, o qual é um dos meios responsáveis pela efetivação da igualdade de condições de acesso às salas de aula, tendo em vista a extensão territorial do nosso país, esse fator, extensão territorial é tão relevante na dinâmica da educação rural, que o governo federal vem desenvolvendo programas que regulamentam o transporte para os alunos destas escolas.
+
+Mesmo sendo um serviço de extrema necessidade, o município tem dificuldades em ter um transporte escolar de qualidade e principalmente com segurança. Sabendo das dificuldades, responsáveis pelos alunos menores de idade deixam de enviar seus filhos para escola. A situação do transporte escolar no município não é claramente definida, faltam conhecer e pontuar alguns gargalos que faz com que o transporte seja de má qualidade. Qual a real necessidade do município em relação a gestão do transporte escolar?
+
+É necessário inicialmente um levantamento de recursos que o município disponibiliza para investimento no transporte escolar, quantidade de alunos, rotas dos ônibus e número de veículos. Anualmente são necessárias atualizações das rotas e alunos, para repasse do governo estadual. Dados imprecisos influenciam nos repasses para manutenção do transporte. Sem o uso da tecnologia a obtenção e manipulação destes dados é difícil e demorada, tornando uma missão quase que impossível e influenciando diretamente nas tomadas de decisões. Os dados gerados nestes eventos devem ser informatizados, pois são necessários relatórios, consultas, cadastros, alterações e exclusões para melhorar a eficiência do transporte escolar aos alunos. Diz (MARTINS, 2010) "O transporte escolar tem papel fundamental no desempenho dos alunos na escola, pois reduz a evasão escolar em regiões em que escolas ficam muito distantes dos estudantes e existe pouca ou nenhuma oferta de transporte, como nas zonas rurais." A engenharia de software faz parte do processo de desenvolvimento do software.
+
+"A engenharia de software tem por objetivo apoiar o desenvolvimento profissional de software, mais do que a programação individual. Ela inclui técnicas que apoiam especificação, projeto e evolução de programas, que normalmente não são relevantes para o desenvolvimento de software pessoal.". (SOMMERVILLE 2011, p. 3). Neste sentido o uso de técnicas de engenharia de software é fundamental para que se obtenha sucesso, mesmo que o sistema tenha sido bem projetado é necessário estar bem especificado para não causar falhas importantes no futuro. Estas técnicas, possibilitam uma definição de requisitos mais sólidas e completas. A proposta deste artigo é um modelo de parte de um software para uso de uma instituição de ensino com a finalidade de gerenciar os alunos que fazem uso do transporte escolar.
+
+### 1.1 PROBLEMA
+
+Embora se observa que o Município se esforça para manter e aprimorar os serviços de transporte escolar, nem sempre é possível realizar o transporte da maneira ideal e conforme o esperado. Em algumas situações imprevistas e adversas podem acontecer como em decorrência relacionadas a frota, falhas mecânicas, deficiências humanas, operacionais, barreiras e obstáculos físicos impostos pelas condições meteorológicas que podem prejudicar o transporte escolar. Desenvolver uma ferramenta de controle de transporte escolar, que auxilie o Município no gerenciamento das operações e que permita aos pais e responsáveis, certificar-se de que o serviço está sendo realizado de forma organizada e com segurança para os usuários. O gerenciamento do transporte escolar é de fundamental importância, a identificação dos usuários do transporte, as rotas percorridas e os repasses do Governo Estadual precisam estar de acordo com a demanda. Alguns casos evidenciados pelos monitores e usuários do transporte escolar é que devida a grande quantidade de usuários, acontecem situações que compromete a integridade física dos usuários, situações em que os alunos menores dormem nos assentos e passam do ponto que teriam que desembarcar, causando sérios problemas para a escola e o município, usuários não autorizados, falta de disciplinas de usuários menores de idade, falta de controle de qual ponto o usuário precisa embarcar e desembarcar. Os alunos embarcam no ônibus no ponto previamente combinado com a Secretaria Municipal de Educação e desembarca na escola, no seu retorno ao término das aulas o processo é ao contrário, os alunos embarcam na escola e desembarcam no ponto de partida inicial, os monitores guiam os alunos. Conforme figura 1 e 2, os ônibus da SME estão aguardando o término da aula para embarque dos alunos. A figura 3 e figura 4 mostram os alunos sendo organizados pelos monitores em filas no pátio da escola, estas filas são organizadas de acordo com os bairros que os alunos residem, e desta forma seguem até aos ônibus parados em frente à escola e poderem seguirem para seu destino. Nessa operação de embarque há necessidade de identificação dos alunos, saber qual bairro de destino e se o aluno é autorizado a fazer uso do transporte escolar.
+
+*Figura 1 - ônibus da SME aguardando os alunos para o embarque*
+*Fonte: autor*
+
+*Figura 2 - ônibus empresa terceirizada aguardando os alunos para o embarque*
+*Fonte: autor*
+
+*Figura 3 - alunos aguardando para embarque*
+*Fonte: autor*
+
+*Figura 4 - alunos aguardando para embarque*
+*Fonte: autor*
+
+### 1.2 OBJETIVOS
+
+O objetivo trata-se de uma modelagem de software que favoreça melhorias nos processos de gestão do transporte escolar, que possa permitir mais segurança, organização, para o transporte dos alunos, motoristas e monitores.
+
+#### 1.2.1 OBJETIVO GERAL
+
+A modelagem do software tem como objetivo contribuir e auxiliar de forma mais precisa e organizada as operações envolvidas no transporte e que possa de forma eficaz contribuir com a segurança aos usuários do transporte escolar.
+
+#### 1.2.2 OBJETIVOS ESPECÍFICOS
+
+Realizar um levantamento de todas as instituições escolares, rotas percorridas pelos veículos, número de alunos, monitores e motoristas. Aplicar as metodologias de engenharia de software para modelagem e documentação da ferramenta. Modelagem do software Web que contém as seguintes funcionalidades para o software Web: a) Cadastro de Administradores; b) Cadastro de Secretárias; c) Cadastro de Alunos; d) Cadastro de Motoristas; e) Cadastro de Monitores; f) Cadastro de Veículos; g) Cadastro de Rotas; h) Cadastro de Escolas. i) Consultas a) Rotas; b) Alunos; j) Relatórios para impressões: a) Rotas; b) Alunos; d) Carteirinha para o aluno.
+
+### 1.3 JUSTIFICATIVA
+
+O Estado além de garantir o acesso à educação aos alunos do município, é preciso oferecer condições necessárias para que os alunos cheguem à escola com segurança e nela permaneçam e logo ao término da aula voltem para seus lares com segurança. Sendo assim, um dos objetivos do governo federal, por meio do Fundo Nacional de Desenvolvimento da Educação (FNDE), é garantir o direito constitucional à educação a todas as crianças em idade escolar. De acordo com a Constituição Federal, em seu artigo 205:
+
+"A educação, direito de todos e dever do Estado e da família, será promovida e incentivada com a colaboração da sociedade, visando o pleno desenvolvimento da pessoa, seu preparo para o exercício da cidadania e sua qualificação para o trabalho."
+
+Cabe, então, ao secretário de educação do município, a responsabilidade de tornar real o direito dos cidadãos de acesso à escola, por meio de uma política pública voltada para o transporte escolar. Perante do revelado, percebe-se que o transporte escolar, em determinados casos toma um desafio gerenciá-lo, sendo de tamanha importância para o desenvolvimento da sociedade. Percebe-se a necessidade de um sistema de gerenciamento de dados que possa fornecer aos envolvidos, informações objetivas e adequadas às atividades inerentes ao transporte escolar. Como destaca (DIAS, 2003) sua importância e classificá-lo como o radar que auxiliará as organizações e instituições a traçarem trajetórias bem-sucedidas. Assim, se percebe que a disponibilidade de informações com qualidade a respeito do ambiente onde se atua é fundamental para a redução de riscos na tomada de decisões e aprimoramento dos serviços prestados. Informações necessárias de maneira precisa e oportuna para os que tomam decisões.
+
+## 2 REVISÃO DA LITERATURA
+
+O desenvolvimento da modelagem de software e da pesquisa deste tema tem como base as diretrizes da engenharia de software, com objetivo em modelar uma solução de um software que seja funcional e prático. As definições presentes na engenharia de software são importantes para se projetar um sistema aceitável e um produto de qualidade.
+
+### 2.1 ENGENHARIA DE SOFTWARE
+
+O desenvolvimento e planejamento de um software são uma série de processos que tem evoluído constantemente. Nos primórdios da informática a programação era ordenada por programadores que ligavam e desligavam os cabos de acordo com tomadas de decisões pré-estabelecidas. Como diz (PRESSMAN, 2011), há 60 anos, ninguém imaginava que o software se tornaria indispensável para negócios, engenharia e pesquisas; que software viabilizaria a criação de novas tecnologias a extensão de tecnologias existentes e a mudanças radicais nas tecnologias mais antigas. E (SOMMERVILLE, 2011), relata que o mundo moderno não tem como existir sem o software e que infraestruturas e serviços que são controlados, gerenciados e interpretados por sistemas computacionais, e a maioria dos produtos elétricos inclui um computador e um software que o controla. O Software desenvolvido com metodologias de engenharia tornou-se confiável e eficiente, como diz (TONSIG 2008, p. 65) "o software como fruto de engenharia é o grande objetivo que se busca, a fim de conseguir obter-se um produto confiável, funcionando de uma maneira eficiente e economicamente viável." (PRESSMAN, 2011) Softwares devem ser criados através de processos de engenharia. Para isso utiliza-se a Engenharia de Software.
+
+### 2.2 CASO DE USO
+
+Segundo (VIEIRA, 2015), o diagrama de Casos de Uso auxilia no levantamento dos requisitos ativos do sistema, propondo um conjunto de funcionalidades do sistema e suas interações com elementos externos e entre si. Já (GUEDES, 2011) diz que o diagrama de casos de uso tem por finalidade, por meio de uma linguagem simples, possibilitar a compreensão das funcionalidades oferecidas por ele ou por qualquer pessoa, tentando apresentar o sistema por intermédio do ponto de vista do usuário. Quando falamos de casos de uso, temos que ter em mente o conceito de cenários, que seriam instâncias de casos de uso. Um cenário pode ser compreendido como uma sequência de passos que descreve uma interação entre um usuário e o sistema (VIEIRA, 2015). Ainda (GUEDES, 2011) relata que os atores são representados por símbolos de "bonecos magros", contendo uma breve descrição logo abaixo de seu símbolo que identifica o papel que o ator em questão assume dentro do diagrama.
+
+Administrator Secretária Aluno
+
+Motorista Monitor
+
+*Figura 5 - atores do sistema CEATE*
+*Fonte: autor*
+
+## 3 METODOLOGIA
+
+O levantamento dos dados e observação de como ocorrem o transporte escolar no Município, evidência a necessidade de um controle informatizado para o transporte escolar e aplicar as metodologias de engenharia de software para desenvolvimento e documentação da ferramenta. Softwares tem um papel importante na organização de processos é fundamental para obtenção de resultados e um melhor controle das informações. (REZENDE 2010, p. 38) "todo sistema, usando ou não recursos de Tecnologia da Informação, que manipula e gera informação podem ser genericamente considerado Sistema de Informação". Os sistemas auxiliam, colaboram nas tomadas de decisões devido aos recursos de gerenciamento das informações. (REZENDE e ABREU 2010, p.33) "muitas empresas ainda acreditam que o simples ato de informatizar a empresa, espalhando computadores e impressoras pelas unidades departamentais, ligando-os em rede e instalando sistemas aplicativos, possa organizar as mesmas". Entretanto não é o suficiente, é preciso que as pessoas que utilizam os sistemas saibam como aplicar os recursos disponíveis e os sistemas sejam adequados para os fins que foram desenvolvidos. A pesquisa deste tema é baseada nas diretrizes da engenharia de software, com foco na modelagem de um sistema que atenda às necessidades do gerenciamento de transporte escolar de uma escola pública. É necessário que se entenda cada rotina do software para que sejam modeladas e que se chegue ao objetivo deste projeto.
+
+Quando um software é bem-sucedido - atende às necessidades dos usuários, opera perfeitamente durante um longo período, é fácil de modificar e, mais fácil ainda, de utilizar--, ele é realmente capaz de mudar as coisas para melhor. Porém, quando é difícil modifica-lo e mais difícil ainda utiliza-lo, fatos desagradáveis podem e, de fato, acontecem. (PRESSMAN, p 7, 2011.
+
+Questiona (SOMMERVILLE, 2011) "Quais são os atributos de um bom software-Um bom software deve prover a funcionalidade e o desempenho requeridos pelo usuário; além disso, deve ser confiável e fácil de manter e usar". A qualidade de um software vai depender das conformidades com os padrões de desenvolvimento.
+
+A qualidade, portanto, implica não apenas o que o software faz. Ao contrário, ela tem de incluir o comportamento do software enquanto ele está executando, bem como a estrutura e a organização dos programas do sistema e a documentação associada. Isso se reflete nos atributos de software chamados não funcionais ou de qualidade. Exemplos desses atributos são o tempo de resposta do software a uma consulta do usuário e a compreensão do código do programa. (SOMMERVILLE 2011, p. 4) Ainda segundo (PFLEEGER, 2004), deverão ser desenvolvidos os modelos do projeto, podendo assim se ter uma melhor visão daquilo que será produzido e se atenderá as necessidades propostas pelo futuro usuário. Tendo os modelos desenvolvidos, o projeto do sistema e programa deverão ser realizados, sendo aqui desenvolvido o produto e também exalta que: (SOMMERVILLE, 2011) "Um projeto de software é uma descrição da estrutura do software a ser implementado, dos modelos e estruturas de dados usados pelo sistema, das interfaces entre os componentes do sistema e, às vezes, dos algoritmos usados". Compreendendo da importância da documentação de software, será implementado um modelo de software para fins de gerenciar os usuários do transporte escolar.
+
+### 3.1 REQUISITOS A SEREM UTILIZADOS NA MODELAGEM DE SOFTWARE DE
+
+CONTROLE DO TRANSPORTE ESCOLAR Neste projeto serão apresentadas as etapas de modelagem do sistema, definições dos requisitos e modelos do projeto. (SOMMERVILLE, 2011) "O projeto de software é uma atividade criativa em que você identifica os componentes de software e seus relacionamentos com base nos requisitos do cliente" e sugere (MAGELA, 2006) "são os requisitos definidos diretamente pelo usuário em linguagem natural. Representam o que o sistema deverá ser capaz de executar sob o ponto de vista do usuário. O requisito do usuário deve focar nos recursos a serem fornecidos, utilizando a linguagem natural, sem termos técnicos de Software." As prioridades dos requisitos foram adotadas as denominações essencial, importante e desejável.
+
+- A prioridade essencial é necessária para o funcionamento do sistema, sem esses
+
+requisitos o sistema não opera.
+
+- A prioridade importante o sistema entra em funcionamento de modo aceitável,
+
+- A prioridade desejável não compromete as funcionalidades do sistema, podem ser
+
+implementadas para versões posteriores Diz (SOMMERVILLE, 2011), os requisitos de sistema definem as funções, serviços e as restrições operacionais do sistema. Ele deve definir exatamente o que será implementado. A modelagem de sistemas é um elemento importante do processo de engenharia de software. O engenheiro de software cria modelos que definem processos, servindo às necessidades da visão que está sendo considerada, também, que representem o comportamento dos processos e os pressupostos nos quais o comportamento está baseado. Além disso, modelos que representam todas as ligações (inclusive saídas), que permitirão ao engenheiro de software entender melhor a visão (PRESSMAN, 2010). Outra forma de considerar a importância de modelar está no fato inerente de que sistemas são detentores de uma característica bastante peculiar - serem dinâmicos, ou seja, eles não são estáticos, pois estes são construídos fazendo abstração da realidade, e é conhecido por todos que o mundo a nossa volta não é estático, logo, os sistemas de informação aumentam suas funcionalidades, relacionamentos em banco de dados, complexidade e abrangência. A modelagem de software é para uma página na Web. A página web deve ser desenvolvida com 5 perfis de usuários, são eles: Administrador; Secretária; Alunos; Motorista e Monitor.
+
+### 3.2 ADMINISTRADOR:
+
+**Prioridade:** essencial
+
+O sistema deve conter um usuário administrador com permissão a todas as funcionalidades do sistema. Descrição: administrador faz o login e ganha acesso a todas as funcionalidades do sistema. O usuário administrador é permitido a cadastrar, excluir, alterar, consultar, todos os registros do sistema e imprimir relatórios.
+
+### 3.3 SECRETÁRIOS
+
+**Prioridade:** essencial
+
+O sistema deve conter usuários previamente cadastrados com acesso as funcionalidades que demanda os alunos do transporte escolar Descrição: usuário faz login no sistema o sistema exibe uma tela com todos os recursos operacionais que de lhe é permitido manipular (cadastrar, consultar, editar e excluir) os dados dos alunos, secretários motoristas e monitores;
+
+### 3.4 ALUNOS
+
+**Prioridade:** essencial
+
+O sistema deve ser popularizado com os dados dos alunos cadastrados previamente pelo usuário secretário ou administrador. Descrição: usuário faz login no sistema o sistema exibe uma tela com as opções de operacional do sistema. O usuário aluno tem a permissão de consultar seus dados, como endereços e rotas.
+
+### 3.5 CADASTRO DOS VEÍCULOS
+
+**Prioridade:** desejável
+
+O sistema deve ser popularizado com os dados dos veículos cadastrados previamente pelo usuário secretário ou administrador. Descrição: o usuário administrador ou secretario faz login no sistema o sistema exibe uma tela com as opções de operacional do sistema, como cadastrar, consultar, editar e excluir
+
+### 3.6 EMISSÃO CARTEIRINHA ESTUDANTE
+
+**Prioridade:** essencial
+
+O sistema deve emitir uma carteirinha para o aluno com dados do aluno, e estampado e legível uma foto e um Qrcode. Descrição: o usuário administrador ou secretario faz login no sistema o sistema exibe uma tela com as opções de consultas, relatórios e emissão de carteirinha.
+
+### 3.7 RELATÓRIOS
+
+**Prioridade:** importante
+
+O sistema poderá emitir um relatório dos alunos que usam o transporte escolar. Descrição: o usuário administrador ou secretario faz login no sistema o sistema exibe uma tela com opção de relatórios de alunos e rotas, motoristas
+
+### 3.8 RELATÓRIOS DE BORDO
+
+**Prioridade:** desejável
+
+É desejável impressão de relatórios quanto atos indisciplinares dos usuários do transporte escolar tiverem necessidade de serem relatados pelos monitores. Descrição: usuário administrador ou secretario faz login no sistema o sistema exibe uma tela com opções de ocorrências, consultas e relatórios de frotas opção consulta aluno e emite relatório de bordo.
+
+### 3.9 LOCALIZAÇÃO DO VEÍCULO EM TEMPO REAL
+
+**Prioridade:** desejável
+
+É desejável visualizar a localização do veículo durante seu trajeto até escola. Descrição: usuário administrador ou secretario faz login no sistema o sistema exibe uma tela com opções de menu, Localização em tempo real, identificação do veículo.
+
+## 4 DIAGRAMA DO CASO DE USO
+
+Segundo (SIMÕES, 2016). É uma especificação de um conjunto de ações executadas por um sistema, que contém um resultado observável. No primeiro perfil de usuário motorista, deve ser possível realizar cadastros de escolas, cadastros de cliente, cadastro de transporte escolar e cadastro itinerário. No perfil de usuário pais e ou responsáveis, deve ser possível realizar consultas por região de escolas e transportes escolares de maneira que, os mesmos possam ser contratados. A figura 6 abaixo apresenta um diagrama de caso de uso que mostra as principais funcionalidades do portal web.
+
+*Figura 6 - Relação entre os atores do sistema*
+*Fonte: autor*
+
+### 4.1 ATOR: ADMINISTRADOR
+
+• Usuário nativo do sistema; • Possui acesso irrestrito do sistema.
+
+### 4.2 ATOR: SECRETARIA
+
+• Pessoas que trabalham na secretaria da escola • Usuário com acesso restrito ao sistema; • Responsável pelo cadastro dos alunos e operacional do sistema.
+
+### 4.3 ATOR: ALUNO
+
+• Pessoas instituição de ensino; • Usuários do transporte escolar.
+
+### 4.4 ATOR: MOTORISTA
+
+• Pessoas que trabalham na secretaria de educação; • Dirigem e são responsáveis pelos ônibus.
+
+### 4.5 ATOR: MONITOR
+
+• Pessoas que trabalham na secretaria de educação; • Conduzem os usuários do transporte escolar.
+
+## 5 DIAGRAMA DE CLASSES
+
+A estrutura do sistema e representada e detalhada pelo diagrama de classes, sendo parte importante na etapa de desenvolvimento exibe as classes e objetos a serem implementados, como afirma (MELO 2010), "ele é a estrela principal de um sistema orientado a objetos. Tal diagrama tem como principal finalidade detalhar as classes pertencentes ao modelo e identificar seus relacionamentos." E Segundo Booch, Rumbaugh e Jacobson (2005, p. 51) "classe é uma descrição. de um conjunto de objetos que compartilham os mesmos atributos, operações, relacionamentos e semântica." Cada classe possui seus atributos e operações que serão implementados. O diagrama da figura 7 exibe as classes que faz parte do sistema e cada classe possuí atributos e suas operações a serem executadas.
+
+*Figura 7 - diagrama de classes, fonte: próprio autor*
+*Fonte: autor*
+
+## 6 INTERFACE
+
+A interface é um dos pontos críticos do software para sua aceitação e usabilidade. A forma que os itens são exibidos dentro da aplicação definirá como será a interação do cliente, sua relação com o software e aceitação e adesão. A interface do software é um dos elementos que facilita o uso pelo usuário. O software terá uma interface web, que poderá ser acessado de qualquer sistema operacional que tenha um navegador e esteja conectado à da escola em questão.
+
+"Para que um produto de software seja bem-sucedido, deve apresentar boa usabilidade - medida qualitativa da facilidade e eficiência com a qual um ser humano consegue empregar as funções e os recursos oferecidos pelo produto de alta tecnologia." (PRESSMAN, 2011, p. 286)
+
+## 7 TELAS DO SISTEMA
+
+Protótipo do sistema, como mostra as figuras 8, 9 e 10, exibe quais os campos serão necessários para popularizar o sistema, e ao lado esquerdo como serão os links para as funcionalidades do software.
+
+*Figura 8 - Interface Cadastro De Alunos*
+*Fonte: autor*
+
+*Figura 9 - Interface Cadastro Lista De Alunos*
+*Fonte: autor*
+
+*Figura 10 - Interface Carteirinha Do Aluno*
+*Fonte: autor*
+
+O sistema faz parte de um projeto maior CEATE, no qual são descritas com riqueza de detalhes as funcionalidades do sistema. O sistema CEATE tem por objetivo:
+
+O objetivo é disponibilizar essa tecnologia como alternativa ou complemento para organizar e validar o trajeto do aluno para a escola, desta forma podendo realizar um translado seguro e organizado. O sistema tem a possibilidade de identificar pessoas que não são autorizadas a utilizar o transporte escolar, sendo capaz de obter informações compatíveis com as apresentadas pelo aluno na validação. (SILVA, 2021)
+
+O projeto apresenta as funcionalidades de acordo com as necessidades da escola, onde a proposta inicial é organizar os usuários do transporte escolar.
+
+## 7 CONCLUSÃO
+
+O propósito deste trabalho foi definir, modelar e descrever um sistema informatizado que controle o embarque de alunos no transporte escolar de uma instituição de ensino específica, com o propósito de identificar os alunos que fazem uso do transporte escolar de forma rápida e prática. Com os diagramas descritos foi possível observar a dinâmica do software, a importância do bom gerenciamento das informações e com a análise de requisitos foi possível identificar necessidade e o modo de operação do sistema. Foi apresentado o protótipo para a secretária de educação e funcionário responsável pelo gerenciamento do transporte escolar, pode-se dizer que o trabalho obteve êxito, inicialmente foi exposto a ideia principal do sistema, em seguida o operacional, cadastro, consultas e relatórios, enfim, todas as funcionalidades do software. Objetivo foi comprovar como o sistema poderá atender as necessidades do município no gerenciamento do transporte escolar. Outro ponto que o sistema será a necessidade de acompanhamento no decorrer de todo o ano, podendo ocorrer mudanças pontuais, como: endereços dos alunos e readequação de rotas. Percebeu positivamente em primeira vista que foi um sucesso a apresentação do projeto e protótipo do sistema de transporte escolar CEATE. A SME considerou que o software é uma ferramenta poderosa para a organização e manutenção do transporte escolar do município. O próximo passo, nas versões posteriores, implementar novos recursos e disponibilizar novas ações para os usuários.
+
+## Referências
+
+BOOCH, Grady; James Rumbaugh; e Ivar, Jacobson. UML: guia do usuário. 6° Reimpressão. Rio de Janeiro: Elsevier, 2005.
+
+CENÁRIO DA EXCLUSÃO ESCOLAR NO BRASIL - UNICEF 2017 - Disponível em: https://buscaativaescolar.org.br/downloads/guias-e-manuais/busca-ativa-escolar-v10-web.pdf. Acesso em 10 de agosto 2021.
+
+COSTA, Márcia Cristina Gomes. Os desafios do transporte Escolar no Município de Arraias-TO.
+
+Disponível em: www.brazilianjournals.com/index.php/BRJD/article/view/30104/23706. Acesso em: 07 de agosto 2021.
+
+DIAS, S. R. (Org.) Gestão de Marketing. São Paulo: Saraiva, 2003.
+
+GUEDES, Gilleanes t.a.. UML 2 uma abordagem prática. Editora Novatec, 2ª edição, 2011.
+
+GUIA DO TRANSPORTE ESCOLAR - Disponível em: www.fnde.gov.br/centrais-deconteudos/ publicacoes/category/131-transporte-escolar?download=6897:guia-do-transporteescolar - acesso Julho de 2021
+
+SILVA, Augusto Sérgio de Oliveira. Ceate app: um aplicativo mobile para o controle e monitoramento de embarque de discentes. Brazilian Journal of Development, Vol 7, No 5 (2021). Disponível em: www.brazilianjournals.com/index.php/BRJD/article/view/36048. Acesso em: 17 de setembro 2021.
+
+LEI DE DIRETRIZES E BASES DA EDUCAÇÃO NACIONAL - LDB edição atualizada 2017.
+
+MAGELA, Rogério. Engenharia de Software Aplicada: Fundamentos. 1° Edição. Rio de Janeiro: Alta Books, 2006.
+
+MARTINS, A. P. A. Análise dos impactos das condições do transporte escolar rural no rendimento escolar dos alunos. Departamento de Engenharia Civil e Ambiental, Faculdade de Tecnologia, Universidade de Brasília, DF, 118p, 2010.
+
+MELO, Ana Cristina. Desenvolvendo aplicações com UML 2.2 do conceito à implementação. 3° edição. Rio de Janeiro: Brasport, 2010.
+
+PFLEEGER, Shari Lawrence. Engenharia de Software: teoria e prática. 2° Edição. São Paulo: Prentice Hall, 2004.
+
+PRESSMAN, R. S. Engenharia de software: uma abordagem profissional. 7ª Edição. Ed: McGraw Hill, 2011.
+
+REZENDE, Denis Aleides; Abreu, Aline França de. Tecnologia da Informação aplicada a Sistemas de Informação Empresariais. 7° Edição. São Paulo: Atlas, 2010
+
+SIMÕES, Guilherme. Engenharia de requisitos. Cidade: Tijuca-RJ Editora: Brasport, 2016.
+
+SOMMERVILLE, Ian. Engenharia de software. Tradução autorizada a partir da edição original, em inglês, Software Engineering, 9th edition, publicada pela Pearson Education, Inc., sob o selo Prentice Hall-Wesley, 2011.
+
+Texto constitucional promulgado em 5 DE OUTUBRO DE 1988, com as alterações determinadas pelas Emendas Constitucionais de Revisão nos 1 a 6/94, pelas Emendas Constitucionais nos 1/92 a 91/2016 e pelo Decreto Legislativo no 186/2008
+
+TONSIG, Sérgio Luiz, Engenharia de Software-Análise e Projeto de Sistemas. 2° edição. Rio de Janeiro: Ciência Moderna Ltda, 2008.
+
+VIEIRA, Rodrigo. UML - Diagrama de Casos de Uso - 2015. Disponível em: https://medium.com/operacionalti/uml-diagrama-de-casos-de-uso-29f4358ce4d5. Acesso em 10 de agosto 2021.

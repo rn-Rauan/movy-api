@@ -1,0 +1,279 @@
+% ==========================================================
+% artigo-movy.tex
+% Arquitetura de uma solução SaaS multi-tenant para gestão de
+% transporte universitário intermunicipal: um estudo de caso
+% com o Movy
+%
+% Artigo científico (TCC) adaptado do Relatório Técnico de
+% Software (docs/DOC-TCC.tex) para o modelo de artigo do IFPI
+% (artigotemplate.sty, de José Nilton Silva Lima).
+% Versão condensada para o limite de 15 páginas.
+%
+% Compilar com pdfLaTeX (recomendação do template):
+%   pdflatex artigo-movy.tex
+%   bibtex   artigo-movy
+%   pdflatex artigo-movy.tex
+%   pdflatex artigo-movy.tex
+% ==========================================================
+
+\documentclass[a4paper,12pt]{article}
+\usepackage{artigotemplate}
+
+% Pacotes adicionais usados pelos quadros deste artigo.
+\usepackage{array}      % colunas customizadas (>{...})
+\usepackage{tabularx}   % tabelas com largura controlada (coluna X)
+\usepackage{booktabs}   % \toprule, \midrule, \bottomrule
+
+% Folga para tokens longos de código (\texttt) não estourarem a margem.
+\setlength{\emergencystretch}{3em}
+
+% Correção local do ambiente quadroCustom do template: como o título do
+% quadro usa \caption* (sem número), o pacote caption faz o \label seguinte
+% apontar para um aviso em vez do número. Restauramos \@currentlabel para
+% \thequadro logo após o \caption*, permitindo Quadro~\ref{...}.
+\makeatletter
+\AtBeginDocument{\let\movy@orig@label\label}
+\renewenvironment{quadroCustom}[1]{%
+  \begin{table}[H]
+    \centering
+    \refstepcounter{quadro}%
+    \caption*{Quadro \thequadro~-- #1}%
+    \protected@edef\@currentlabel{\p@quadro\thequadro}%
+    \let\label\movy@orig@label
+}{%
+  \end{table}
+}
+\makeatother
+
+% === DADOS DO ARTIGO ===
+\titulo{Arquitetura de uma solução SaaS multi-tenant para gestão de transporte universitário intermunicipal: um estudo de caso com o Movy}
+\autor{Rauan dos Santos Bandeira}
+\instituicao{Instituto Federal de Educação, Ciência e Tecnologia do Piauí}
+\campus{Campus Piripiri}
+\curso{Tecnólogo em Análise e Desenvolvimento de Sistemas}
+\cidade{Piripiri/PI}
+\ano{2026}
+\orientador{Prof. Jeferson Soares}
+
+\notaautor{Discente do curso de Tecnologia em Análise e Desenvolvimento de Sistemas do IFPI -- Campus Piripiri.}
+\notaorientador{Docente orientador do IFPI -- Campus Piripiri.}
+
+% ===========================
+% === INÍCIO DO DOCUMENTO ===
+% ===========================
+\begin{document}
+
+% === CAPA E CONTRACAPA ===
+\capaartigo
+\clearpage
+\contracapaartigo
+\clearpage
+
+% === INÍCIO DO CONTEÚDO DO ARTIGO ===
+\iniciarpaginacao
+\infoartigo
+
+% === RESUMO DO ARTIGO ===
+\resumo{
+A organização do transporte universitário intermunicipal ainda ocorre, em muitas localidades, de forma manual, com listas informais em aplicativos de mensagens, sem controle de capacidade nem gestão financeira adequada. Este artigo analisa a arquitetura e a implementação prototipal do Movy, concebido como objeto de estudo para investigar a viabilidade técnica de uma solução \textit{Software as a Service} (SaaS) \textit{multi-tenant} aplicada a esse contexto. O protótipo funcional compõe-se de uma API REST, responsável pela lógica de domínio e pela persistência, e de uma aplicação web cliente \textit{mobile-first}. A API foi desenvolvida em NestJS, TypeScript, Prisma e PostgreSQL, segundo os princípios de \textit{Clean Architecture} e \textit{Domain-Driven Design} (DDD), com autenticação por JWT, controle de acesso baseado em papéis (RBAC), transações atômicas e limites de plano; o cliente, em React, espelha a separação em camadas do servidor e delega à API as decisões de negócio. A validação técnica contemplou os treze módulos funcionais previstos para o estudo, com 93 \textit{endpoints} REST e 458 testes unitários no servidor. Os resultados indicam viabilidade técnica e arquitetural da abordagem e apontam uma base para evolução futura, sem caracterizar o protótipo como produto institucional pronto.
+}{
+Transporte universitário; SaaS; API REST; Multi-tenancy; NestJS; Clean Architecture.
+}
+
+% === ABSTRACT DO ARTIGO ===
+\abstracten{
+In many locations, intercity university transportation is still organized manually, relying on informal lists in messaging apps, with no capacity control and inadequate financial management. This paper analyzes the architecture and prototypical implementation of Movy, conceived as a case-study object to investigate the technical feasibility of a multi-tenant \textit{Software as a Service} (SaaS) solution for this context. The functional prototype comprises a REST API, responsible for domain logic and persistence, and a \textit{mobile-first} web client application. The API was developed with NestJS, TypeScript, Prisma, and PostgreSQL, following \textit{Clean Architecture} and \textit{Domain-Driven Design} (DDD) principles, with JWT authentication, role-based access control (RBAC), atomic transactions, and plan limits; the React client mirrors the server's layered separation and delegates business decisions to the API. The technical validation covered the thirteen functional modules planned for the study, with 93 REST endpoints and 458 server-side unit tests. The results indicate the technical and architectural feasibility of the approach and provide a basis for future evolution, without characterizing the prototype as an institutionally ready product.
+}{
+University transportation; SaaS; REST API; Multi-tenancy; NestJS; Clean Architecture.
+}
+
+% ====================================================
+\dataaprovacao{xx/xx/xxxx} % Substitua pela data da aprovação do artigo.
+
+% ====================================================
+\section{Introdução}
+\label{sec:introducao}
+
+O ensino superior presencial no Brasil mantém milhões de estudantes matriculados: dados do Censo da Educação Superior indicam 5.037.875 matrículas presenciais em 2024, distribuídas em 2.444 instituições \cite{inepCensoSuperior}. O Censo Demográfico de 2022 aponta, ainda, que 27,3\% dos estudantes de graduação cursam o ensino superior em município diferente daquele em que residem \cite{ibgeDeslocamentoEstudo}, evidenciando que o deslocamento intermunicipal faz parte da rotina de uma parcela significativa dos universitários, especialmente em regiões onde a oferta de cursos presenciais está concentrada em cidades-polo.
+
+Apesar da importância do transporte universitário intermunicipal para a permanência desses estudantes no ensino superior, a organização do serviço ainda ocorre, em muitas localidades, de forma manual e pouco estruturada: o agendamento das viagens e o controle de presença são realizados por listas informais em aplicativos de mensagens, modelo sujeito a duplicidade de registros, esquecimentos, falhas de comunicação e ausência de controle financeiro. Esse cenário foi observado diretamente na prática, durante a utilização diária do serviço em uma rota específica: a inexistência de um sistema informatizado compromete a visualização dos passageiros confirmados, dificulta o gerenciamento dos pagamentos e aumenta o risco de decisões equivocadas quanto à viabilidade das viagens, que muitas vezes exigem um número mínimo de passageiros para ocorrer.
+
+Diante desse contexto, este trabalho teve como objetivo propor, desenvolver e avaliar tecnicamente a arquitetura do Movy, um protótipo funcional composto por uma API REST escalável e por uma aplicação web cliente, voltado ao gerenciamento do transporte universitário intermunicipal. O estudo buscou automatizar, em ambiente controlado, o agendamento de viagens, o registro de passageiros e o controle financeiro, sem caracterizar a solução como produto institucional concluído. Especificamente, buscou-se: analisar o funcionamento atual do serviço e as limitações dos processos manuais; levantar e documentar os requisitos funcionais e não funcionais; projetar a arquitetura e modelar os principais artefatos do sistema; implementar a API REST e a aplicação cliente como objeto de estudo; e verificar as funcionalidades por meio de testes e implantação experimental.
+
+Um princípio condutor do projeto é que o cliente não detém regras de negócio autoritativas: ele valida entradas localmente apenas para retorno imediato, delegando toda decisão definitiva à API. O restante do artigo apresenta o referencial teórico e os trabalhos relacionados (Seção~2), a metodologia (Seção~3), os resultados e sua discussão (Seção~4) e as conclusões (Seção~5).
+
+% ====================================================
+\section{Referencial Teórico}
+\label{sec:referencial}
+
+\subsection{Fundamentos de engenharia de software}
+
+Requisitos de software descrevem as funções, restrições e qualidades esperadas de um sistema; a literatura distingue requisitos funcionais, que especificam o que o sistema deve fazer, de requisitos não funcionais, que expressam atributos de qualidade como desempenho e segurança \cite{sommerville2011, pressman2016}. A modelagem de software emprega abstrações gráficas, como os diagramas de casos de uso e de classes da \textit{Unified Modeling Language} (UML), para antecipar decisões de projeto e reduzir retrabalho. Já os testes de software constituem a atividade de verificação que executa o sistema sob condições controladas para revelar defeitos \cite{pressman2016}; os testes unitários exercitam isoladamente as menores unidades de código, apoiados em padrões como o \textit{Arrange-Act-Assert} (AAA) e em \textit{test doubles} (\textit{mocks}).
+
+\subsection{Arquitetura em camadas, Clean Architecture, DDD e REST}
+
+A organização de um sistema em camadas separa responsabilidades como apresentação, aplicação, domínio e infraestrutura, de modo que cada camada dependa apenas das mais internas. A \textit{Clean Architecture} formaliza esse princípio pela regra de dependência: as regras de negócio centrais não conhecem detalhes de \textit{frameworks}, banco de dados ou interface, tornando-se testáveis e resistentes a mudanças tecnológicas \cite{martin2017}. O \textit{Domain-Driven Design} (DDD) complementa essa abordagem ao colocar o modelo de domínio no centro do projeto, com conceitos como entidades, \textit{value objects}, agregados e contextos delimitados \cite{evans2003}. No plano da comunicação, o \textit{Representational State Transfer} (REST), definido por \citeonline{fielding2000}, estabelece restrições como a comunicação cliente-servidor, a ausência de estado de sessão no servidor e a interface uniforme baseada em recursos manipulados por métodos HTTP.
+
+\subsection{SaaS, multi-tenancy e segurança}
+
+\textit{Software as a Service} (SaaS) é um modelo de entrega no qual a aplicação executa em infraestrutura do provedor e é disponibilizada pela rede, sob demanda \cite{nist800145}. É comum que plataformas SaaS adotem a \textit{multi-tenancy}, em que uma mesma instância atende a diversas organizações (\textit{tenants}) mantendo o isolamento lógico dos dados. Esse isolamento pode ser obtido por bancos separados, esquemas separados ou, como neste trabalho, por um discriminador de \textit{tenant} em cada registro, com filtragem validada por mecanismos de autorização. Quanto à segurança, em APIs REST \textit{stateless} é usual empregar \textit{tokens} assinados no padrão \textit{JSON Web Token} (JWT) \cite{rfc7519}, armazenar senhas apenas como \textit{hash} adaptativo com \textit{salt}, como o bcrypt \cite{bcrypt}, e administrar autorizações pelo controle de acesso baseado em papéis (RBAC), modelo em que permissões são associadas a papéis assumidos pelos usuários \cite{nistRbacGlossary,nistsp80053}. As diretrizes do OWASP orientam a prevenção de vulnerabilidades recorrentes, como o \textit{Broken Access Control} e as referências diretas inseguras a objetos (IDOR) \cite{owasptop10}, e o tratamento de dados pessoais observa os princípios da Lei Geral de Proteção de Dados \cite{lgpd}.
+
+\subsection{Trabalhos relacionados}
+\label{sec:trabalhos}
+
+O PickBus, proposto por \citeonline{pickbus2021}, é uma solução multiplataforma para gerenciamento de transporte fretado de passageiros, com foco em eventos e deslocamentos coletivos; seus resultados evidenciam a carência de ferramentas digitais específicas para o setor. \citeonline{paiva2023} apresenta um sistema para modernizar a solicitação e o gerenciamento de transportes em uma instituição acadêmica, com cadastro de veículos, motoristas e setores, fluxo de aprovação e relatórios. Já \citeonline{reis2021transporte} apresenta a modelagem de um software para o transporte escolar público municipal, com ênfase no levantamento de requisitos e na UML, evidenciando que a ausência de sistemas informatizados compromete a eficiência operacional e a tomada de decisão.
+
+A proposta deste estudo diferencia-se por abordar especificamente o transporte universitário intermunicipal, cenário ainda pouco explorado na literatura, integrando organização operacional e controle financeiro em uma arquitetura SaaS \textit{multi-tenant}. No protótipo, o preço é registrado a cada inscrição, permitindo estimar automaticamente a arrecadação por viagem e avaliar a viabilidade de cada deslocamento. Diferentemente dos trabalhos analisados, o Movy foi concebido como API REST separada da aplicação cliente, o que favorece evolução futura e integração com outros clientes.
+
+% ====================================================
+\section{Metodologia}
+\label{sec:metodologia}
+
+Este trabalho caracteriza-se como um desenvolvimento tecnológico aplicado, conduzido como estudo de caso de arquitetura e implementação prototipal em seis etapas: (i) observação direta do funcionamento atual do transporte universitário intermunicipal; (ii) levantamento e documentação dos requisitos; (iii) modelagem do sistema; (iv) implementação do protótipo funcional da API REST e da aplicação cliente; (v) verificação por testes unitários automatizados no servidor e roteiro de testes manuais no cliente; e (vi) implantação experimental em nuvem para validação técnica dos fluxos principais.
+
+Registra-se, por transparência acadêmica, que o desenvolvimento contou com assistência de ferramentas de inteligência artificial generativa: no \textit{backend}, como apoio pontual à automação de trechos repetitivos de código; no cliente, nas etapas de geração inicial, concepção visual e implementação (Lovable, Claude Design e Claude Code, respectivamente), com o código posteriormente refatorado para a arquitetura em camadas descrita na Seção~4. Em ambos os artefatos, as decisões de requisitos, arquitetura e regras de negócio, bem como a revisão final, permaneceram sob responsabilidade do autor.
+
+\subsection{Levantamento de requisitos}
+\label{sec:requisitos}
+
+Os requisitos foram definidos a partir da observação do serviço e das necessidades relatadas por estudantes, motoristas e responsáveis pelas viagens, servindo como base para o desenho do protótipo funcional. Foram documentados 26 requisitos funcionais (RF01--RF26) e 12 não funcionais (RNF01--RNF12). O Quadro~\ref{qd:requisitos} sintetiza os requisitos funcionais por tema: 21 foram contemplados no protótipo (três de forma simplificada), quatro permaneceram como evolução futura e um (auditoria) foi modelado no esquema de dados, mas não compôs a validação técnica desta versão. Entre os não funcionais, destacam-se a aderência ao padrão RESTful, a segurança com JWT, RBAC e bcrypt, o isolamento \textit{multi-tenant} por organização, a manutenibilidade apoiada em \textit{Clean Architecture}, a integridade com transações ACID e a usabilidade \textit{mobile-first}; desempenho (latência inferior a 2\,s) e disponibilidade (95\%) foram tratados como metas de projeto, não submetidas a medição formal.
+
+\begin{quadroCustom}{Requisitos funcionais do sistema Movy, agrupados por tema.}
+\label{qd:requisitos}
+{\footnotesize
+\renewcommand{\arraystretch}{0.94}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.7cm} p{2.2cm} X}
+\toprule
+\textbf{Grupo de requisitos} & \textbf{Códigos} & \textbf{Situação} \\
+\midrule
+Cadastros: usuários, organizações, motoristas e veículos & RF01--RF03, RF20 & Contemplados no protótipo \\
+Viagens: agendamento, cancelamento, turnos, estados e atribuição de motorista/veículo & RF04--RF06, RF14, RF21 & Contemplados no protótipo \\
+Inscrições: reserva, cancelamento com prazo, tipo de trajeto, listas de passageiros, presença e capacidade & RF07--RF09, RF11--RF13, RF22 & Contemplados no protótipo \\
+Pontos de embarque: cadastro, seleção e visualização & RF23--RF25 & Contemplados de forma simplificada \\
+Financeiro: forma de pagamento e estimativa de arrecadação por viagem & RF10, RF19 & Contemplados no protótipo \\
+Relatórios e histórico consolidados & RF15, RF16 & Evolução futura \\
+Notificações (lembretes e confirmações) & RF17, RF18 & Evolução futura \\
+Auditoria (\textit{logs} de ações) & RF26 & Modelado (fora da validação técnica) \\
+\bottomrule
+\end{tabularx}
+}
+\fonte{Elaborado pelo autor (2026).}
+\end{quadroCustom}
+
+\subsection{Modelagem do sistema}
+\label{sec:modelagem}
+
+Os atores correspondem aos papéis do controle de acesso, em precedência crescente: o Visitante explora o catálogo público de viagens e organizações; o Passageiro (autenticado) reserva e gerencia inscrições e pode candidatar-se a motorista; o Motorista opera as viagens que lhe são atribuídas; e o Administrador gerencia rotas, viagens, motoristas, veículos, plano e métricas da sua organização.
+
+O modelo de domínio segue os princípios do DDD: cada entidade é um agregado com métodos de fábrica que validam invariantes, e os atributos de negócio são encapsulados em \textit{value objects} imutáveis (\texttt{Email}, \texttt{Cnpj}, \texttt{Cnh}, \texttt{Plate}, \texttt{Money}). As catorze entidades agrupam-se em cinco contextos: Identidade e Acesso (\texttt{User}, \texttt{Organization} e \texttt{Membership}, tabela-pivô da relação N:N entre usuário e organização, que carrega o papel e serve de base ao RBAC); Frota (\texttt{Driver}, entidade global vinculada a organizações via \texttt{Membership}, e \texttt{Vehicle}); Viagens (\texttt{TripTemplate}, modelo recorrente que gera \texttt{TripInstance}, execução datada com máquina de estados); Reservas e Pagamentos (\texttt{Booking} e \texttt{Payment}, em relação 1:1); e \textit{Billing} (\texttt{Plan} e \texttt{Subscription}). O cliente não possui modelo de domínio próprio: representa as entidades por interfaces TypeScript que espelham os contratos da API.
+
+O modelo entidade-relacionamento (Figura~\ref{fig:der}) representa a estrutura lógica do banco de dados e reflete o desenho \textit{multi-tenant}: cada organização possui isolamento lógico por meio do campo \texttt{organizationId}, presente em todas as entidades a ela pertencentes.
+
+\begin{figuraCustom}{Diagrama entidade-relacionamento do sistema (versão simplificada).}
+\label{fig:der}
+\includegraphics[width=0.9\linewidth]{imagens/der-simplificado.png}
+\fonte{Elaborado pelo autor (2026).}
+\end{figuraCustom}
+
+\subsection{Tecnologias adotadas}
+\label{sec:tecnologias}
+
+A seleção tecnológica foi orientada por escalabilidade, segurança e manutenibilidade no servidor, e por produtividade, segurança de tipos e caráter \textit{mobile-first} no cliente, com TypeScript \cite{typescript} compartilhado entre as camadas para estabelecer contratos de dados explícitos (Quadro~\ref{qd:tecnologias}). No servidor, o NestJS \cite{nestjs} oferece injeção de dependência nativa (essencial à \textit{Clean Architecture} e ao padrão Repositório), módulos que materializam os contextos delimitados do DDD e \textit{guards} globais para RBAC; a persistência usa PostgreSQL com Prisma ORM \cite{prisma}, que adiciona tipagem forte, \textit{migrations} versionadas e consultas seguras contra \textit{SQL injection}; e a verificação usa o Jest. No cliente, a interface é construída com React e TanStack Router \cite{tanstackrouter}, adotado pelo roteamento baseado em arquivos com segurança de tipos e pelos \textit{layouts} sem segmento de URL (\textit{pathless layouts}), centrais ao controle de acesso por papel; a estilização usa Tailwind CSS sobre componentes acessíveis do shadcn/ui (Radix UI), a validação declarativa usa Zod e o empacotamento usa Vite. No desenvolvimento local, o Docker orquestra PostgreSQL e API; a implantação em nuvem é descrita na Seção~4.
+
+\begin{quadroCustom}{Síntese das tecnologias por camada e preocupação de projeto.}
+\label{qd:tecnologias}
+{\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Camada} & \textbf{Preocupação} & \textbf{Principais tecnologias} \\
+\midrule
+Backend        & Estrutura e domínio      & NestJS, TypeScript, Clean Architecture + DDD \\
+Backend        & Autenticação/segurança   & JWT (Passport), Bcrypt, RBAC \\
+Backend        & Verificação              & Jest (\textit{ts-jest}) \\
+Frontend       & Interface e roteamento   & React, TanStack Router/Start, Tailwind, shadcn/ui \\
+Frontend       & Validação e \textit{build} & Zod, TypeScript, Vite \\
+Dados          & Persistência             & PostgreSQL, Prisma ORM \\
+Infraestrutura & Ambiente e implantação   & Docker, hospedagem em nuvem e banco gerenciado \\
+\bottomrule
+\end{tabularx}
+}
+\fonte{Elaborado pelo autor (2026).}
+\end{quadroCustom}
+
+% ====================================================
+\section{Resultados e Discussão}
+\label{sec:resultados}
+
+\subsection{Arquitetura do sistema}
+\label{sec:arquitetura}
+
+Em alto nível, o sistema compõe-se de três elementos: a aplicação cliente, executada no navegador; a API REST, que concentra a lógica de domínio; e o banco de dados relacional. O cliente comunica-se com a API exclusivamente via HTTP/JSON, e somente a API acessa o banco. No servidor, cada módulo de negócio organiza-se em quatro camadas: apresentação (controladores REST, DTOs com validação e \textit{mappers} de resposta), aplicação (casos de uso, um por operação de negócio), domínio (entidades, \textit{value objects}, erros de domínio e interfaces de repositório, independentes de \textit{framework}) e infraestrutura (repositórios Prisma); um módulo compartilhado centraliza \textit{guards}, filtro global de exceções, \textit{value objects} comuns e a infraestrutura transacional.
+
+A arquitetura do cliente espelha a do servidor em quatro camadas com fluxo unidirecional: rotas finas (controladores enxutos que instanciam um \textit{hook} e repassam dados aos componentes), \textit{hooks} de caso de uso (estado e efeitos de cada operação), serviços (padrão Repositório sobre conjuntos coesos de \textit{endpoints}) e um cliente HTTP único, ponto exclusivo de comunicação com a API, responsável por anexar credenciais, normalizar erros e renovar a sessão. Essa estratificação confere localidade de mudança: alterações no contrato de um \textit{endpoint} afetam somente o serviço correspondente.
+
+\subsection{Implementação da API}
+\label{sec:implementacao}
+
+A implementação prototipal contemplou os treze módulos funcionais previstos, todos com casos de uso, \textit{value objects}, repositórios e erros de domínio próprios, totalizando 93 \textit{endpoints} REST e 93 casos de uso. A maior concentração está nos módulos de viagens (17 \textit{endpoints}) e inscrições (10); rotas públicas anônimas expõem o catálogo de viagens, o diretório de organizações e os planos disponíveis no modelo SaaS.
+
+O módulo de autenticação contempla cadastro, \textit{login}, emissão de \textit{access token} e \textit{refresh token}, renovação e revogação de sessão, com senhas armazenadas por bcrypt; destaca-se o \textit{onboarding} unificado, que cria usuário, organização e vínculo de administrador atomicamente, com \textit{rollback} automático em caso de falha. Fluxos dependentes de motor de e-mail, como recuperação de senha e verificação de endereço eletrônico, não integram a implementação desta versão e são tratados como evolução futura. Os módulos de identidade e frota implementam os cadastros com \textit{value objects} de validação (CNPJ com dígitos verificadores, CNH e categorias, placa nos padrões brasileiro e Mercosul) e exclusão lógica (\textit{soft delete}) para preservação de histórico; o vínculo usuário--organização é materializado pela entidade \texttt{Membership} (chave composta usuário--papel--organização), permitindo papéis distintos em organizações diferentes.
+
+O módulo de viagens separa a configuração recorrente (\texttt{TripTemplate}, com preços por tipo de trajeto) da execução datada (\texttt{TripInstance}), governada por máquina de estados cujas transições de ativação exigem motorista e veículo atribuídos. Dois \textit{jobs} periódicos parametrizados por organização automatizam o ciclo: a geração recorrente materializa uma janela rolante de instâncias de forma idempotente, respeitando a cota do plano, e o auto-cancelamento encerra instâncias cujo prazo venceu sem atingir a receita mínima, propagando a falha aos pagamentos pendentes. O módulo de inscrições concentra as regras mais sensíveis: a criação valida o estado da viagem, controla a capacidade e registra o preço calculado exclusivamente no servidor, executando inscrição e pagamento atomicamente com isolamento \texttt{Serializable}, o que previne as \textit{race conditions} clássicas de sistemas de reservas; o cancelamento respeita prazo-limite de 30 minutos antes da partida. Por fim, os módulos comerciais implementam o modelo SaaS: planos com cotas, assinaturas com expiração \textit{lazy} (transicionada no momento da leitura, sem \textit{cron}), um serviço central de limites de plano (veículos, motoristas e viagens mensais) injetado nos casos de uso de criação, e pagamentos gerados automaticamente a cada inscrição, com ciclo de vida simulado (\texttt{PENDING} $\rightarrow$ \texttt{COMPLETED}/\texttt{FAILED}) sem \textit{gateway} externo.
+
+\subsection{Segurança, RBAC e multi-tenancy}
+\label{sec:seguranca}
+
+As senhas são armazenadas com bcrypt (10 \textit{salt rounds}); o \textit{login} emite um \textit{access token} de curta duração (1\,h) e um \textit{refresh token} de longa duração (7\,d), revogável. O controle de acesso compõe-se de quatro \textit{guards} aplicados conforme a rota: \texttt{JwtAuthGuard} (valida o \textit{token} e constrói o contexto de \textit{tenant}), \texttt{RolesGuard} (verifica o papel exigido, ADMIN ou DRIVER), \texttt{TenantFilterGuard} (confere se o parâmetro \texttt{:organizationId} da rota coincide com o do \textit{token}) e \texttt{DevGuard} (restringe rotas administrativas a desenvolvedores). O \textit{payload} do JWT é enriquecido no \textit{login} com todos os dados necessários, eliminando consultas ao banco a cada requisição.
+
+O isolamento entre organizações apoia-se em quatro mecanismos: o campo \texttt{organizationId} em todas as entidades pertinentes; a filtragem de todas as consultas pelo \texttt{organizationId} do usuário autenticado; o \texttt{TenantFilterGuard}; e a proteção contra IDOR (OWASP A01), pela qual \textit{endpoints} com identificador direto validam a titularidade do recurso contra o \texttt{organizationId} do JWT. No cliente, esse esquema é refletido pelo roteamento: a autenticação é verificada uma única vez em um \textit{layout} sem segmento de URL (\texttt{\_protected}), sobre o qual os \textit{layouts} \texttt{\_admin} e \texttt{\_driver} aplicam as verificações de papel; diante de uma resposta 401, o cliente HTTP dispara uma única renovação do \textit{token}, deduplicada entre requisições concorrentes, e repete a chamada original.
+
+\subsection{Transações atômicas e tratamento de erros}
+\label{sec:transacoes}
+
+Para garantir atomicidade em operações com múltiplas escritas (por exemplo, criar inscrição e pagamento juntos), implementou-se uma infraestrutura no padrão \textit{Unit of Work} baseada em \texttt{AsyncLocalStorage}: o caso de uso agrupa as escritas em uma função executada dentro de uma transação, e um contexto de banco expõe aos repositórios, de forma transparente, o cliente transacional. Com isso, a camada de aplicação permanece desacoplada do ORM, com \textit{rollback} automático em caso de falha. O tratamento de erros é estruturado por uma hierarquia de exceções de domínio mapeadas por um filtro global, que converte o sufixo do código de erro no \textit{status} HTTP correspondente (\texttt{\_NOT\_FOUND} $\rightarrow$ 404; \texttt{\_ALREADY\_EXISTS}, \texttt{\_CONFLICT} e \texttt{\_IN\_USE} $\rightarrow$ 409; \texttt{INVALID\_}, \texttt{INACTIVE\_} e \texttt{EXPIRED\_} $\rightarrow$ 400; \texttt{\_FORBIDDEN} $\rightarrow$ 403; \texttt{\_UNAUTHORIZED} $\rightarrow$ 401). O cliente decide a mensagem a apresentar a partir desse código, e não do texto: toda falha é normalizada em uma exceção tipada, e um módulo central traduz os códigos para mensagens em português; um limitador global de taxa (60 requisições por minuto por IP) completa a proteção.
+
+\subsection{Aplicação cliente}
+\label{sec:cliente}
+
+A aplicação cliente é uma \textit{Single Page Application} \textit{mobile-first} que consome os 93 \textit{endpoints} e organiza as telas por contexto de acesso: o público oferece catálogo de viagens com busca e filtros, detalhe com compartilhamento por \textit{link}, diretório de organizações e comparativo de planos; o passageiro dispõe de formulário de inscrição, lista e detalhe das suas inscrições (com cancelamento) e autosserviço de perfil de motorista; o administrador conta com painel de métricas operacionais e financeiras e gestão de rotas, viagens, frota, agendamento e assinatura; e o motorista acessa suas viagens e a tela operacional de confirmação de presença e pagamento por passageiro (Figura~\ref{fig:telas}). O sistema de design é proprietário, materializado sobre primitivas de interface acessíveis, e a decisão definitiva de disponibilidade, preço e criação do pagamento é sempre delegada à API.
+
+\begin{figuraCustom}{Catálogo público de viagens (à esquerda) e detalhe operacional da viagem (à direita).}
+\label{fig:telas}
+\includegraphics[width=0.35\linewidth]{imagens/fe-catalogo.png}
+\hspace{0.5cm}
+\includegraphics[width=0.32\linewidth]{imagens/fe-operacional.png}
+\fonte{Elaborado pelo autor (2026).}
+\end{figuraCustom}
+
+\subsection{Implantação e verificação}
+\label{sec:implantacao}
+
+A implantação experimental foi validada em ambiente de nuvem, com separação entre aplicação cliente, API e banco de dados gerenciado, publicados em plataformas apropriadas para cada responsabilidade. Essa validação teve finalidade técnica: verificar a comunicação entre os artefatos, a execução dos fluxos principais e as condições mínimas de operação do protótipo, sem caracterizar disponibilização institucional definitiva. A passagem para esse ambiente exigiu ajustes de previsibilidade e de superfície de exposição: geração explícita do cliente Prisma no \textit{build}, execução direta do JavaScript compilado, documentação Swagger condicionada a variável de ambiente e lista explícita de origens autorizadas para CORS. Essa configuração funciona como camada complementar, pois a autorização efetiva permanece a cargo dos \textit{guards} do servidor.
+
+A verificação do \textit{backend} conta com 458 testes unitários em 57 \textit{suites}, selecionados por uma estratégia baseada em risco. Foram priorizados os casos de uso que concentram regras críticas, decisões de autorização, isolamento entre organizações e efeitos financeiros, pois falhas nesses pontos poderiam causar \textit{overbooking}, acesso indevido entre \textit{tenants} ou cobrança incorreta. Por isso, a cobertura concentra-se nos módulos de viagens (18 \textit{suites}, 183 testes), inscrições (9 \textit{suites}, 88 testes) e autenticação (7 \textit{suites}, 36 testes), seguidos dos demais. Todos os testes seguem o padrão AAA com injeção manual de dependências simuladas (\textit{mocks} com \texttt{jest.fn()}, sem utilitários do \textit{framework}) e \textit{factories} por módulo. A verificação do \textit{frontend} é, no momento, predominantemente manual, estruturada em roteiro de cenários que cobre os caminhos principais e casos de borda (renovação de \textit{token} durante a navegação, bloqueio de cancelamento fora da janela, redirecionamento de rota administrativa sem papel); a integração contínua, via GitHub Actions, executa análise estática, construção e testes a cada alteração.
+
+\subsection{Discussão}
+\label{sec:discussao}
+
+O protótipo funcional resultante cobre os fluxos principais de ponta a ponta, do cadastro de passageiros e organizações à reserva, operação e cobrança das viagens, com os 13 módulos, 93 casos de uso, 93 \textit{endpoints}, 14 entidades de domínio e 28 migrações planejados, além dos 458 testes unitários. Em relação aos trabalhos relacionados, o Movy distingue-se pelo recorte (deslocamento diário e recorrente de universitários entre municípios, com regras como viabilidade financeira mínima e auto-cancelamento, não cobertas pelo fretamento eventual do PickBus \cite{pickbus2021} nem pela gestão institucional de frota de \citeonline{paiva2023}), pelo controle financeiro integrado à operação e pela concepção como plataforma SaaS \textit{multi-tenant} com API aberta a múltiplos clientes. Já a modelagem de \citeonline{reis2021transporte} se concentra em requisitos, diagramas e protótipos, sem relatar implantação operacional nem validação em produção.
+
+O estudo mantém limitações documentadas como decisões revisáveis: o módulo de pagamentos opera com simulação de ciclo de vida, sendo a integração com um \textit{gateway} real uma evolução necessária; a precificação é única por viagem, sem preço por trecho, e as paradas não possuem entidade dedicada; notificações por e-mail/SMS não foram implementadas e, por consequência, recuperação de senha e verificação de e-mail permanecem como trabalhos futuros; a entidade de auditoria está modelada, mas não persistida; o cliente opera sobre uma única organização por administrador, carece de testes automatizados e armazena credenciais em \texttt{localStorage}. Essa última decisão foi aceita em troca de simplicidade e marcada para reavaliação antes de uma eventual adoção em ambiente real.
+
+% ====================================================
+\section{Conclusões e Trabalhos Futuros}
+\label{sec:conclusoes}
+
+Este trabalho apresentou a arquitetura e a implementação prototipal do Movy, concebido como objeto de estudo para a gestão do transporte universitário intermunicipal em uma solução SaaS \textit{multi-tenant}, composta por uma API REST e por uma aplicação web cliente \textit{mobile-first}. Os resultados indicam a viabilidade técnica e arquitetural da abordagem: os princípios de \textit{Clean Architecture} e DDD forneceram, no servidor, uma base para evolução futura sem sacrificar a manutenibilidade, e a aplicação cliente, ao espelhar essa estratificação e concentrar a comunicação com a API em um ponto único, materializou os requisitos com controle de acesso por papel e comunicação resiliente. A implementação também consolidou lições de engenharia: a separação entre camadas facilitou o desenvolvimento iterativo e os testes isolados; os \textit{value objects} preveniram defeitos de validação; implementar a \textit{multi-tenancy} desde o início evitou o alto custo de retroajuste; e a proteção contra IDOR exige vigilância ativa em todo \textit{endpoint} com identificador direto.
+
+Como trabalhos futuros, destacam-se: a integração com um \textit{gateway} de pagamento real; a implementação de notificações por e-mail/SMS com processamento assíncrono, incluindo fluxos de recuperação de senha e verificação de e-mail; a introdução de uma entidade dedicada de paradas com precificação por trecho, associada à evolução do modelo de monetização para cobrança híbrida (mensalidade combinada a cobrança por uso); a ampliação da cobertura de testes no servidor e a introdução de testes automatizados no cliente, a partir do fluxo de reserva; o fortalecimento do armazenamento de sessão no cliente; e a incorporação de \textit{caching} e observabilidade em uma eventual operação continuada.
+
+% === REFERÊNCIAS ===
+% ABNT: referências em espaçamento simples.
+\begin{spacing}{1}
+\bibliography{referencias}
+\end{spacing}
+
+% ========================
+% === FIM DO DOCUMENTO ===
+% ========================
+\end{document}

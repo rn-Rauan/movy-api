@@ -1,6 +1,6 @@
 % =====================================================================
-% Referências — Movy: Relatório Técnico de Software (RTS)
-% Estilo: abntex2-num
+% Referências — Movy: Artigo Científico (TCC)
+% Estilo: abntex2-alf (autor-data, definido pelo artigotemplate.sty)
 % =====================================================================
 
 % ----------------------------------------------------------------
@@ -26,21 +26,27 @@
 % Trabalhos relacionados
 % ----------------------------------------------------------------
 @article{pickbus2021,
-  author  = {Pretto, Gabriel and outros},
+  author  = {Pretto, Fabrício and Motta, Lucas Wantz da and Bagatini, Morgana Elis and Deitos, Mateus},
   title   = {PickBus: uma solução para serviços de transporte fretado de passageiros},
   journal = {Revista Destaques Acadêmicos},
+  address = {Lajeado},
+  volume  = {13},
+  number  = {1},
+  pages   = {167--187},
   year    = {2021},
-  url     = {https://univates.br/revistas/index.php/destaques/article/view/2857},
+  issn    = {2176-3070},
+  doi     = {10.22410/issn.2176-3070.v13i1a2021.2857},
+  url     = {http://dx.doi.org/10.22410/issn.2176-3070.v13i1a2021.2857},
   note    = {Acesso em: 29 nov. 2025}
 }
 
-@phdthesis{anderson2020,
-  author  = {Anderson Duarte de Paiva},
+@phdthesis{paiva2023,
+  author  = {Paiva, Anderson Duarte de},
   title   = {Sistema para Gerenciamento de Transportes},
   school  = {Universidade Federal Rural do Semi-Árido},
-  year    = {2024},
+  year    = {2023},
   address = {Pau dos Ferros},
-  type    = {Monografia (Graduação em Sistemas de Informação)},
+  type    = {Monografia (Bacharelado em Tecnologia da Informação)},
   url     = {https://repositorio.ufersa.edu.br/handle/prefix/11169},
   note    = {Acesso em: 29 nov. 2025}
 }
@@ -123,7 +129,7 @@
   school  = {University of California, Irvine},
   type    = {Doctoral dissertation},
   year    = {2000},
-  url     = {https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm},
+  url     = {https://roy.gbiv.com/pubs/dissertation/fielding_dissertation.pdf},
   note    = {Acesso em: 12 dez. 2025}
 }
 
@@ -168,13 +174,23 @@
   note         = {Acesso em: 12 dez. 2025}
 }
 
-@techreport{nistrbac,
-  author      = {Sandhu, Ravi and Ferraiolo, David and Kuhn, Richard},
-  title       = {The NIST Model for Role-Based Access Control: Towards a Unified Standard},
+@misc{nistRbacGlossary,
+  author = {{National Institute of Standards and Technology}},
+  title  = {Role-Based Access Control (RBAC)},
+  year   = {s.d.},
+  url    = {https://csrc.nist.gov/glossary/term/role_based_access_control},
+  note   = {Glossário CSRC. Acesso em: 03 jul. 2026}
+}
+
+@techreport{nistsp80053,
+  author      = {{Joint Task Force}},
+  title       = {Security and Privacy Controls for Information Systems and Organizations},
   institution = {National Institute of Standards and Technology},
-  year        = {2000},
-  url         = {https://csrc.nist.gov/projects/role-based-access-control},
-  note        = {Acesso em: 12 dez. 2025}
+  number      = {NIST Special Publication 800-53, Revision 5},
+  address     = {Gaithersburg},
+  year        = {2020},
+  url         = {https://doi.org/10.6028/NIST.SP.800-53r5},
+  note        = {Acesso em: 03 jul. 2026}
 }
 
 @misc{bcrypt,

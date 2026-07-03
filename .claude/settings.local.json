@@ -15,7 +15,10 @@
       "Bash(docker-compose up *)",
       "Bash(npm install *)",
       "Bash(findstr DATABASE_URL)",
-      "PowerShell(docker exec movy_db *)"
+      "PowerShell(docker exec movy_db *)",
+      "Bash(pdflatex --version)",
+      "Bash(bibtex --version)",
+      "PowerShell($paths = @\\(\"$env:LOCALAPPDATA\\\\Programs\\\\MiKTeX\\\\miktex\\\\bin\\\\x64\\\\pdflatex.exe\", \"C:\\\\Program Files\\\\MiKTeX\\\\miktex\\\\bin\\\\x64\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2024\\\\bin\\\\windows\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2025\\\\bin\\\\windows\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2026\\\\bin\\\\windows\\\\pdflatex.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\" } }; try { \\(Get-Command pdflatex -ErrorAction Stop\\).Source } catch { Write-Output \"pdflatex not in PATH\" })"
     ]
   }
 }

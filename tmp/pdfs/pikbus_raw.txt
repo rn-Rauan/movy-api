@@ -1,0 +1,486 @@
+
+
+--- PAGE 1 ---
+
+CENTRO DE GESTÃO
+ORGANIZACIONAL
+Revista Destaques Acadêmicos, Lajeado, v. 13, n. 1, 2021. ISSN 2176-3070
+DOI: http://dx.doi.org/10.22410/issn.2176-3070.v13i1a2021.2857
+http://www.univates.br/revistas
+PICKBUS: UMA SOLUÇÃO PARA SERVIÇOS DE
+TRANSPORTE FRETADO DE PASSAGEIROS
+Fabrício Pretto1, Lucas Wantz da Motta, Morgana Elis Bagatini, Mateus Deitos
+Resumo: Tendo em vista o crescimento dos centros urbanos nas últimas décadas
+e os problemas derivados desse processo, somado a uma crescente demanda por
+soluções inovadoras em mobilidade urbana que agreguem simplicidade e velocidade
+ao cotidiano das pessoas, este trabalho usa uma visão empreendedora e ferramentas
+de desenvolvimento de negócios presentes na literatura do empreendedorismo para
+desenvolver um novo produto. O resultado deste projeto foi um sistema multiplataforma,
+constituído por um aplicativo móvel e uma aplicação web, para gerenciamento do
+transporte fretado de passageiros. Dentre os recursos principais desenvolvidos para o
+produto, chamado PickBus, cita-se a criação de viagens, participação de passageiros,
+gerenciamento de pagamentos e lista de passageiros. O trabalho também demonstra
+que há um espaço sem concorrência no mercado para um produto voltado a esse
+público-alvo.
+Palavras-chave: Desenvolvimento de software. Mobilidade urbana. Empreendedorismo.
+Transporte fretado de passageiros.
+1 INTRODUÇÃO
+Com o crescimento das cidades, a mobilidade urbana tornou-se um
+tema bastante abordado nos dias atuais. Para Andrade e Galvão (2016) ela é
+indispensável na vida das pessoas e prover meios eficientes de circulação
+tornou-se uma necessidade fundamental para a administração pública.
+Junto a isso, ocorreu um aumento da demanda por transporte público
+e privado. Segundo Vasconcellos (2013), para que a utilização do transporte
+público prevaleça sobre o privado é necessária uma qualidade maior e um
+preço menor, que segundo Andrade e Galvão (2016) é encontrada em países
+desenvolvidos.
+1 Mestre em Ciência da Computação. Professor Universidade do Vale do Taquari - Univates
+– Lajeado. Atuante nos cursos presenciais de Engenharia de Software e Engenharia da
+Computação. Professor e conteudista dos cursos de informática EAD da IES. Coordenador do
+projeto de extensão Robótica Educacional.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 169
+
+--- PAGE 2 ---
+
+Ao passo que o transporte individual cresce, novas formas de
+deslocamento foram introduzidas no cenário da mobilidade urbana. As
+inovações tecnológicas que ocorreram nos últimos anos introduziram soluções
+como o uso compartilhado de veículos privados e tornaram mais atrativo
+o uso de transportes públicos. Coppola e Silvestri (2019) acreditam que a
+sociedade cobrará cada vez mais por soluções alternativas capazes de suprir
+as necessidades de deslocamento urbano. Dornelas (2008) demonstra que
+elencando os problemas e buscando a origem da situação, cercado de pessoas
+certas e que estejam dispostas a trabalhar por um mesmo ideal, há grande
+possibilidade de iniciar um empreendimento de sucesso e que possa agregar
+valor ao público alvo.
+Um dos propósitos do empreendedorismo é buscar resolver ou
+minimizar, os problemas encontrados na sociedade atual através da criação
+de novos produtos ou serviços. De acordo com Herrington e Kew (2017) o
+empreendedorismo é uma ferramenta capaz de proporcionar o desenvolvimento
+social, cultural e promover uma estrutura econômica rica.
+Ligando a necessidade por soluções em mobilidade urbana, o
+pensamento empreendedor e os conhecimentos técnicos, verificou-se uma
+necessidade por simplificar e automatizar o processo de fretamento de
+transporte de passageiros para eventos, ação muito comum nos mais diversos
+cenários, como jogos esportivos, eventos culturais e outros.
+A concepção da ideia para desenvolver uma aplicação com foco no
+ramo de transporte de passageiros ocorreu ao refletir sobre relatos de amigos,
+de usuários e dos próprios autores - todos com experiência quanto à utilização
+desta modalidade de transporte - que identificaram falta de ferramentas para
+agilizar o processo de planejamento de viagens, controle e pagamento de
+passageiros e a comunicação entre as partes (organizador e passageiros).
+O objetivo geral deste trabalho foi projetar e desenvolver um sistema
+multiplataforma, mobile e web, para gerenciamento do transporte fretado de
+passageiros, que agrega valor aos usuários e seja facilmente escalável. Além
+disso, almeja-se obter retorno financeiro por meio da monetização dessa
+plataforma como um produto.
+2 REFERENCIAL TEÓRICO
+2.1 Mobilidade urbana
+De acordo com Bertolde, Magagnin e da Silva (2008) a mobilidade
+urbana pode ser definida como a habilidade de se deslocar de um lugar a
+outro. Ela é um recurso social essencial e articulador da sociedade por estar
+diretamente atrelado às pessoas de diferentes classes sociais. Seu papel é
+suprir as necessidades de locomoção para realização de diferentes atividades
+rotineiras ligadas ao trabalho, estudos, lazer, cultura, entre outros. Para realizar
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 170
+
+--- PAGE 3 ---
+
+tais atividades, o habitante pode recorrer a diferentes meios de transporte,
+sejam eles motorizados ou não.
+Coppola e Silvestri (2019) acreditam que provavelmente dentro de um
+curto espaço de tempo, os sistemas de transporte atuais serão inadequados
+para atender a crescente demanda, que além de se tornar mais exigente, cobrará
+padrões de qualidades maiores e serviços de transportes customizáveis.
+A mudança no comportamento destes utilizadores é motivada pela
+transformação digital e as recentes inovações tecnológicas ocorridas na
+sociedade. As gerações mais jovens demonstram ser cada vez mais adotantes
+da ideia de abandonar a necessidade de possuir um veículo próprio, para
+utilizar meios de transporte alternativos.
+2.1.1 - Transporte público
+Assim como o perfil de ocupação dos centros urbanos, o transporte
+público também mudou, conforme Andrade e Galvão (2016), o transporte
+público no Brasil que era dominado por bondes e trens, hoje é realizado em sua
+maioria por ônibus.
+Quando avaliado o transporte público no Brasil, os sistemas de
+transporte urbano não cumprem com seus objetivos, pois não apresentam
+conforto, velocidade e regularidade, a exceção fica no quesito segurança, pois
+a possibilidade de sofrer um acidente de ônibus é bem menor do que com um
+automóvel (VASCONCELLOS 2013).
+2.1.2 Transporte individual e coletivo
+O transporte privado ou particular, é a forma de transporte onde o
+descolamento dos passageiros é feito através de um veículo, que pode ser ou
+não de posse do passageiro. O transporte privado pode ser considerado como
+o principal concorrente do transporte público, ele oferece diversas vantagens
+aos seus utilizadores, como a flexibilidade de horários, livre escolha do trajeto
+e maior conveniência, porém também é responsável pela emissão de mais
+poluentes e pelos engarrafamentos nos centros urbanos.
+Como tentativa de mudar esse panorama, as políticas específicas para
+mobilidade urbana abordam que a mudança de transporte individual para
+transporte coletivo é necessária. Comumente são apresentados projetos que
+utilizam ônibus de classe executiva para transporte da classe média, esse
+serviço apresenta uma qualidade e velocidade melhor que o transporte público
+comum, mas acaba tendo um custo elevado, se igualando ao fretamento de
+ônibus (VASCONCELLOS 2013).
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 171
+
+--- PAGE 4 ---
+
+2.1.3 Transporte sob regime de fretamento
+O serviço de fretamento é o transporte contratado para o deslocamento
+de um grupo de pessoas, com o mesmo objetivo, por um determinado período.
+Tem como características possuir um contrato específico, não possuir tarifa
+individual de passageiros e não pode assumir caráter de serviço aberto ao
+público em geral. O serviço de fretamento é dividido em várias modalidades e
+é regulamentado pelo poder público (LIMA, 2001).
+2.2 Empreendedorismo
+O conceito moderno para empreendedorismo foi apresentado por
+Schumpeter (1934) com base na sua teoria da destruição criativa. Esta teoria diz
+que o processo de evolução e desenvolvimento do sistema econômico ocorre
+quando empreendedores criam novos produtos ou tecnologias de produção
+inovadoras com potencial de se estabelecerem, transformando os métodos já
+existentes no mercado e menos eficientes em soluções obsoletas.
+Conforme apontado por Bessant e Tidd (2019), a inovação proposta
+pelo empreendedorismo não acontece automaticamente, para que as ideias
+de sucesso saiam do papel são necessárias diversas qualidades em um bom
+empreendedor, como a visão, conhecimento, paixão e esforço.
+O relatório do Global Entrepreneurship Monitor (2016), com o apoio
+do SEBRAE e do IBPQ (Instituto Brasileiro de Qualidade e Produtividade),
+apontam um crescimento das taxas de empreendedorismo de segundo estágio
+do empreendimento entre 2005 até 2016, passando de 21% para 36%. O relatório
+também mostra que em 2016 existiam no Brasil 48,3 milhões de empreendedores
+entre 18 e 64 anos.
+3 METODOLOGIA
+O presente trabalho apresenta-se com o método de pesquisa indutivo.
+De acordo com Prodanov e Freitas (2013), o método indutivo parte de
+experimentações e observação da realidade para que a partir de um caso
+particular, se chegue a generalização de um fenômeno. Neste método o
+pesquisador observa e estuda os fatos sobre o objeto no qual deseja aprofundar
+seu conhecimento.
+O modo de abordagem definido para a pesquisa é o qualitativo, ele se
+dá pelo fato da coleta de dados com base na observação do ambiente natural.
+Segundo Gerhardt e Silveira (2009), esse tipo de pesquisa não se preocupa
+com a representação numérica dos resultados, ela busca o entendimento de
+fenômenos humanos e o pesquisador é a ferramenta chave para isso.
+O presente trabalho utiliza a pesquisa experimental para analisar o
+problema alvo do estudo, desenvolver uma solução e trabalhar com base
+no que foi observado. Segundo Gil (2008) a pesquisa experimental tem por
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 172
+
+--- PAGE 5 ---
+
+objetivo observar os resultados causados pela exposição do objeto de estudo
+à influência de certas variáveis, em um ambiente com condições controladas e
+conhecidas pelo pesquisador.
+A metodologia utilizada quanto aos procedimentos técnicos ou meio
+de investigação, é a pesquisa bibliográfica. Para Lakatos e Marconi (2010), esse
+procedimento abrange toda a bibliografia já tornada pública e previamente
+validada sobre determinado assunto. Tem por finalidade deixar o autor em
+contato com tudo que já foi escrito, dito ou filmado em relação ao assunto da
+problemática apresentada.
+Após a conclusão da fundamentação teórica, realizou-se uma pesquisa
+de mercado com o objetivo de estudar o público alvo da plataforma. Em
+seguida, com a análise dos relatos obtidos através do formulário e com a
+definição das ferramentas técnicas a serem utilizadas, iniciou-se o processo de
+desenvolvimento do projeto. Com a plataforma pronta, foram realizados testes
+de usabilidade e coleta feedbacks com usuários parceiros.
+Diferentes tecnologias foram utilizadas para a elaboração do sistema
+multi plataforma, que foi dividido em três partes: back-end (parte administrativa),
+front-end (parte de telas) e mobile (versão móvel da solução). O back-end foi
+desenvolvido com a ferramenta Node.js, como ferramenta de banco de dados
+utilizou-se MariaDB. Já o front-end, projetado para a web, foi construído com
+React JS. No mobile a ferramenta utilizada foi o React Native.
+4 EXPERIMENTAÇÃO
+Este trabalho teve como objetivo o desenvolvimento de um sistema
+multiplataforma, mobile e web, que auxilie e facilite as etapas de gerenciamento
+do transporte fretado de passageiros, agregando valor aos seus usuários -
+organizadores e passageiros. Com base na observação das tarefas envolvidas
+no processo de fretamento, os principais problemas que este trabalho busca
+resolver são:
+• Comunicação esparsa, não havendo um canal único de comunicação
+entre organizador e passageiros;
+• Coleta de dados de forma manual pelo organizador, refere-se a reunir
+os dados pessoais dos passageiros da viagem;
+• Elaboração manual da lista de passageiros para encaminhar à
+transportadora, documento essencial para o transporte perante a
+legislação brasileira.
+4.1 Pesquisa de mercado
+A primeira etapa do projeto foi a elaboração de formulário online,
+composto por cinco questões objetivas e conseguiu atingir um total de 177
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 173
+
+--- PAGE 6 ---
+
+pessoas. Os resultados obtidos através dele foram de grande importância para
+estudar o público alvo e confirmar a viabilidade do projeto.
+Conforme pode ser observado na Figura 1 cerca de 80% dos respondentes
+indicaram fazer uso desta modalidade de transporte para ir a shows, festas ou
+outros eventos. Quanto à frequência de uso, considerando o período de um ano,
+45,2% responderam utilizar de 2 a 5 vezes, já 15,8% utilizam mais de 10 vezes.
+Estes dados apontam que existe um público considerável para este segmento
+de mercado.
+Figura 1 - Resultado das perguntas de utilização do transporte coletivo fretado
+Fonte: Dos autores (2021).
+4.2 Matriz FOFA
+A análise SWOT ou FOFA é uma matriz que ajuda a entender melhor
+o ambiente que cerca uma empresa e auxilia no planejamento do seu futuro,
+podendo ser aplicada tanto por empresas já constituídas, como para novos
+negócios. Seguindo esta premissa, desenvolveu-se a matriz SWOT para o
+empreendimento. Ela reúne os fatores internos e externos do negócio, como
+pode ser observado na Figura 2.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 174
+
+--- PAGE 7 ---
+
+Figura 2 - Análise SWOT - PickBus
+Fonte: Dos autores (2021).
+Analisando a matriz criada, pode-se apontar que uma grande força do
+empreendimento é a automatização dos processos manuais e o controle das
+atividades em ambiente digital. A falta de concorrentes no mercado é uma
+oportunidade que deve ser bem explorada para atingir o sucesso do produto.
+Como pontos negativos, cita-se a falta de experiência da equipe, que
+pode dificultar na forma como eventuais problemas serão lidados e assim
+afetar o produto. Outra fragilidade é a pandemia da COVID-19, que impactou
+com muita intensidade o setor de turismo e praticamente extinguiu as viagens
+coletivas.
+4.3 Arquitetura de software
+A organização da arquitetura de software foi projetada de modo a
+atender a aplicação multiplataforma, que pode ser acessada através de um
+aplicativo em dispositivos móveis ou via uma página web acessada pela
+internet. A Figura 3 demonstra o diagrama da arquitetura da solução e como
+os diferentes componentes para o pleno funcionamento da plataforma se
+comunicam. O sistema foi dividido em três partes:
+• Aplicação mobile: esta parte do sistema é destinada aos passageiros e
+organizadores. Para o passageiro, o aplicativo possibilita a pesquisa,
+participação e consulta de viagens. Já o organizador pode consultar
+suas viagens e controlar o pagamento dos passageiros;
+• Aplicação web: a parte web do sistema é destinada aos organizadores,
+aqui os organizadores poderão consultar e gerenciar viagens, isso
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 175
+
+--- PAGE 8 ---
+
+inclui controlar e imprimir a lista de passageiros, assim como efetuar
+o controle de pagamentos;
+• Back-end: responsável por prover todos os dados utilizados pelas
+partes anteriores. Ele fornece todas as funcionalidades relacionadas
+com a manutenção e obtenção dos dados das aplicações, ou seja, é ele
+que faz a consulta e manutenção nas tabelas do banco de dados.
+Figura 3 - Diagrama de arquitetura de software do produto
+Fonte: Dos autores (2021).
+A área destacada em amarelo na Figura 3 representa a integração com
+um gateway de pagamento, que não foi desenvolvida na primeira versão do
+produto, mas será implementada futuramente.
+4.4 Aplicativo mobile
+A aplicação inicial ou MVP foi desenvolvida com a ferramenta React
+Native, com foco na usabilidade do usuário. A principal função do aplicativo
+mobile é permitir ao organizador gerenciar as viagens e permitir aos passageiros
+buscar e participar de fretamentos. Também tem como objetivo garantir a
+comunicação entre organizadores e passageiros.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 176
+
+--- PAGE 9 ---
+
+Ao acessar o aplicativo, o usuário é direcionado às telas para autenticação
+e cadastro do usuário da aplicação, sendo visíveis apenas quando não há um
+login efetuado. As telas de boas-vindas, login e recuperação de senha estão
+representadas na Figura 4.
+Figura 4 - Telas para autenticação
+Fonte: Dos autores (2021).
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 177
+
+--- PAGE 10 ---
+
+Figura 5 - Telas de navegação principal
+Fonte: Dos autores (2021).
+Após efetuado o login, o usuário é direcionado para o conjunto de
+telas principais do sistema, que é composto pela tela de início, dividida em
+viagens que está participando ou organizando e a tela de pesquisa. Elas estão
+representadas na Figura 5.
+Ao selecionar um quadro de viagem, o usuário será enviado aos detalhes
+dela, que possui todas as informações detalhadas da viagem e as opções de
+participar ou sair do fretamento, conforme pode ser observado na Figura 6.
+Algumas funcionalidades como mapa e pagamento via aplicativo não foram
+disponibilizadas na primeira versão do aplicativo.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 178
+
+--- PAGE 11 ---
+
+Figura 6 - Telas de detalhes da viagem
+Fonte: Dos autores (2021).
+O aplicativo está disponível para o público através da Play Store, loja de
+aplicativos do Google para o sistema operacional Android. A publicação na loja
+da Apple para dispositivos com sistema operacional IOS será futura devido ao
+tempo do processo de aprovação e o seu custo de implantação.
+4.5 Aplicação web
+A aplicação web foi direcionada ao organizador de viagens, ela
+possui como foco a administração das tarefas do organizador. Dentre as
+funcionalidades desenvolvidas na aplicação web podemos citar: criação de
+viagens, listagem das viagens organizadas pelo usuário, controle da lista de
+passageiros e pagamentos, dúvidas dos passageiros e cadastro rápido. A seguir
+são apresentadas as principais interfaces desenvolvidas para o PickBus.
+Na Figura 7 é possível ver a interface de acesso à aplicação web. Ela
+contém os campos para o usuário informar suas credenciais e acessar o sistema.
+Além de um link para redefinição de senha e criação de conta.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 179
+
+--- PAGE 12 ---
+
+Figura 7 - Interface de login da aplicação
+Fonte: Dos autores (2021).
+A Figuras 8 mostra a tela inicial ao acessar a aplicação, ela exibe alguns
+indicadores sobre as viagens que o usuário está organizando, no canto superior
+consta o número de viagens por situação. No quadro inferior são exibidas
+informações detalhadas sobre a próxima viagem que irá ocorrer.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 180
+
+--- PAGE 13 ---
+
+Figura 8 - Interface inicial da aplicação com viagens
+Fonte: Dos autores (2021).
+Na Figura 9 pode-se ver a interface para a criação de uma nova viagem.
+E em seguida, a Figura 10 exibe a tela com os detalhes sobre uma viagem
+selecionada pelo usuário.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 181
+
+--- PAGE 14 ---
+
+Figura 9 - Interface de criação de uma viagem
+Fonte: Dos autores (2021).
+Figura 10 - Interface de detalhes da viagem
+Fonte: Dos autores (2021).
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 182
+
+--- PAGE 15 ---
+
+Visando diminuir a complexidade e facilitar o ingresso de passageiros
+em uma viagem, a aplicação conta com um formulário de participação rápida,
+a Figura 11 mostra esta interface. Através deste formulário os passageiros
+participam de uma viagem sem a necessidade de criar conta.
+Figura 11 - Interface de participação rápida da viagem
+Fonte: Dos autores (2021).
+4.6 Testes e análise dos resultados
+As etapas de testes e a validação do produto, foram realizadas após o
+desenvolvimento da aplicação com usuários parceiros, que envolveu no total
+34 pessoas. Os resultados foram obtidos através de um formulário online,
+contendo questões para avaliar a usabilidade e efetividade da solução (web e
+mobile), durante o estágio de publicação para avaliação do produto.
+A plataforma foi disponibilizada para usuários parceiros, ou seja,
+pessoas selecionadas que assumiram o papel de organizadores de viagens. Estas
+pessoas foram escolhidas propositalmente, pelo fato de estarem habituadas em
+exercer o papel de organizadores, ou seja, eles seriam mais criteriosos quanto à
+avaliação da plataforma. A seguir estão as perguntas utilizadas no questionário
+de avaliação do PickBus:
+• Como você classifica sua primeira impressão sobre o site/aplicativo?
+• Como você avalia a eficácia do site/aplicativo na organização do
+transporte?
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 183
+
+--- PAGE 16 ---
+
+• Em relação à facilidade de uso, indique o seu grau de dificuldade na
+utilização do site/aplicativo.
+• Caso tenha encontrado alguma dificuldade, descreva:
+• Que sugestão de melhoria você daria ao produto?
+A Figura 12 demonstra que a primeira impressão de uso da plataforma
+foi boa ou muito boa para mais de 94,1% das pessoas participantes. Este
+resultado é positivo para um produto novo, pois possibilita atingir um maior
+nível de aceitação e utilização entre esses usuários.
+Figura 12 - Resultados sobre a primeira impressão de uso
+Fonte: Dos autores (2021).
+A pergunta seguinte buscou avaliar se o produto atingiu seu objetivo
+que é auxiliar na organização do transporte, mostrando mais uma vez um
+resultado positivo com mais de 97,1% dos usuários considerando a ferramenta
+eficaz, conforme a Figura 13.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 184
+
+--- PAGE 17 ---
+
+Figura 13- Resultados sobre a eficácia do produto para organizar transporte
+Fonte: Dos autores (2021).
+A Figura 14 apresenta as respostas dos usuários que encontraram
+dificuldades ao utilizar o produto. Destaca-se que além de dois problemas
+técnicos um ponto muito importante foi levantado e deve ser trabalhado, que
+é a insegurança de informar os dados pessoais para a aplicação, que são CPF e
+RG.
+Figura 14 - Resultados sobre as dificuldades encontradas durante a utilização
+Fonte: Dos autores (2021).
+Após estas etapas, a aplicação estava madura o suficiente para entrar
+no ar. Desta forma, no dia 30 de outubro de 2020, a aplicação foi lançada
+oficialmente e disponibilizada para o público em geral, acompanhada pela
+divulgação publicitária nas redes sociais da plataforma, sendo elas Instragram
+e Facebook, que até a data de 01/02/2021 contava com 47 seguidores.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 185
+
+--- PAGE 18 ---
+
+5 CONSIDERAÇÕES FINAIS
+O presente trabalho teve como motivação a criação de uma aplicação
+multiplataforma que resolvesse um dos problemas da mobilidade urbana, o
+transporte fretado de passageiros, integrando de forma simples e dinâmica os
+atores do sistema, que são o organizador e o passageiro.
+Para desenvolvimento desta aplicação foi necessário o estudo e
+entendimento do problema, o projeto e desenvolvimento de um sistema multi
+plataforma e a disponibilização para uso por parte dos usuários finais. Ao
+final dessas tarefas e da compilação dos resultados do período de avaliação, o
+produto se mostrou viável e aceito pelo público alvo.
+Um fator que afetou negativamente a análise, validação e lançamento
+do produto foi a pandemia da COVID-19. Os setores de transportes e turismo
+foram os mais afetados em decorrência dos acontecimentos, o que resultou no
+cancelamento da maioria das viagens e na obtenção de parceiros, principalmente
+de empresas de transporte.
+Ao final do trabalho, o produto cumpriu com todos os objetivos
+propostos, se mostrou uma solução para o nicho de mercado ao qual foi inserido
+e sem concorrentes com mesmo objetivo, o transporte fretado de passageiros
+para eventos. Conforme a pandemia for extinta, um plano de marketing será
+projetado e aplicado para divulgação do produto. Empresas que realizam fretes
+de passageiros serão contatadas e parcerias firmadas.
+REFERÊNCIAS
+ANDRADE, Josiane Nascimento; GALVÃO, Diogo Cavalcanti. REVISTA HUM@
+NAE: O conceito de smart cities aliado à mobilidade urbana. 2016. Disponível em:
+<https://tinyurl.com/yd2zkfsw>. Acesso em: 17 jan. 2021.
+BESSANT, John; TIDD, Joe. Inovação e Empreendedorismo. 3 ed. Porto Alegre:
+Bookman, 2019. Disponível em: <https://tinyurl.com/ya7l3d28>. Acesso em: 24 jan.
+2021.
+COPPOLA, Pierluigi; SILVESTRI, Fulvio. Future mobility and land use scenarios:
+impact assessment with an urban case study. Transportation Research Procedia,
+v. 42, p. 53-63, 2019. Disponível em: <https://doi.org/10.1016/j.trpro.2019.12.006>.
+Acesso em: 20 jan. 2021.
+GERHARDT, Tatiana Engel; SILVEIRA, Denise Tolfo. Métodos de pesquisa. 1. ed.
+Porto Alegre: Editora da UFRGS, 2009. Disponível em: <http://www.ufrgs.br/
+cursopgdr/downloadsSerie/derad005.pdf>. Acesso em: 10 fev. 2021.
+GIL, Antonio Carlos. Métodos e técnicas de pesquisa social. 6 ed. São Paulo: Atlas,
+2008.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 186
+
+--- PAGE 19 ---
+
+HERRINGTON, Mike; KEW, Penny. Global Entrepreneurship Monitor: 2016/17
+Global Report. Global Entrepreneurship Research Association (GERA), 2017.
+Disponível em: <https://www.c4e.org.cy/reports/2017/gem-2016-2017-global-
+report-web-version-1486181226.pdf>. Acesso em: 14 fev. 2021.
+LAKATOS, Eva Maria; MARCONI, Marina de Andrade. Fundamentos de
+metodologia científica. 7 ed. São Paulo: Atlas, 2010.
+LIMA, Alberto. Transporte de passageiros por fretamento de ônibus e terminais de
+passageiros. Revista dos Transportes Públicos - ANTP, v. 24, p. 4º, 2001. Disponível
+em: <http://www.antp.org.br/biblioteca-vitrine/revista-dos-transportes-publicos.
+html>. Acesso em: 10 fev. 2021.
+MAGAGNIN, Renata Cardoso; DA SILVA, Antônio Nélson Rodrigues. “A percepção
+do especialista sobre o tema mobilidade urbana.” Transportes, v 16, n.1, 2008.
+Disponível em: <https://revistatransportes.org.br/anpet/article/view/13/10>.
+Acesso em: 10 fev. 2021.
+MONITOR, Global Entrepreneurship. Empreendedorismo no Brasil: 2016.
+Curitiba: IBQP, 2017. Disponível em: <https://www.gemconsortium.org/file/
+open?fileId=49919>. Acesso em: 15 fev. 2021.
+PRODANOV, Cleber Cristiano; FREITAS, Ernani Cesar de. Metodologia do Trabalho
+Científico: Métodos e Técnicas da Pesquisa e do Trabalho Acadêmico. 2. ed. Novo
+Hamburgo: Feevale, 2013. Disponível em: <http://www.feevale.br/Comum/
+midias/8807f05a-14d0-4d5b-b1ad-1538f3aef538/E-book%20Metodologia%20do%20
+Trabalho%20Cientifico.pdf>. Acesso em: 16 fev. 2021.
+SCHUMPETER, Joseph. The theory of economic development: An Inquiry Into
+Profits, Capital, Credit, Interest, and the Business Cycle. New York: Oxford University
+Press, 1934.
+VASCONCELLOS, Eduardo Alcântara de. Mobilidade Urbana: O que você precisa
+saber. São Paulo: Editora Companhia das Letras, 2013. Disponível em: <https://
+tinyurl.com/y9pv9l2v>. Acesso em: 22 fev. 2021.
+Destaques Acadêmicos, Lajeado, v. 13, n. 1, p. 167-187, 2021. ISSN 2176-3070 187

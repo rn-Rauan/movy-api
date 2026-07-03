@@ -1,0 +1,962 @@
+
+
+--- PAGE 1 ---
+
+UNIVERSIDADE FEDERAL RURAL DO SEMI-ÁRIDO
+PRÓ-REITORIA DE GRADUAÇÃO
+CENTRO MULTIDISCIPLINAR DE PAU DOS FERROS
+CURSO DE BACHARELADO EM TECNOLOGIA DA INFORMAÇÃO
+ANDERSON DUARTE DE PAIVA
+SISTEMA PARA GERENCIAMENTO DE TRANSPORTES
+PAU DOS FERROS - RN
+2023
+
+--- PAGE 2 ---
+
+ANDERSON DUARTE DE PAIVA
+SISTEMA PARA GERENCIAMENTO DE TRANSPORTES
+Monografia apresentada à Universidade
+Federal Rural do Semi-Árido como requisito
+parcial para obtenção do título de Bacharel em
+Tecnologia da Informação.
+Orientador: Prof. Dr. Reudismam Rolim de
+Sousa
+PAU DOS FERROS - RN
+2023
+
+--- PAGE 3 ---
+
+© Todos os direitos estão reservados a Universidade Federal Rural do Semi-Árido. O conteúdo desta obra é de inteira
+responsabilidade do (a) autor (a), sendo o mesmo, passível de sanções administrativas ou penais, caso sejam infringidas as leis
+que regulamentam a Propriedade Intelectual, respectivamente, Patentes: Lei n° 9.279/1996 e Direitos Autorais: Lei n°
+9.610/1998. O conteúdo desta obra tomar-se-á de domínio público após a data de defesa e homologação da sua respectiva
+ata. A mesma poderá servir de base literária para novas pesquisas, desde que a obra e seu (a) respectivo (a) autor (a)
+sejam devidamente citados e mencionados os seus créditos bibliográficos.
+P545s Paiva, Anderson Duarte de .
+Sistema para gerenciamento de transportes /
+Anderson Duarte de Paiva. - 2023.
+51 f. : il.
+Orientador: Reudisman Rolim de Sousa.
+Monografia (graduação) - Universidade Federal
+Rural do Semi-árido, Curso de Tecnologia da
+Informação, 2023.
+1. Transporte. 2. Bootstrap. 3.
+Desenvolvimento web. 4. Universidade. I. Sousa,
+Reudisman Rolim de , orient. II. Título.
+Ficha catalográfica elaborada por sistema gerador automáto em conformidade
+com AACR2 e os dados fornecidos pelo) autor(a).
+Biblioteca Campus Pau dos Ferros
+Bibliotecária: Erlanda Maria Lopes da Silva
+CRB: 15/966
+O serviço de Geração Automática de Ficha Catalográfica para Trabalhos de Conclusão de Curso (TCC´s) foi desenvolvido pelo Instituto
+de Ciências Matemáticas e de Computação da Universidade de São Paulo (USP) e gentilmente cedido para o Sistema de Bibliotecas
+da Universidade Federal Rural do Semi-Árido (SISBI-UFERSA), sendo customizado pela Superintendência de Tecnologia da Informação
+e Comunicação (SUTIC) sob orientação dos bibliotecários da instituição para ser adaptado às necessidades dos alunos dos Cursos de
+Graduação e Programas de Pós-Graduação da Universidade.
+
+--- PAGE 4 ---
+
+ANDERSON DUARTE DE PAIVA
+SISTEMA PARA GERENCIAMENTO DE TRANSPORTES
+Monografia apresentada à Universidade
+Federal Rural do Semi-Árido como requisito
+parcial para obtenção do título de Bacharel em
+Tecnologia da Informação.
+Defendida em: 15/04/2024.
+BANCA EXAMINADORA
+_________________________________________
+Prof. Dr. Reudismam Rolim de Sousa - UFERSA
+Presidente
+_________________________________________
+Prof. Me. José Ferdinandy Silva Chagas - UFERSA
+Membro Examinador
+_________________________________________
+Prof. Me. Thyago Alves Sobreira - UEPB
+Membro Examinador
+
+--- PAGE 5 ---
+
+Dedico este trabalho a minha família, meus
+pais, Diomedes e Iranilda, e ao meu irmão
+Marshell, que nunca duvidaram da minha
+capacidade, sempre me apoiaram e estiveram
+comigo nas fases mais difíceis desta jornada e
+assim continuam.
+
+--- PAGE 6 ---
+
+AGRADECIMENTOS
+Primeiramente gostaria de agradecer a Deus, a principal base de princípios ao qual
+cresci e fui ensinado a respeitar e clamar em momentos de dificuldade; agradecer por ser o
+primeiro de minha família a se formar em uma universidade federal a uma longa distância de
+casa e que desde a minha chegada eu nunca me senti só de verdade.
+De maneira a faltar palavras, sou grato pelos meus pais, que desde o início nunca
+disseram nenhuma palavra de desânimo ou fraqueza; a minha mãe Iranilda e ao meu pai
+Diomedes, que diante de dificuldades financeiras, problemas de saúde, distância, e situações
+diversas, mostraram que eu tenho a base forte fundamentada no verdadeiro valor de uma
+família. Foram nesses momentos meus conselheiros, cuidadores e sempre me motivaram a
+seguir em frente.
+Agradeço ao meu irmão Marshell, que sempre esteve disposto a me ajudar sem pedir
+nada em troca, sempre me apoiando em tudo que eu precisei, seja me dando conselhos ou até
+mesmo finaceiramente.
+Agradeço aqui, especialmente, a uma tia que tem um gênio muito parecido com o
+meu, a perseverança e a capacidade de lutar, sem ficar olhando para trás, minha tia Ivanilda,
+que sempre me ajudou muito e deixou claro que eu poderia contar com ela, seja estando longe
+ou perto de casa.
+Ainda com o laço do sangue, agradeço às mulheres que foram as matrizes de todos
+nós, minhas avós Dona Lindalva e Dona Rita, que nunca deixaram de me incentivar, e sempre
+dizer que tudo vai dar certo, que eu não desistisse, e sempre me ajudaram da forma em que
+puderam, eu amo vocês muito.
+Agora neste agradecimento não conterá laço de sangue, mas um forte laço de amizade,
+respeito, companheirismo, que cresceu em meio a dificuldades e desafios, mas que até hoje
+nos deu frutos; aqui cito Kennedy, Iggor, Bruno, Thyago, Vitor, Jefferson, Antonio, Angelo,
+Juan e Kleber. Todos eles de maneira direta fizeram por mim coisas que nem todo amigo,
+colega ou parceiro faz; cada um do seu jeito, do seu próprio modo e com suas próprias
+capacidades; esses sim “cavaram trincheiras ao meu lado”.
+Agradeço aos meus professores, mas tem alguns que o meu agradecimento transcende
+os muros da universidade, primeiramente ao Prof. Me. Ferdinandy e o Prof.Dr. Reudismam,
+seus exemplos como pessoas, carisma, e dedicação serão lembrados e ficarão gravados na
+minha essência de universitário.
+
+--- PAGE 7 ---
+
+Agradeço a todo corpo docente da UFERSA campus Pau dos Ferros. Obrigado!
+Agradeço ao meu orientador, o Prof.Dr. Reudismam, que sempre esteve à disposição
+para me ouvir e me orientar em cada passo dado dentro da universidade, e me guiou para a
+entrega deste trabalho de conclusão de curso. Por fim, agradeço a minha banca examinadora.
+Obrigado!
+
+--- PAGE 8 ---
+
+RESUMO
+Este projeto tem como objetivo a criação de um software para o gerenciamento eficiente dos
+transportes na Universidade Federal Rural do Semi-Árido, Campus Pau dos Ferros. Diante
+das dificuldades encontradas no processo atual de reserva de transportes, que envolve o envio
+de e-mails e pode resultar em perda de reservas, a implementação desse sistema visa otimizar
+e modernizar todo o processo. A metodologia de pesquisa empregada, combina o
+desenvolvimento ágil e prototipagem iterativa. Foi utilizado o framework Bootstrap para
+construir uma interface de usuário intuitiva e responsiva, proporcionando aos usuários a
+capacidade de efetuar reservas de transporte com facilidade. Durante o desenvolvimento, os
+protótipos funcionais foram submetidos a testes contínuos com usuários-chave, como
+estudantes, professores e funcionários, para garantir a usabilidade e a eficácia do sistema.
+Através da coleta de feedback e avaliação dos resultados, foram feitas melhorias iterativas
+para criar uma solução funcional e personalizada. O sistema proposto visa proporcionar uma
+experiência conveniente e transparente para os usuários, eliminando a dependência de e-mails
+e minimizando o risco de perda de reservas. Além disso, a implementação do sistema
+resultará em uma gestão mais eficaz dos transportes, permitindo o acompanhamento em
+tempo real das reservas e fornecendo informações valiosas para futuras decisões estratégicas.
+Em resumo, o desenvolvimento do sistema de gerenciamento de transportes representa uma
+modernização dos serviços oferecidos pela universidade, melhorando a eficiência operacional,
+a satisfação dos usuários e contribuindo para um ambiente acadêmico mais organizado e
+eficaz.
+Palavras-chave: transportes; bootstrap; desenvolvimento web; universidade.
+
+--- PAGE 9 ---
+
+ABSTRACT
+This project aims to create software for the efficient management of transport at the
+Universidade Federal Rural do Semi-Árido, Campus Pau dos Ferros. Given the difficulties
+encountered in the current transport reservation process, which involves sending emails and
+can result in lost reservations, the implementation of this system aims to optimize and
+modernize the entire process. The research methodology used combines agile development
+and iterative prototyping. The Bootstrap framework was used to build an intuitive and
+responsive user interface, providing users with the ability to make transport reservations
+easily. During development, functional prototypes were subjected to continuous testing with
+key users, such as students, faculty, and staff, to ensure the usability and effectiveness of the
+system. By collecting feedback and evaluating results, iterative improvements were made to
+create a functional, customized solution. The proposed system aims to provide a convenient
+and transparent experience for users, eliminating dependence on emails and minimizing the
+risk of lost reservations. Furthermore, the implementation of the system will result in more
+effective transport management, allowing real-time monitoring of reservations and providing
+valuable information for future strategic decisions. In summary, the development of the
+transport management system represents a modernization of the services offered by the
+university, improving operational efficiency, and user satisfaction and contributing to a more
+organized and effective academic environment.
+Keywords: transportation; bootstrap; web development; university.
+
+--- PAGE 10 ---
+
+LISTA DE FIGURAS
+Figura 1 - Funcionamento da Tecnologia Web para Acesso a um Web Site Tradicional…… 18
+Figura 2 -Diagrama de Classes…….………………………………….……………………...36
+Figura 3 - Diagrama de Caso de Uso..……..……………………………….………………...37
+Figura 4 - Diagrama de Sequência….….…..……………………………….………………...38
+Figura 5 - Tela de Login…...……..……………………………………………..…………….39
+Figura 6 - Tela de Cadastro..……………….... ………..…………………………………….40
+Figura 7 - Tela Home do Sistema.…………. ………………………………………………...41
+Figura 8 - Tela de Viagens...……...……………………………………………………….….42
+Figura 9 - Tela de Veículos..……...………………………………………………………….42
+Figura 10 - Tela de Categorias…...……………………………………………………….….43
+Figura 11 - Tela de Motoristas…....……………………………………………………….….44
+
+--- PAGE 11 ---
+
+LISTA DE QUADROS
+Quadro 1 - Solicitante de viagem……………………………………..…………………...…19
+Quadro 2 - Chefe do setor…………………….. ……………………………...……………...20
+Quadro 3 - Técnico de transportes………….………………………...………………………20
+Quadro 4 - Diretor de Transportes…..………………………...…………….………...……..21
+Quadro 5 - Solicitar Viagens………..…………………………………………………...…....22
+Quadro 6 - Disponibilidade de Veículos………………………………………………...…....22
+Quadro 7 - Cadastrar Categorias de Transportes……………………………….………..…...22
+Quadro 8 - Cadastrar Setores...……..……………………………………………...………....23
+Quadro 9 - Cadastrar Veículos……..………….……………………………………...……....24
+Quadro 10 - Cadastro de Custo..……..………………………………………………...……..25
+Quadro 11 - Cadastro de Motoristas....……………………...……………….………..……...26
+Quadro 12 - Cadastro de Chefe de Setor.…………………...……………….………..……...27
+Quadro 13 - Listar Solicitações do Setor….………………...………………………...……...28
+Quadro 14 - Alocar Veículo em Viagem..…………………...………………………...……...29
+Quadro 15 - Prestação de Contas da Viagem…...…………...……………………...………...30
+Quadro 16 - Consultar Viagem...……..……………………...……………………......……...31
+Quadro 17 - Reservar Veículo………..……………………...………………………...……...32
+Quadro 18 - Exibir Dashboardl……..……………………...………………………….……...33
+Quadro 19 - Solicitações Recentes…...……………………...………………………...……...34
+Quadro 20 - Solicitações do Servidor..……………………...………………………...……...35
+Quadro 21 - Gerar Relatório…..……..……………………...…………….…………..……...36
+Quadro 22 - Gerar Relatório em Planilha …………………...………………………..……...37
+Quadro 23 - Movimentações de Motoristas.………………...…………………………...…...38
+Quadro 24 - Cadastro de Usuário…..……...………………...………………………...……...38
+
+--- PAGE 12 ---
+
+LISTA DE ABREVIATURAS E SIGLAS
+TMS Transportation Management System
+SCM Supply Chain Management
+WEB World Wide Web
+HTML Hypertext Markup Language
+CSS Cascading Style Sheets
+UI User Interface
+XP Extreme Programming
+SI Sistema de Informação
+SIG Sistemas de Informação Gerenciais
+UFV Universidade Federal de Viçosa
+RU Restaurante Universitário
+PCDP Proposta de Concessão de Diárias e Passagens
+
+--- PAGE 13 ---
+
+SUMÁRIO
+1 INTRODUÇÃO 1
+1.1 JUSTIFICATIVA 2
+1.2 OBJETIVOS 3
+2 FUNDAMENTAÇÃO TEÓRICA 4
+2.1 TRANSPORTATION MANAGEMENT SYSTEM (TMS) 4
+2.2 TECNOLOGIAS WEB 5
+2.3 METODOLOGIAS ÁGEIS 6
+2.4 IMPACTOS DA AUTOMATIZAÇÃO DE PROCESSOS EM INSTITUIÇÕES PÚBLICAS 6
+3 PROPOSTA DE SOLUÇÃO 7
+3.1 LEVANTAMENTO DE REQUISITOS 7
+3.2 MODELAGEM 21
+3.3 PROTÓTIPO DO SISTEMA 25
+3.4 DISCUSSÃO DOS RESULTADOS 31
+4 CONSIDERAÇÕES FINAIS 32
+REFERÊNCIAS 33
+
+--- PAGE 14 ---
+
+1
+1. INTRODUÇÃO
+A constante evolução das tecnologias de informação tem transformado profundamente
+a maneira como as instituições educacionais operam e interagem com seus membros. No
+âmbito acadêmico, a eficiência dos processos administrativos e a satisfação dos estudantes
+desempenham um papel crucial para garantir um ambiente educacional produtivo e dinâmico.
+Nesse contexto, a busca por soluções inovadoras que otimizem a gestão dos recursos e
+melhorem a experiência dos usuários torna-se imperativa.
+Este trabalho apresenta um estudo aprofundado sobre a criação de um software
+inovador voltado para o gerenciamento eficiente dos transportes na universidade. A
+problemática identificada reside nas dificuldades do processo atual de reserva de transportes,
+que frequentemente utiliza o método tradicional de envio de e-mails, resultando
+ocasionalmente em perda de reservas e insatisfação dos usuários. O objetivo principal deste
+projeto é desenvolver uma solução tecnológica que otimize e modernize esse processo,
+proporcionando uma experiência mais conveniente, transparente e eficaz para os membros da
+comunidade universitária.
+Ao longo deste trabalho, foram explorados os fundamentos teóricos que sustentam a
+criação de sistemas de gerenciamento de transportes eficientes, abordando conceitos
+relacionados à integração de tecnologias web, usabilidade e desenvolvimento ágil que, de
+acordo com Roger S. Pressman enfatiza a colaboração, a adaptação a mudanças, o
+desenvolvimento incremental e a entrega contínua de software funcional. Além disso, será
+detalhada a metodologia de pesquisa aplicada, que combina o desenvolvimento ágil e a
+prototipagem iterativa, utilizando o framework Bootstrap, que “é um kit de ferramentas de
+front-end poderoso e repleto de recursos. Crie qualquer coisa, do protótipo à produção, em
+minutos .” (Bootstrap, 2023)
+Embora o software ainda não tenha sido implantado, foram realizados testes internos
+para avaliar sua usabilidade e funcionalidade. Os resultados desses testes foram utilizados
+para orientar o desenvolvimento iterativo do sistema, visando uma solução altamente
+personalizada e adaptada às necessidades da comunidade universitária.
+Em resumo, este trabalho se propõe a explorar a viabilidade e os benefícios da
+implementação de um sistema de gerenciamento de transportes inovador na universidade,
+
+--- PAGE 15 ---
+
+contribuindo para a modernização dos serviços oferecidos, aprimorando a eficiência
+operacional e proporcionando uma experiência satisfatória para todos os envolvidos.
+1.1 JUSTIFICATIVA
+A eficácia da gestão de recursos e processos em uma instituição educacional
+desempenha um papel fundamental no fornecimento de uma experiência de qualidade para
+seus membros. No contexto de uma universidade, em que a mobilidade da comunidade
+acadêmica é uma necessidade constante, o gerenciamento eficiente dos transportes se torna
+um fator crítico para garantir um ambiente acadêmico produtivo e satisfatório.
+A problemática identificada na Universidade Federal Rural do Semi-Árido, Campus
+Pau dos Ferros, reside no processo atual de reserva de transportes, que é amplamente baseado
+no envio de e-mails para efetuar reservas. Esse método, além de ser suscetível a erros de
+comunicação e perdas de informações, também pode causar uma série de inconveniências
+para os usuários, como atrasos e disputas por vagas nos transportes disponíveis. A
+dependência desse processo impacta a eficiência da instituição e compromete a satisfação e
+experiência dos estudantes e membros do corpo docente.
+A implementação de um software de gerenciamento de transportes surge como uma
+proposta para lidar com esses desafios. Através da modernização e automação do processo de
+reserva, é possível mitigar a possibilidade de perdas de reservas, garantir uma distribuição
+justa das vagas disponíveis e fornecer aos usuários uma plataforma acessível e eficiente para
+gerenciar suas necessidades de transporte. Ademais, a adoção de um sistema informatizado
+permitirá uma gestão mais estratégica e embasada em dados, auxiliando a tomada de decisões
+e a alocação otimizada dos recursos de transporte.
+A relevância desse projeto se estende para além da esfera operacional, influenciando
+diretamente a experiência dos membros da comunidade universitária. Ao oferecer um meio
+conveniente e confiável de reserva de transportes, o sistema proposto não apenas aumentará a
+satisfação dos usuários, mas também contribuirá para uma imagem positiva da universidade
+como um todo. Além disso, a implementação bem-sucedida desse sistema pode auxiliar outras
+instituições que enfrentam desafios semelhantes em seus processos de gerenciamento de
+transportes.
+
+--- PAGE 16 ---
+
+Portanto, a justificativa para este projeto reside na necessidade clara e premente de
+aprimorar a eficiência operacional da Universidade por meio da implementação de um
+sistema de gerenciamento de transportes. A adoção de tecnologias modernas e abordagens
+ágeis atuam na modernização dos serviços oferecidos, melhorando a experiência dos usuários
+e reforçando a reputação da universidade como uma instituição comprometida com a
+excelência acadêmica e administrativa.
+1.2 OBJETIVOS
+O objetivo deste projeto é implementar um software de gerenciamento de transportes
+para a UFERSA, Campus Pau dos Ferros, visando aprimorar a eficiência, confiabilidade e
+transparência do processo de reserva de transportes. O software pretende fornecer aos
+usuários uma plataforma centralizada e intuitiva para realizar suas reservas, eliminando a
+dependência de e-mails e reduzindo os riscos de perda ou atraso nas confirmações. Além
+disso, o sistema permitirá à equipe responsável acompanhar e controlar todas as reservas,
+garantindo uma gestão eficaz dos transportes. O objetivo final é oferecer uma experiência
+conveniente e confiável para os usuários, agilizar o processo de reserva e facilitar o trabalho
+da equipe envolvida no gerenciamento dos transportes da Universidade.
+Para alcançar o objetivo geral descrito anteriormente, foram definidos os seguintes
+objetivos específicos:
+● Levantamento de requisitos onde serão identificadas e documentadas as necessidades
+e expectativas dos usuários e stakeholders.
+● Desenvolver uma interface de usuário intuitiva e amigável, que permita aos usuários
+realizarem reservas de transporte de forma fácil e rápida.
+● Criar um sistema de autenticação seguro para garantir que apenas usuários autorizados
+possam acessar e fazer reservas.
+● Implementar um banco de dados robusto para armazenar informações sobre
+motoristas, veículos, rotas, horários e reservas de transporte.
+● Estabelecer um fluxo de trabalho eficiente para o processamento das reservas,
+incluindo confirmação imediata e envio de notificações aos usuários.
+
+--- PAGE 17 ---
+
+● Integrar funcionalidades de acompanhamento em tempo real para que os usuários
+possam rastrear o status dos transportes reservados.
+● Desenvolver um painel de administração para que a equipe responsável possa
+gerenciar e monitorar todas as reservas de forma centralizada.
+● Implementar recursos de geração de relatórios e análises para fornecer informações
+úteis sobre o uso e desempenho dos transportes.
+● Garantir a escalabilidade do sistema, permitindo que mais veículos, rotas e usuários
+sejam adicionados no futuro, sem comprometer o desempenho.
+● Realizar testes em todas as funcionalidades do software, identificando e corrigindo
+quaisquer problemas ou erros.
+1.3 ORGANIZAÇÃO DO TRABALHO
+O presente trabalho está organizado da seguinte forma: no Capítulo 2, é apresentado o
+embasamento teórico e alguns trabalhos relacionados a esta pesquisa; no Capítulo 3, é
+apresentada a proposta de solução e os resultados alcançados; no Capítulo 4, são expostas as
+conclusões obtidas.
+2. FUNDAMENTAÇÃO TEÓRICA
+Neste capítulo serão discutidos alguns conceitos e termos importantes para o
+entendimento deste trabalho.
+2.1 TRANSPORTATION MANAGEMENT SYSTEM (TMS)
+De acordo com Oracle (2024), um Sistema de Gerenciamento de Transportes (TSM) é
+caracterizado como uma plataforma para planejar, executar e otimizar o translado de produtos,
+em um sistema de gerenciamento de mercadorias. Um TSM é importante, pois um
+planejamento e execução eficiente resulta em maior satisfação do cliente, o que impacta nas
+demais operações do negócio (Oracle, 2023).
+No contexto da proposta deste trabalho, um TSM está voltado para o translado de
+pessoas, em especial, representantes da comunidade acadêmica da instituição.
+
+--- PAGE 18 ---
+
+2.2 TECNOLOGIAS WEB
+Conforme Junior (2006), a Tecnologia Web foi introduzida em 1990 por Tim
+Berners-Lee, com propósito inicial do criador de montar um repositório de conhecimento
+humano. A Web oferece mecanismos para armazenar, recuperar e visualizar documentos
+digitais (páginas Web), em que os documentos são armazenados em servidores, podendo ser
+localizados, formando uma rede mundial de computadores, a World Wide Web — WWW ou
+Web (Junior, 2006; Xpeducacao, 2024). Uma ilustração do funcionamento da Web pode ser
+vista na Figura 1.
+Figura 1 - Funcionamento da Tecnologia Web para Acesso a um Web Site Tradicional
+Fonte: Zaneti, (2006, p. 3)
+Para o desenvolvimento de sistema para Web, algumas tecnologias fundamentais são
+comumente utilizadas (Zaneti, 2006):
+
+--- PAGE 19 ---
+
+● HTML ou Hypertext Markup Language: linguagem de marcação utilizada para
+representar a estrutura das páginas Web e relacionamentos com outros documentos
+(hiperlink).
+● CSS ou Cascading Style Sheets: Utilizado para definir a aparências das páginas.
+● JavaScript: linguagem utilizada para levar interatividade às páginas Web.
+2.3 METODOLOGIAS ÁGEIS
+De acordo com Soares (2004), as metodologias ágeis são uma resposta para os
+problemas apresentados pelas metodologias tradicionais (a exemplo do modelo em Cascata)
+de desenvolver softwares, tais como a entrega de produtos dentro do prazo e custos estimados.
+As metodologias ágeis de desenvolvimento recomendam o desenvolvimento baseado em
+modelos iterativos e incrementais, com foco no produto entregue (Soares, 2004).
+Algumas das principais metodologias ágeis são apresentadas a seguir (Soares, 2004):
+● Extreme Programming: é uma metodologia ágil voltada a equipes pequenas e médias,
+tendo como características o feedback constante, a abordagem incremental e o
+encorajamento da comunicação.
+● Scrum: é uma metodologia ágil bastante utilizada, que traz boas práticas do controle
+de processos industriais, tendo como bases a flexibilidade, a adaptabilidade e a
+produtividade.
+2.4 IMPACTOS DA AUTOMATIZAÇÃO DE PROCESSOS EM INSTITUIÇÕES
+PÚBLICAS
+A automatização de processos industriais é uma importante abordagem, que vem
+sendo utilizada pelas instituições públicas, auxiliando em atividades como a tomada de
+decisões rápidas e precisas, sendo possível dado o uso cada vez mais crescente da Tecnologia
+da Informação e Comunicação (TICs) na sociedade (Pessanha, 2022). O projeto para o uso de
+tecnologias nas organizações demanda um conhecimento do negócio, podendo auxiliar
+também no monitoramento e avaliação das operações da organização (Pessanha, 2022).
+
+--- PAGE 20 ---
+
+3. PROPOSTA DE SOLUÇÃO
+Neste capítulo é apresentada a proposta de solução deste trabalho. A Seção 3.1
+descreve o levantamento de requisitos para o desenvolvimento do sistema. Na Seção 3.2 é
+desenvolvido um diagrama de classe para facilitar no desenvolvimento do software. Na Seção
+3.3 irá mostrar protótipos do sistema, mostrando algumas telas e funcionalidades. Na Seção
+3.4 são discutidos os resultados alcançados.
+3.1 LEVANTAMENTO DE REQUISITOS
+Os requisitos estabelecem uma base para o desenvolvimento do sistema de software,
+definindo o que o sistema deve fazer e como ele deve se comportar (Valente, 2020). Os
+requisitos descrevem as necessidades e expectativas do usuário e outros stakeholders,
+identificando os requisitos funcionais e não-funcionais do sistema e estabelecendo critérios de
+aceitação para validar o atendimento às necessidades pelo sistema (Valente, 2020).
+Atores do sistema:
+Quadro 1 - Solicitante de Viagem
+Papel Solicitante
+Descrição Servidor técnico-administrativo ou docente que deseja reservar
+transporte para viagens de interesse da instituição.
+Insumos ao Fornecer demandas de informações disponibilizadas pelo sistema.
+Projeto
+Fonte: Autoria própria, (2023)
+
+--- PAGE 21 ---
+
+Quadro 2 - Chefe do setor
+Papel Chefe Setorial
+Descrição Chefe de setor responsável por aprovar solicitações de viagens no
+âmbito da sua instância.
+Insumos ao Fornecer demandas de informações disponibilizadas pelo sistema.
+Projeto
+Fonte: Autoria própria, (2023)
+Quadro 3 - Técnico de Transportes
+Papel Técnico de Transportes
+Descrição Servidor do setor de transportes responsável por realizar a
+alocação de motoristas e veículos.
+Insumos ao Fornecer demandas de informações disponibilizadas pelo sistema.
+Projeto
+Fonte: Autoria própria, (2023)
+
+--- PAGE 22 ---
+
+Quadro 4 - Diretor de Transportes
+Papel Diretor de Transportes
+Descrição Membro da gestão responsável por autorizar transporte das viagens
+solicitadas e monitorar estatísticas de gestão dos transportes.
+Insumos ao Fornecer demandas de informações disponibilizadas pelo sistema.
+Projeto
+Fonte: Autoria própria, (2023)
+REQUISITOS FUNCIONAIS:
+Quadro 5 - Solicitar Viagens
+RF001 O sistema deve permitir o cadastro de solicitações de viagens
+Detalhes O sistema deve apresentar um formulário para o usuário que deverá
+informar os dados necessários para solicitar transporte para uma
+determinada viagem.
+Dados data de início, data de término, data partida, data retorno, hora de
+início, hora de término, hora de partida, hora de retorno, número de
+pessoas, tipo de veículo, destino, roteiro, objetivo, finalidade, anexo
+Atores Solicitante
+Restrições 1. O cadastro de solicitações deve atender as restrições de
+prazo mínimo ou deverá ser atribuída uma multa.
+2. Perfil com permissão: Solicitante
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 23 ---
+
+Quadro 6 - Disponibilidade de Veículos
+RF002 O sistema deve permitir a consulta de disponibilidade de veículo
+Detalhes O sistema deve apresentar um formulário para o usuário que deverá
+preencher com as datas e horários com objetivo de verificar a
+disponibilidade de veículos.
+Dados número de pessoas, tipo de veículo, data partida, hora partida, data
+chegada, hora chegada
+Atores Técnico de Transportes, Diretor de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+Quadro 7 - Cadastrar Categorias de Transportes
+RF003 O sistema deve permitir o cadastro de categorias de transporte
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para registro de categorias de
+transportes utilizados pela instituição.
+Dados código, nome da categoria, ativo?, número máximo de passageiros.
+Atores Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 24 ---
+
+Quadro 8 - Cadastrar Setores
+RF004 O sistema deve permitir o cadastro de setores
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para o cadastro de setores da
+instituição que podem solicitar viagens.
+Dados código, nome do setor, sigla, setor pai, chefe, vice-chefe, secretário,
+telefone, email, quota, solicitações por dia, número de agendamentos.
+Atores Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 25 ---
+
+Quadro 9 - Cadastrar Veículos
+RF005 O sistema deve permitir o cadastro de veículos
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para o registro de veículos que serão
+alocados para viagens.
+Dados código, placa, modelo, descrição, se estar ativo, número de
+passageiros, marca, modelo, combustível, cor, categoria, tipo,
+prioridade
+Atores Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes
+Pré-condições A categoria do transporte deverá estar cadastrada no sistema.
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 26 ---
+
+Quadro 10 - Cadastro de Custo
+RF006 O sistema deve permitir o cadastro de custo do transporte
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários sobre o custo de referência para o uso
+de um transporte específico.
+Dados valor por km, data registro, data vigência
+Atores Diretor de Transportes, Técnico de Transportes
+Restrições Perfil com permissão: Diretor de Transportes, Técnico de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 27 ---
+
+Quadro 11 - Cadastro de Motoristas
+RF007 O sistema deve permitir o cadastro de motoristas da instituição.
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para o cadastro dos motoristas da
+instituição com informações para contato e habilitações.
+Dados código, nome, cpf, telefone, categoria CNH, vencimento CNH, ativo?,
+tipo de motorista
+Atores Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 28 ---
+
+Quadro 12 - Cadastro de Chefe de Setor
+RF008 O sistema deve permitir o cadastro dos chefes de setores que podem
+aprovar solicitações de viagens do setor.
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para o cadastro do chefe de um setor
+específico.
+Dados cpf, nome, senha, ativo?, setor, função, email
+Atores Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes
+Pré-condiçõe O setor do servidor cadastrado deverá estar cadastrado no sistema.
+s
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 29 ---
+
+Quadro 13 - Listar Solicitações do Setor
+RF009 O sistema deve exibir uma lista de solicitações de viagem para
+aprovação do chefe do setor.
+Detalhes O sistema deve exibir uma tabela conforme as datas de solicitações de
+viagem e uma lista com todas as solicitações em processo de cadastro.
+Dados nº/ano, data, setor, destino, partida, chegada
+Atores Chefe do Setor
+Restrições Perfil com permissão: Chefe do Setor
+Importância ALTA
+Observações Ao selecionar a viagem devem ser exibidos os detalhes da viagem e um
+campo para justificativa para não aprovar ou devolver para correção.
+Fonte: Autoria própria, (2023)
+
+--- PAGE 30 ---
+
+Quadro 14 - Alocar Veículo em Viagem
+RF010 O sistema deve permitir a alocação do veículo do motorista para a
+viagem.
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+alocar o veículo e os motoristas da viagem.
+Dados viagem com diária?, tipo de veículo, veículo, motorista 1, motorista 2
+Atores Técnico de Transportes, Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes, Técnico de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 31 ---
+
+Quadro 15 - Prestação de Contas da Viagem
+RF011 O sistema deve permitir a prestação de contas da viagem
+Detalhes O sistema deve exibir uma tabela com as viagens concluídas pendentes
+de prestação de contas e um formulário para inclusão de dados sobre
+a realização da viagem.
+Dados nº/ano, data, setor, destino, partida, chegada, veículo, viagem foi
+realizada?, km rodados, custo da viagem, observações.
+Atores Técnico de Transportes, Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes, Técnico de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 32 ---
+
+Quadro 16 - Consultar Viagem
+RF012 O sistema deve permitir a consulta de viagens.
+Detalhes O sistema deve exibir um formulário para que o usuário possa
+realizar consultas de viagens cadastradas.
+solicitação (nº/ano), destino, solicitação para correção?, situação, data
+Dados
+inicial, data final.
+Atores Solicitante, Chefe de Setor, Técnico de Transportes, Diretor de
+Transportes
+Restrições Perfil com permissão: Todos
+Importância ALTA
+Observações O resultado deve ser exibido em uma tabela com os seguintes dados:
+nº/ano, data solicitação, setor, destino, data partida, data chegada, tipo
+de veículo, situação.
+Fonte: Autoria própria, (2023)
+
+--- PAGE 33 ---
+
+Quadro 17 - Reservar Veículo
+RF013 O sistema deve permitir a reserva de veículos para um determinado
+período.
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para reserva de veículos onde deve ser
+informado o período pelo qual o veículo não poderá ser alocado para
+novas viagens.
+Dados ano, data da reserva, descrição, tipo de reserva, setor solicitante, data
+de início, data fim
+Atores Técnico de Transportes, Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes, Técnico de Transportes
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 34 ---
+
+Quadro 18 - Exibir Dashboard
+RF014 O sistema deve exibir uma dashboard com os números de solicitações
+de viagem em cada etapa do fluxo.
+Detalhes O sistema deve exibir um resumo quantitativo das solicitações de
+viagens no formato de dashboard indicando o número de solicitações
+em cada etapa\ do fluxo que são: abertura da solicitação > aprovação
+do chefe do setor > aprovação do transporte > aprovação da despesa >
+aguardando viagem > viagem sendo realizada > prestação de contas >
+viagem concluída.
+Atores Chefe do Setor, Técnico de Transportes, Diretor de Transportes
+Restrições Perfil com permissão: Diretor de Transportes, Técnico de Transportes,
+Chefe do Setor
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 35 ---
+
+Quadro 19 - Solicitações Recentes
+RF015 O sistema deve exibir a lista das últimas solicitações de viagem.
+Detalhes O sistema deve listar em uma tabela todas viagens solicitadas
+ordenadas por data de solicitação.
+Dados nº/ano, data solicitação, destino, data partida, data chegada, tipo de
+veículo, situação, próximo passo.
+Atores Técnico de Transportes, Diretor de Transportes, Chefe do Setor
+Restrições Perfil com permissão: Diretor de Transportes, Técnico de
+Transportes, Chefe do Setor
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 36 ---
+
+Quadro 20 - Solicitações do Servidor
+RF016 O sistema deve exibir a lista das últimas solicitações de viagem do
+servidor.
+Detalhes O sistema deve listar em uma tabela todas as viagens realizadas
+ordenadas por data de solicitação com a opção de gerar relatório para
+diárias.
+Dados nº/ano, data solicitação, setor, destino, data partida, tipo de veículo,
+motorista
+Atores Solicitante
+Restrições Perfil com permissão: Solicitante
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 37 ---
+
+Quadro 21 - Gerar Relatório
+RF017 O sistema deve permitir a geração do relatório de diárias do
+solicitante.
+Detalhes O sistema deve exibir um resumo da viagem realizada e um
+formulário onde o usuário deverá informar o Nº da PCDP.
+Dados Nº da PCDP
+Atores Solicitante
+Restrições Perfil com permissão: Solicitante
+Importância ALTA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 38 ---
+
+Quadro 22 - Gerar Relatório em Planilha
+RF018 O sistema deve permitir a geração de relatórios nos formatos de
+planilha e documento.
+Detalhes O sistema deve gerar relatórios com todos os dados em diferentes
+perspectivas, disponibilizando o download em formato de planilha
+(.xlsx) ou documento (.pdf).
+Atores Técnico de Transportes, Diretor de Transportes
+Restrições Perfil com permissão: Técnico de Transportes, Diretor de Transportes
+Importância ALTA
+Observações Os relatórios são:
+· Relatório de todas as Viagens realizadas por setor
+· Relatório de alocação orçamentária por setor (em qual
+momento é cadastrada essa quota?)
+· Resumo de Viagens realizadas por setor
+· Resumo de Viagens Realizadas por Veículos em (ANO)
+· Resumo de Viagens de Motoristas por Mês no Ano
+· Extrato de Alocação Orçamentária por Setor
+· Relatório de Viagens Realizadas por Finalidade em (ANO)
+· Relatório de Multas Aplicadas por Setor em (ANO)
+Fonte: Autoria própria, (2023)
+
+--- PAGE 39 ---
+
+Quadro 23 - Movimentações de Motoristas
+RF019 O sistema deve permitir o registro de movimentações de motoristas.
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para o cadastro de uma nova
+movimentação de motorista. As movimentaçoẽs estão relacionadas a
+folgas, licenças ou férias.
+Atores Técnico de Transportes, Diretor de Transportes
+Restrições Perfis com permissão: Técnico de Transportes, Diretor de Transportes
+Importância MODERADA
+Fonte: Autoria própria, (2023)
+REQUISITOS NÃO-FUNCIONAIS:
+Quadro 24 - Cadastro de Usuário
+RNF001 O sistema deve possuir um cadastro de usuários.
+Detalhes O sistema deve exibir um formulário para o usuário que deverá
+informar os dados necessários para o cadastro de um novo usuário
+com seu respectivo perfil que definirá suas permissões no sistema.
+Restrições Apenas usuário com nível de administrador poderá realizar esta
+operação.
+Importância MODERADA
+Fonte: Autoria própria, (2023)
+
+--- PAGE 40 ---
+
+3.2 MODELAGEM
+O sistema de gestão de transporte apresentado é composto por várias classes que
+representam diferentes entidades e suas relações (Figura 2). A classe principal é a “Usuario”,
+que possui atributos como id, nome, usuário, senha, entre outros. Existem subclasses como
+“DiretorTransporte”, “TecnicoTransporte”, “Solicitante” e “ChefeSetor”, cada uma
+representando um papel específico no sistema.
+Outras classes incluem “Solicitacao”, que representa uma solicitação de viagem, e
+Viagem, que representa uma viagem solicitada. Existem também as classes “Veiculo” e
+“Motorista”, que representam os veículos e motoristas disponíveis para as viagens.
+As setas entre as classes representam as relações entre elas, como herança, associação
+e dependência. Por exemplo, um “Solicitante” pode enviar várias “Solicitacoes”, e uma
+Viagem pode solicitar um veículo e um motorista.
+Essas classes e suas relações formam a estrutura básica do sistema de gestão de
+transporte, permitindo o registro e a organização de solicitações de viagem, alocação de
+veículos e motoristas, e a gestão geral das operações de transporte.
+
+--- PAGE 41 ---
+
+Figura 2 - Diagrama de Classes
+Fonte: Autoria própria, (2023)
+
+--- PAGE 42 ---
+
+O diagrama da Figura 3 descreve os casos de uso do sistema, em que o solicitante
+pode: realizar o login no sistema; entrar na parte de solicitar viagem para visualizar os
+veículos disponíveis; enviar a solicitação para o sistema. Por sua vez, o chefe de setor pode
+visualizar sua solicitação e respondê-la. Este diagrama foi criado usando o Draw.io e segue a
+metodologia de modelagem Unified Modeling Language (UML), caracterizando uma
+interação entre o solicitante e o sistema para realizar uma viagem.
+Figura 3 - Diagrama de Caso de Uso
+Fonte: Autoria própria, (2023)
+O diagrama de sequência da Figura 4 descreve a interação entre o solicitante, o
+sistema de gerenciamento de transportes e o chefe de setor. Inicialmente, o solicitante realiza
+o login no sistema, recebendo uma confirmação após a autenticação bem-sucedida. Em
+seguida, ele visualiza a lista de veículos disponíveis para a solicitação de viagem. Após
+selecionar um veículo, o solicitante envia a solicitação ao sistema. Paralelamente, o chefe de
+setor realiza o login, confirmando sua autenticação no sistema. Ele então acessa a lista de
+solicitações pendentes e responde à solicitação do solicitante. O sistema atualiza o status da
+viagem, que é então visualizado pelo solicitante para acompanhar o progresso da solicitação.
+
+--- PAGE 43 ---
+
+Figura 4 - Diagrama de Sequência
+Fonte: Autoria própria, (2023)
+
+--- PAGE 44 ---
+
+3.3 PROTÓTIPO DO SISTEMA
+A imagem da Figura 5 representa a interface de acesso ao sistema, em que os usuários
+podem inserir suas informações de login, como nome de usuário e senha, para acessar a
+plataforma de forma segura e conveniente.
+Figura 5 - Tela de Login
+Fonte: Autoria própria, (2023)
+
+--- PAGE 45 ---
+
+A tela da Figura 6 retrata a interface na qual os usuários podem preencher informações
+necessárias para se cadastrar no sistema. Essa tela permite que novos usuários ingressem no
+sistema fornecendo dados como nome, e-mail, senha e outras informações relevantes.
+Figura 6 - Tela de Cadastro
+Fonte: Autoria própria, (2023)
+
+--- PAGE 46 ---
+
+A tela da Figura 7 exibe um dashboard com várias informações importantes para os
+usuários. Isso inclui solicitações recentes, gastos com diárias e um gráfico que ilustra quais
+campi têm mais solicitações. Esses elementos visuais oferecem uma visão rápida e concisa do
+status atual das atividades no sistema, permitindo que os usuários identifiquem tendências e
+tomem decisões informadas com base nos dados apresentados.
+Figura 7 - Tela Home do Sistema
+Fonte: Autoria própria, (2023)
+
+--- PAGE 47 ---
+
+A Tela da Figura 8 apresenta um quadro que exibe todas as viagens cadastradas no
+sistema, fornecendo uma visão geral das informações relacionadas a cada viagem. Além
+disso, há um formulário disponível para cadastrar novas viagens, permitindo que os usuários
+adicionem novos registros ao sistema. Essa tela oferece uma maneira conveniente e
+organizada de gerenciar todas as viagens, tanto as existentes quanto as futuras.
+Figura 8 - Tela de Viagens
+Fonte: Autoria própria, (2023)
+
+--- PAGE 48 ---
+
+A Figura 9 apresenta uma tabela que exibe todos os veículos cadastrados no sistema,
+fornecendo uma visão geral das informações relacionadas a cada veículo. Além disso, há um
+formulário disponível para cadastrar novos veículos, permitindo que os usuários adicionem
+facilmente novos registros ao sistema. Essa tela oferece uma maneira conveniente e
+organizada de gerenciar todos os veículos, tanto os existentes quanto os novos que serão
+adicionados.
+Figura 9 - Tela de Veículos
+Fonte: Autoria própria, (2023)
+
+--- PAGE 49 ---
+
+A tela da Figura 10 mostra uma tabela contendo todas as categorias existentes no
+sistema, oferecendo uma visão geral das informações relacionadas a cada categoria. Além
+disso, há um formulário disponível para cadastrar novas categorias, permitindo que os
+usuários adicionem novos registros ao sistema. Essa tela fornece uma maneira de gerenciar as
+categorias, tanto as existentes quanto as novas que serão adicionadas.
+Figura 10 - Tela de Categorias
+Fonte: Autoria própria, (2023)
+
+--- PAGE 50 ---
+
+A tela da Figura 11 exibe uma tabela com todos os motoristas cadastrados no sistema,
+proporcionando uma visão geral das informações de cada motorista, como nome, CPF,
+telefone, categoria da CNH, vencimento da CNH, status, entre outros. Além disso, há um
+formulário disponível para adicionar um novo motorista ao sistema, facilitando o processo de
+inclusão de novos registros. Essa tela oferece uma maneira de gerenciar os motoristas dentro
+do sistema.
+Figura 11 - Tela de Motoristas
+Fonte: Autoria própria, (2023)
+
+--- PAGE 51 ---
+
+3.4 DISCUSSÃO DOS RESULTADOS
+A análise dos resultados esperados do sistema de gerenciamento de transportes revela
+um panorama promissor em relação aos objetivos propostos. A simulação dos processos e os
+estudos preliminares indicam que o sistema proposto pode potencialmente proporcionar
+melhorias substanciais na eficiência operacional, especialmente, no que diz respeito à redução
+das perdas de reservas e à otimização do tempo durante o processo de reserva.
+Embora não se tenham ainda dados concretos de feedback dos usuários, as simulações
+indicam que o sistema tem o potencial de oferecer uma experiência mais fluida e eficiente
+para os usuários, com uma interface mais intuitiva e processos simplificados de reserva. Isso é
+fundamental para garantir uma aceitação positiva e uma experiência aprimorada em termos de
+usabilidade e clareza do processo de reserva.
+Em relação à gestão de transportes, as projeções sugerem que o sistema poderá
+permitir uma alocação mais precisa e eficiente dos veículos, potencialmente resultando em
+uma redução dos conflitos de horários e uma utilização mais eficiente dos recursos de
+transporte disponíveis.
+No entanto, é importante ressaltar que a eficácia do sistema ainda precisa ser validada
+por meio da implementação real e da coleta de feedbacks dos usuários. Essa etapa é crucial
+para identificar possíveis desafios, ajustes necessários e áreas de melhoria. Portanto, a
+continuidade na análise e no planejamento, juntamente com a futura coleta de feedbacks e a
+aplicação de melhorias iterativas, será fundamental para garantir o sucesso e a eficácia do
+sistema de gerenciamento de transportes na universidade.
+Em resumo, embora ainda estejamos na fase de análise e planejamento, os resultados
+preliminares sugerem que o sistema tem potencial para atender às expectativas e oferecer
+melhorias significativas na eficiência operacional e na experiência dos usuários. A próxima
+etapa crítica será a implementação e a validação real do sistema, seguida pela coleta de
+feedbacks e iterações para garantir seu alinhamento contínuo com as necessidades da
+comunidade universitária.
+
+--- PAGE 52 ---
+
+4. CONSIDERAÇÕES FINAIS
+Durante o desenvolvimento deste projeto, buscou-se implementar um sistema de
+gerenciamento de transporte para a Universidade Federal Rural do Semi-Árido, Campus Pau
+dos Ferros. A necessidade de melhorar o processo de reserva de transportes ficou evidente
+devido às limitações do método existente, baseado em e-mails, que frequentemente resultava
+em perdas de reservas e insatisfação dos usuários. O foco da proposta foi desenvolver uma
+solução que potencialmente proporcionasse uma experiência mais eficiente e satisfatória para
+a comunidade acadêmica.
+Durante o planejamento e desenvolvimento, identificou-se várias áreas de melhoria e
+inovação. Optamos por uma abordagem que utilizou o framework Bootstrap para construir
+uma interface de usuário intuitiva e responsiva. Acredita-se que essa escolha tecnológica pode
+ser crucial para oferecer aos usuários uma maneira simplificada e ágil de efetuar suas
+reservas.
+Embora o sistema ainda não tenha sido implantado na universidade e não tenhamos
+coletado feedback dos usuários finais, a proposta de solução foi avaliada por meio de testes
+internos e simulações. Essas etapas nos permitiram fazer melhorias iterativas e garantir que o
+sistema atendesse às necessidades identificadas durante o processo de desenvolvimento.
+Em suma, embora a implementação real e a coleta de feedback dos usuários finais
+sejam etapas cruciais que ainda não foram realizadas, a fase de planejamento e
+desenvolvimento deste sistema de gerenciamento de transporte representa um passo
+importante na modernização dos serviços oferecidos pela Universidade. Esperamos que essa
+iniciativa possa, no futuro, inspirar outras instituições a considerar soluções inovadoras para
+seus próprios desafios de gerenciamento de transporte, contribuindo assim para um ambiente
+acadêmico mais eficiente, organizado e satisfatório para todos os seus membros.
+
+--- PAGE 53 ---
+
+REFERÊNCIAS
+Bootstrap. Disponível em: https://getbootstrap.com/docs/5.3/getting-started/introduction/.
+Acesso em: 23, abril de 2024.
+Junior, L. A., Z; Vida, A. G. da R. Construção de sistemas de informação baseados na
+Tecnologia Web. Revista de Administração, [S. l.], v. 41, n. 3, p. 232-244, 2006.
+Oracle. O que é um sistema de gerenciamento de transportes, Oracle, 2023. Disponível
+em:https://www.oracle.com/br/scm/logistics/transportation-management/what-is-transportatio
+n-management-system/ , Acesso em: 13, Julho, 2023.
+Pessanha, A. de Queiroz; Corrêa, J.A.M; Casarotto, E. L. O impacto da automatização de
+processos em instituições públicas. Encontro Internacional de Gestão, Desenvolvimento e
+Inovação (Eigedin), v. 6, n. 1, 14 nov. 2022.
+Pressman, Roger S. Engenharia de Software: Uma Abordagem Profissional. 8ª edição. Editora
+McGraw-Hill, 2016.
+Soares, Michel dos Santos. Metodologias Ágeis Extreme Programming e Scrum para o
+Desenvolvimento de Software. Revista Eletrônica de Sistemas de Informação, [S.l.], v. 3,
+n. 1, june 2004. ISSN 1677-3071.
+Valente, Marco Tulio. Engenharia de software moderna. Princípios e Práticas para
+Desenvolvimento de Software com Produtividade, v. 1, p. 24, 2020.
+Xpeducacao. Desenvolvimento web: TUDO o que você precisa saber!, Xp Educação, 2023.
+Disponível em: https://blog.xpeducacao.com.br/desenvolvimento-web. Acesso em: 06, abril
+de 2024.
