@@ -40,8 +40,11 @@ describe('PlanLimitService', () => {
     it('should return start = subscription.startDate and end = expiresAt (term spans a mid-cycle upgrade)', async () => {
       // startDate is the original enrolment; expiresAt was pushed forward by a
       // later plan change — the term window must still start at enrolment.
-      const startDate = new Date(Date.UTC(2026, 4, 24, 16, 46, 0)); // 2026-05-24
-      const expiresAt = new Date(Date.UTC(2026, 6, 3, 16, 52, 0)); // 2026-07-03 (40d span)
+      // Dates are relative to now so the subscription stays active (not lazily
+      // expired) regardless of when the suite runs.
+      const now = Date.now();
+      const startDate = new Date(now - 40 * 24 * 60 * 60 * 1000); // enrolled 40d ago
+      const expiresAt = new Date(now + 10 * 24 * 60 * 60 * 1000); // expires in 10d
 
       mocks.subscriptionRepository.findActiveByOrganizationId.mockResolvedValue(
         makeSubscription({
