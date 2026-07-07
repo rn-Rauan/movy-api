@@ -18,7 +18,9 @@
       "PowerShell(docker exec movy_db *)",
       "Bash(pdflatex --version)",
       "Bash(bibtex --version)",
-      "PowerShell($paths = @\\(\"$env:LOCALAPPDATA\\\\Programs\\\\MiKTeX\\\\miktex\\\\bin\\\\x64\\\\pdflatex.exe\", \"C:\\\\Program Files\\\\MiKTeX\\\\miktex\\\\bin\\\\x64\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2024\\\\bin\\\\windows\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2025\\\\bin\\\\windows\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2026\\\\bin\\\\windows\\\\pdflatex.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\" } }; try { \\(Get-Command pdflatex -ErrorAction Stop\\).Source } catch { Write-Output \"pdflatex not in PATH\" })"
+      "PowerShell($paths = @\\(\"$env:LOCALAPPDATA\\\\Programs\\\\MiKTeX\\\\miktex\\\\bin\\\\x64\\\\pdflatex.exe\", \"C:\\\\Program Files\\\\MiKTeX\\\\miktex\\\\bin\\\\x64\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2024\\\\bin\\\\windows\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2025\\\\bin\\\\windows\\\\pdflatex.exe\", \"C:\\\\texlive\\\\2026\\\\bin\\\\windows\\\\pdflatex.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\" } }; try { \\(Get-Command pdflatex -ErrorAction Stop\\).Source } catch { Write-Output \"pdflatex not in PATH\" })",
+      "Bash(python \"C:\\\\Users\\\\rauan\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-rauan-Documents-GitHub-movy-api\\\\72742f61-7eb7-411c-85d5-8156de00ff53\\\\scratchpad\\\\check_tex.py\")",
+      "Bash(python -)"
     ]
   }
 }

@@ -365,6 +365,21 @@ export class PrismaTripInstanceRepository implements TripInstanceRepository {
     return rows.map((row) => TripInstanceMapper.toDomain(row));
   }
 
+  async findStaleOpenInstances(
+    organizationId: string,
+    threshold: Date,
+  ): Promise<TripInstance[]> {
+    const rows = await this.db.tripInstance.findMany({
+      where: {
+        organizationId,
+        departureTime: { lte: threshold },
+        tripStatus: { in: ['DRAFT', 'SCHEDULED', 'CONFIRMED'] },
+        forceConfirm: false,
+      },
+    });
+    return rows.map((row) => TripInstanceMapper.toDomain(row));
+  }
+
   /**
    * Idempotency check for the recurring-generation cron: returns `true` if any
    * TripInstance already exists for the given template within the UTC day window.

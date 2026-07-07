@@ -16,6 +16,7 @@ import { makePayment } from '../../../payment/factories/payment.factory';
 function makeMocks() {
   const tripInstanceRepository = {
     findExpiredOpenInstances: jest.fn(),
+    findStaleOpenInstances: jest.fn().mockResolvedValue([]),
     update: jest.fn(),
   } as unknown as jest.Mocked<TripInstanceRepository>;
 

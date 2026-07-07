@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OrganizationRepository } from 'src/modules/organization/domain/interfaces/organization.repository';
 import { PaymentRepository } from 'src/modules/payment/domain/interfaces/payment.repository';
+import { PaymentStatus } from 'src/modules/payment/domain/interfaces/enums/payment-status.enum';
 import { UnitOfWork } from 'src/shared/domain/interfaces/unit-of-work';
 import { TripInstanceRepository, TripStatus } from '../../domain/interfaces';
+
+const STALE_TRIP_TOLERANCE_MS = 24 * 60 * 60 * 1000;
 
 /** Result aggregate returned by {@link CancelExpiredTripInstancesUseCase.execute}. */
 export interface CancelExpiredTripInstancesResult {
@@ -37,6 +40,7 @@ export class CancelExpiredTripInstancesUseCase {
 
   async execute(): Promise<CancelExpiredTripInstancesResult> {
     const now = new Date();
+    const staleThreshold = new Date(now.getTime() - STALE_TRIP_TOLERANCE_MS);
     const organizations =
       await this.organizationRepository.findAllActiveUnpaginated();
 
@@ -46,26 +50,48 @@ export class CancelExpiredTripInstancesUseCase {
     for (const org of organizations) {
       const expired =
         await this.tripInstanceRepository.findExpiredOpenInstances(org.id, now);
+      const stale = await this.tripInstanceRepository.findStaleOpenInstances(
+        org.id,
+        staleThreshold,
+      );
+      const expiredIds = new Set(expired.map((instance) => instance.id));
+      const candidates = new Map(
+        [...expired, ...stale].map((instance) => [instance.id, instance]),
+      ).values();
 
-      for (const instance of expired) {
+      for (const instance of candidates) {
         try {
           // One transaction per instance — the trip flip and its payment
           // cascade succeed or roll back together, but one stuck row still
           // does not abort the sweep for the rest of the org.
-          await this.unitOfWork.execute(async () => {
-            instance.transitionTo(TripStatus.CANCELED);
-            await this.tripInstanceRepository.update(instance);
-
+          const wasCanceled = await this.unitOfWork.execute(async () => {
             const payments =
               await this.paymentRepository.findNonFailedByTripInstanceId(
                 instance.id,
               );
+
+            if (
+              !expiredIds.has(instance.id) &&
+              payments.some(
+                (payment) => payment.status === PaymentStatus.COMPLETED,
+              )
+            ) {
+              return false;
+            }
+
+            instance.transitionTo(TripStatus.CANCELED);
+            await this.tripInstanceRepository.update(instance);
+
             for (const payment of payments) {
               payment.fail();
               await this.paymentRepository.update(payment);
             }
+
+            return true;
           });
-          canceled++;
+          if (wasCanceled) {
+            canceled++;
+          }
         } catch (err) {
           failed++;
           this.logger.error(

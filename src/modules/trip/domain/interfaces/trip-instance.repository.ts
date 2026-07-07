@@ -188,6 +188,11 @@ export abstract class TripInstanceRepository {
     threshold: Date,
   ): Promise<TripInstance[]>;
 
+  abstract findStaleOpenInstances(
+    organizationId: string,
+    threshold: Date,
+  ): Promise<TripInstance[]>;
+
   /**
    * Checks whether a TripInstance already exists for the given template + departure
    * date (UTC day window). Used by the recurring-generation cron to keep generation
