@@ -21,8 +21,12 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 XLSX = os.path.join(AQUI, "..", "Avaliação exploratória do sistema Movy (respostas).xlsx")
 SAIDA = os.path.join(AQUI, "grafico-likert.png")
 
-# Resposta 11 (2026-07-04 20:54): respostas abertas incoerentes -> descartada.
-LINHAS_EXCLUIDAS = {10}
+# Resposta 11 (2026-07-04 20:54): so as respostas ABERTAS eram descartadas na
+# limpeza (texto incompativel com o questionario). Os itens FECHADOS (escala
+# Likert) sao coerentes e
+# permanecem validos, entao nenhuma linha e excluida do calculo (as 19 contam).
+# As respostas abertas dessa resposta seguem descartadas apenas na analise qualitativa.
+LINHAS_EXCLUIDAS = set()
 
 COLS_LIKERT = list(range(21, 29))
 ROTULOS = [
