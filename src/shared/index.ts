@@ -11,6 +11,7 @@ export * from './domain/entities/value-objects';
 export * from './infrastructure/database/mappers/role.mapper';
 export * from './infrastructure/database/repositories/prisma-role.repository';
 export * from './infrastructure/database/transaction-manager';
+export * from './infrastructure/email/resend-email.service';
 
 // Presentation
 export * from './presentation/dtos/paginated.dto';

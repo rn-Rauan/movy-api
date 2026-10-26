@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 
 import { PrismaModule } from './infrastructure/database/prisma.module';
 import { JwtAuthGuard } from './infrastructure/guards/jwt.guard';
@@ -12,6 +13,7 @@ import { DevGuard } from './infrastructure/guards/dev.guard';
 import { EmailService } from './infrastructure/email/email.service.interface';
 import { ConsoleEmailService } from './infrastructure/email/console-email.service';
 import { InMemoryEmailLog } from './infrastructure/email/in-memory-email-log';
+import { ResendEmailService } from './infrastructure/email/resend-email.service';
 import { DevEmailsController } from './presentation/controllers/dev-emails.controller';
 
 /**
@@ -45,7 +47,23 @@ import { DevEmailsController } from './presentation/controllers/dev-emails.contr
     BcryptHashProvider,
     TenantFilterGuard,
     InMemoryEmailLog,
-    { provide: EmailService, useClass: ConsoleEmailService },
+    {
+      provide: EmailService,
+      useFactory: (
+        configService: ConfigService,
+        emailLog: InMemoryEmailLog,
+      ): EmailService => {
+        const apiKey = configService.get<string>('RESEND_API_KEY');
+        const fromEmail = configService.get<string>('RESEND_FROM_EMAIL');
+
+        if (apiKey && fromEmail) {
+          return new ResendEmailService(configService);
+        }
+
+        return new ConsoleEmailService(emailLog);
+      },
+      inject: [ConfigService, InMemoryEmailLog],
+    },
   ],
   exports: [
     PrismaModule,

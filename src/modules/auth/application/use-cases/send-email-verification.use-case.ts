@@ -34,14 +34,15 @@ export class SendEmailVerificationUseCase {
   ): Promise<void> {
     const token = EmailVerificationToken.create(userId);
     await this.tokenRepository.save(token);
+    const frontendBaseUrl = process.env.FRONTEND_BASE_URL ?? 'http://localhost:8080';
+    const verifyUrl = `${frontendBaseUrl}/verify-email?token=${encodeURIComponent(token.rawToken!)}`;
 
     const rawToken = token.rawToken!;
     const subject = 'Confirme seu email — Movy';
     const body =
       `Olá ${recipientName},\n\n` +
-      `Confirme seu email no Movy clicando no link abaixo ou usando o token ` +
-      `no aplicativo:\n\n` +
-      `Token: ${rawToken}\n\n` +
+      `Clique no link abaixo para confirmar seu e-mail:\n\n` +
+      `${verifyUrl}\n\n` +
       `O token expira em 24 horas. Se você não criou a conta, ignore este email.\n`;
 
     await this.emailService.send(recipient, subject, body, {
